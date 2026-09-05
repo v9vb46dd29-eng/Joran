@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e6a7e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Joran">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Joran — Bielersee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#e9edee; --ink:#14262c; --water:#0e6a7e; --water-d:#0a4e5d;
+  --jura:#4a6b57; --warn:#b4531f; --muted:#7a8b90; --line:#c8d4d6; --card:#fff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums; line-height:1.45; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 56px}
+h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0}
+h2{font-size:.95rem;font-weight:600;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+p{margin:.4em 0}
+small{color:var(--muted)}
+
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 0 14px}
+header .sub{font-size:.8rem;color:var(--muted)}
+
+.trigger{
+  display:block;width:100%;padding:14px;margin:4px 0 20px;
+  background:var(--ink);color:#fff;border:0;border-radius:3px;
+  font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;
+}
+.trigger:hover{background:var(--water-d)}
+.trigger:disabled{background:var(--muted);cursor:progress}
+.trigger:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+
+/* Verdict */
+.verdict{padding:20px;border-radius:3px;color:#fff;background:var(--muted)}
+.verdict.go{background:var(--water)}
+.verdict.maybe{background:var(--jura)}
+.verdict.stop{background:#41565d}
+.verdict.danger{background:var(--warn)}
+.verdict .word{font-size:2rem;font-weight:800;letter-spacing:-.03em;line-height:1.05;display:block}
+.verdict .why{font-size:.9rem;opacity:.92;margin-top:8px}
+.verdict .basis{font-size:.75rem;opacity:.75;margin-top:10px}
+
+/* Rows */
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .nm{flex:1;min-width:0}
+.row .nm b{font-weight:600}
+.row .nm em{font-style:normal;color:var(--muted);font-size:.75rem;display:block}
+.val{font-weight:600;white-space:nowrap}
+.val.off{color:var(--muted);font-weight:400}
+.val.on{color:var(--water)}
+.arrow{display:inline-block;width:14px;height:14px;vertical-align:-2px}
+.arrow path{fill:currentColor}
+.dim{color:var(--muted)}
+
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--water);padding:12px 14px;border-radius:0 3px 3px 0;font-size:.85rem}
+.note.bad{border-left-color:var(--warn)}
+.note ul{margin:6px 0 0;padding-left:18px}
+
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:.72rem;padding:0 0 6px}
+td{padding:7px 0;border-top:1px solid var(--line)}
+td.n{text-align:right;white-space:nowrap}
+
+.day{padding:12px 0;border-bottom:1px solid var(--line)}
+.day-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.day-head b{font-weight:600}
+.tag{font-size:.75rem;padding:2px 7px;border-radius:2px;border:1px solid currentColor;white-space:nowrap}
+.tag.go{color:var(--water);background:#0e6a7e12}
+.tag.maybe{color:var(--jura)}
+.tag.stop{color:var(--muted)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:.75rem;padding:4px 9px;border:1px solid var(--line);border-radius:2px;background:var(--card);text-decoration:none;color:var(--ink)}
+.chip.ok{border-color:var(--water);color:var(--water)}
+.chip.fail{border-color:var(--warn);color:var(--warn)}
+
+svg.chart{width:100%;height:170px;display:block;background:var(--card);border:1px solid var(--line);border-radius:3px}
+details{margin-top:14px;font-size:.85rem}
+summary{cursor:pointer;color:var(--muted)}
+.skel{color:var(--muted);font-size:.9rem;padding:18px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>Joran</h1>
+    <div class="sub">Bielersee — Vingelz, Biel, Ipsach</div>
+  </div>
+  <div class="sub" id="stamp">noch nicht geladen</div>
+</header>
+
+<button class="trigger" id="go">Prognose laden</button>
+
+<div id="out"><div class="skel">Modelle und Messwerte werden geholt …</div></div>
+
+<h2>Direktlinks</h2>
+<div class="chips">
+  <a class="chip" href="https://vingelz.meteobase.ch/" target="_blank" rel="noopener">Vingelz live</a>
+  <a class="chip" href="https://wsa-ipsach.meteobase.ch/" target="_blank" rel="noopener">Ipsach live</a>
+  <a class="chip" href="https://www.windguru.cz/56996" target="_blank" rel="noopener">Windguru</a>
+  <a class="chip" href="https://www.meteoschweiz.admin.ch/service-und-publikationen/applikationen/niederschlag.html" target="_blank" rel="noopener">Radar</a>
+</div>
+
+<details>
+<summary>Methode und Schwellen</summary>
+<p><b>Regel E</b> (retrospektiv an 1030 Abenden geprüft, 69 % Treffer, 78 % Erfassung): Wind im Sektor 270–350°, Mittelwind ≥ 10 kn über ≥ 30 zusammenhängende Minuten, dabei zunehmend, und keine Böenfront-Merkmale.</p>
+<p><b>Zwei Massstäbe, nicht vermischen.</b> Cressier ist eine Landstation und misst systematisch weniger als der See: dort gelten 12 kn = foilbar, 9 kn = knapp. Die Modellwerte gelten für den Seepunkt, dort gelten 14 kn = foilbar, 11 kn = knapp.</p>
+<p><b>Böenfront</b> ist kein fahrbarer Joran: Temperatursturz &gt; 2 °C in 10–20 min, Böenfaktor &gt; 2, Dauer &lt; 45 min. Sie überschreibt jede positive Bewertung.</p>
+<p><b>Modelle:</b> ICON-CH1 (MeteoSchweiz, 1 km, 33 h), ICON-CH2 (MeteoSchweiz, 2 km, 120 h), ICON-D2 (DWD), AROME (Météo-France) über Open-Meteo. Kein GFS.</p>
+<p><b>Messwerte:</b> MeteoSchweiz SwissMetNet, 10-Minuten-Werte, Aktualisierung alle 20 Minuten.</p>
+</details>
+
+</div>
+
+<script>
+"use strict";
+
+/* ---------- Konstanten ---------- */
+const SPOT = {lat:47.115, lon:7.190};          // Seemitte vor Vingelz/Ipsach
+const JURA = {lat:47.100, lon:6.830};          // Jura-Nordwestseite, für Druckgefälle
+const SECTOR = [270, 350];
+const KN = 1/1.852;
+
+const MODELS = [
+  {id:"meteoswiss_icon_ch1", name:"ICON-CH1", note:"MeteoSchweiz 1 km, 33 h", w:3},
+  {id:"meteoswiss_icon_ch2", name:"ICON-CH2", note:"MeteoSchweiz 2 km, 120 h", w:3},
+  {id:"icon_d2",             name:"ICON-D2",  note:"DWD 2 km", w:2},
+  {id:"meteofrance_arome_france_hd", name:"AROME", note:"Météo-France 1.3 km", w:2}
+];
+
+const STATIONS = [
+  {abk:"crm", name:"Cressier",   role:"Entscheidungsstation, 10 km westlich, Seeniveau", decide:true},
+  {abk:"neu", name:"Neuchâtel",  role:"Seeniveau, ca. 10 min Vorlauf — kaum nutzbar"},
+  {abk:"cha", name:"Chasseral",  role:"1594 m, ca. 70 min Vorlauf, sehr streuend — nur Hinweis"},
+  {abk:"mub", name:"Mühleberg",  role:"östlich, Gegenprobe Bise"}
+];
+
+const TH = {
+  stationFoil:12, stationKnapp:9,   // Cressier, über Land
+  modelFoil:14,   modelKnapp:11     // Seepunkt
+};
+
+/* ---------- Helfer ---------- */
+const $ = s => document.querySelector(s);
+const inSector = d => d!=null && d>=SECTOR[0] && d<=SECTOR[1];
+const card = d => d==null ? "–" : ["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(d/22.5)%16];
+const r1 = v => v==null||isNaN(v) ? null : Math.round(v*10)/10;
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function arrow(dir){
+  if(dir==null) return "";
+  return `<svg class="arrow" viewBox="0 0 16 16" aria-hidden="true" style="transform:rotate(${dir+180}deg)"><path d="M8 1 L12.5 14 L8 11 L3.5 14 Z"/></svg>`;
+}
+function fmtCH(dt, opts){
+  return new Intl.DateTimeFormat("de-CH", Object.assign({timeZone:"Europe/Zurich"}, opts)).format(dt);
+}
+const hhmm = dt => fmtCH(dt,{hour:"2-digit",minute:"2-digit"});
+
+/* Lokales Datum YYYY-MM-DD mit Offset in Tagen */
+function localDay(offset){
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit"})
+    .format(new Date(Date.now()+offset*86400000));
+  return p;
+}
+function localHourNow(){
+  return parseInt(fmtCH(new Date(),{hour:"2-digit",hour12:false}),10);
+}
+
+/* ---------- Datenabruf ---------- */
+async function fetchModel(m){
+  const u = "https://api.open-meteo.com/v1/forecast"
+    + `?latitude=${SPOT.lat}&longitude=${SPOT.lon}`
+    + "&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,cloud_cover,cape"
+    + `&models=${m.id}&wind_speed_unit=kn&timezone=Europe%2FZurich&forecast_days=4`;
+  const r = await fetch(u);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const j = await r.json();
+  if(!j.hourly || !j.hourly.time) throw new Error("keine Stundenwerte");
+  return j.hourly;
+}
+
+async function fetchStation(st){
+  const u = `https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${st.abk}/ogd-smn_${st.abk}_t_now.csv`;
+  const r = await fetch(u);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const buf = await r.arrayBuffer();
+  const txt = new TextDecoder("windows-1252").decode(buf);
+  return parseSMN(txt);
+}
+
+function parseSMN(txt){
+  const lines = txt.trim().split(/\r?\n/);
+  const head = lines[0].split(";").map(s=>s.trim());
+  const ix = n => head.indexOf(n);
+  const iT=ix("reference_timestamp"), iD=ix("dkl010z0"), iM=ix("fu3010z0"), iG=ix("fu3010z1"), iTe=ix("tre200s0");
+  const num = v => (v==null||v.trim()==="") ? null : parseFloat(v);
+  const out = [];
+  for(let k=1;k<lines.length;k++){
+    const c = lines[k].split(";");
+    if(c.length<3) continue;
+    const t = parseTsUTC(c[iT]);
+    if(!t) continue;
+    out.push({
+      t,
+      dir: iD>-1 ? num(c[iD]) : null,
+      mean: iM>-1 && num(c[iM])!=null ? num(c[iM])*KN : null,
+      gust: iG>-1 && num(c[iG])!=null ? num(c[iG])*KN : null,
+      temp: iTe>-1 ? num(c[iTe]) : null
+    });
+  }
+  return out.filter(r=>r.mean!=null).sort((a,b)=>a.t-b.t);
+}
+
+/* MeteoSchweiz liefert UTC, entweder ISO oder dd.MM.yyyy HH:mm */
+function parseTsUTC(s){
+  if(!s) return null;
+  s = s.trim();
+  let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
+  if(m) return new Date(Date.UTC(+m[3],+m[2]-1,+m[1],+m[4],+m[5]));
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if(m) return new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5]));
+  return null;
+}
+
+async function fetchJuraPressure(){
+  const u = "https://api.open-meteo.com/v1/forecast"
+    + `?latitude=${JURA.lat},${SPOT.lat}&longitude=${JURA.lon},${SPOT.lon}`
+    + "&hourly=pressure_msl&models=meteoswiss_icon_ch2&timezone=Europe%2FZurich&forecast_days=3";
+  const r = await fetch(u);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const j = await r.json();
+  const arr = Array.isArray(j) ? j : [j];
+  if(arr.length<2) throw new Error("nur ein Punkt");
+  return {time:arr[0].hourly.time, jura:arr[0].hourly.pressure_msl, see:arr[1].hourly.pressure_msl};
+}
+
+/* ---------- Auswertung Messstation: Regel E ---------- */
+function ruleE(rows){
+  const res = {ok:false, front:false, fail:[], last:null, since:null, mean30:null};
+  if(!rows || rows.length<3){ res.fail.push("zu wenig Messwerte"); return res; }
+  const last3 = rows.slice(-3);
+  res.last = rows[rows.length-1];
+
+  // Böenfront zuerst — Sicherheitsregel, überschreibt alles
+  const fr = [];
+  for(let i=Math.max(1,rows.length-4); i<rows.length; i++){
+    const c=rows[i], p=rows[i-1], pp=rows[i-2];
+    if(c.gust && c.mean && c.mean>2 && c.gust/c.mean>2 && c.gust>=14) fr.push("Böenfaktor über 2");
+    if(c.temp!=null && p && p.temp!=null && p.temp-c.temp>2) fr.push("Temperatursturz über 2 °C in 10 min");
+    else if(c.temp!=null && pp && pp.temp!=null && pp.temp-c.temp>2) fr.push("Temperatursturz über 2 °C in 20 min");
+  }
+  if(fr.length){ res.front=true; res.frontWhy=[...new Set(fr)]; }
+
+  const dirOK  = last3.every(r=>inSector(r.dir));
+  const lvlOK  = last3.every(r=>r.mean>=10);
+  const riseOK = last3[2].mean >= last3[0].mean;
+  res.mean30 = last3.reduce((a,r)=>a+r.mean,0)/3;
+
+  if(!dirOK)  res.fail.push("Richtung nicht durchgehend im Sektor 270–350°");
+  if(!lvlOK)  res.fail.push("Mittelwind nicht durchgehend ≥ 10 kn");
+  if(!riseOK) res.fail.push("Mittelwind nicht zunehmend");
+  if(res.front) res.fail.push("Böenfront-Merkmale erfüllt");
+
+  res.ok = dirOK && lvlOK && riseOK && !res.front;
+
+  // seit wann läuft der NW-Wind
+  if(dirOK && lvlOK){
+    let i = rows.length-1;
+    while(i>0 && inSector(rows[i-1].dir) && rows[i-1].mean>=10) i--;
+    res.since = rows[i].t;
+  }
+  return res;
+}
+
+/* ---------- Auswertung Modelle ---------- */
+function evening(h, day, h0=17, h1=22){
+  if(!h) return null;
+  const out = {max:0, maxSector:0, gust:0, dir:null, bestHour:null, any:false};
+  for(let i=0;i<h.time.length;i++){
+    const t = h.time[i];
+    if(!t.startsWith(day)) continue;
+    const hr = parseInt(t.slice(11,13),10);
+    if(hr<h0 || hr>h1) continue;
+    const sp=h.wind_speed_10m[i], di=h.wind_direction_10m[i], gu=h.wind_gusts_10m[i];
+    if(sp==null) continue;
+    out.any = true;
+    if(sp>out.max) out.max=sp;
+    if(gu!=null && gu>out.gust) out.gust=gu;
+    if(inSector(di) && sp>out.maxSector){ out.maxSector=sp; out.dir=di; out.bestHour=hr; }
+  }
+  return out.any ? out : null;
+}
+
+function biseCheck(h, day){
+  if(!h) return null;
+  let n=0, hit=0;
+  for(let i=0;i<h.time.length;i++){
+    const t=h.time[i];
+    if(!t.startsWith(day)) continue;
+    const hr=parseInt(t.slice(11,13),10);
+    if(hr<6||hr>13) continue;
+    const d=h.wind_direction_10m[i], s=h.wind_speed_10m[i];
+    if(s==null) continue;
+    n++;
+    if(d!=null && d>=20 && d<=90 && s>=8) hit++;
+  }
+  return n>2 ? (hit/n>0.5) : null;
+}
+
+function scaleFrom(hits, total){
+  if(total===0) return {t:"unklar", c:"stop"};
+  const f = hits/total;
+  if(f>=0.99) return {t:"sehr wahrscheinlich", c:"go"};
+  if(f>=0.5)  return {t:"wahrscheinlich", c:"go"};
+  if(f>0)     return {t:"möglich", c:"maybe"};
+  return {t:"unwahrscheinlich", c:"stop"};
+}
+
+/* ---------- Diagramm ---------- */
+function chart(h, day){
+  if(!h) return "";
+  const pts=[];
+  for(let i=0;i<h.time.length;i++){
+    const t=h.time[i]; if(!t.startsWith(day)) continue;
+    const hr=parseInt(t.slice(11,13),10);
+    if(hr<13||hr>23) continue;
+    if(h.wind_speed_10m[i]==null) continue;
+    pts.push({hr, m:h.wind_speed_10m[i], g:h.wind_gusts_10m[i]||0, d:h.wind_direction_10m[i]});
+  }
+  if(!pts.length) return "";
+  const W=600,H=170,PL=28,PR=8,PT=12,PB=22;
+  const maxV=Math.max(20, ...pts.map(p=>p.g||p.m))*1.1;
+  const bw=(W-PL-PR)/pts.length;
+  const y=v=>H-PB-(v/maxV)*(H-PT-PB);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Windverlauf heute Abend">`;
+  [10,14,20].forEach(v=>{
+    if(v>maxV) return;
+    s+=`<line x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}" stroke="${v===14?"#0e6a7e":"#c8d4d6"}" stroke-width="1" stroke-dasharray="${v===14?"":"3 3"}"/>`;
+    s+=`<text x="2" y="${y(v)+4}" font-size="10" fill="#7a8b90">${v}</text>`;
+  });
+  pts.forEach((p,i)=>{
+    const x=PL+i*bw+2, w=Math.max(3,bw-5);
+    const col=inSector(p.d)?"#0e6a7e":"#b3c2c5";
+    s+=`<rect x="${x}" y="${y(p.m)}" width="${w}" height="${H-PB-y(p.m)}" fill="${col}"/>`;
+    if(p.g>p.m) s+=`<line x1="${x+w/2}" x2="${x+w/2}" y1="${y(p.g)}" y2="${y(p.m)}" stroke="${col}" stroke-width="1.5" opacity=".55"/>`;
+    if(p.hr%2===0) s+=`<text x="${x+w/2}" y="${H-6}" font-size="10" fill="#7a8b90" text-anchor="middle">${p.hr}</text>`;
+  });
+  s+=`</svg>`;
+  return s;
+}
+
+/* ---------- Rendern ---------- */
+function render(D){
+  const today = localDay(0), hour = localHourNow();
+  const okModels = MODELS.filter(m=>D.models[m.id] && !D.models[m.id].err);
+  const primary = D.models["meteoswiss_icon_ch1"]?.h || D.models["meteoswiss_icon_ch2"]?.h || okModels[0]?.h;
+
+  /* --- Messung: Entscheidungsstation --- */
+  const crm = D.stations["crm"];
+  let mVerdict=null, mWhy="";
+  if(crm && !crm.err && crm.rows.length){
+    const e = crm.e;
+    if(e.front){ mVerdict="danger"; mWhy="Böenfront erkannt — "+e.frontWhy.join(", ")+". Das ist kein fahrbarer Joran."; }
+    else if(e.ok){
+      const v=e.mean30;
+      mVerdict = v>=TH.stationFoil ? "go" : (v>=TH.stationKnapp ? "maybe" : "maybe");
+      mWhy=`Regel E ausgelöst: ${r1(v)} kn Mittelwind aus ${card(e.last.dir)}, seit ${e.since?hhmm(e.since):"–"} gehalten und zunehmend.`;
+    } else if(hour>=16 && hour<=22){
+      mVerdict="stop"; mWhy="Regel E nicht ausgelöst: "+e.fail[0]+".";
+    }
+  }
+
+  /* --- Modelle heute Abend --- */
+  const evAll = okModels.map(m=>({m, e:evening(D.models[m.id].h, today)})).filter(x=>x.e);
+  const hits = evAll.filter(x=>x.e.maxSector>=TH.modelFoil).length;
+  const sc = scaleFrom(hits, evAll.length);
+  const bestM = evAll.reduce((a,b)=>(!a||b.e.maxSector>a.e.maxSector)?b:a, null);
+
+  /* --- Gesamturteil --- */
+  let vClass, vWord, vWhy, vBasis;
+  if(mVerdict==="danger"){ vClass="danger"; vWord="Nicht rausfahren"; vWhy=mWhy; vBasis="Messung Cressier, Sicherheitsregel"; }
+  else if(mVerdict==="go"){ vClass="go"; vWord="Foilbar"; vWhy=mWhy; vBasis="Messung Cressier, Regel E — 69 % dieser Auslösungen hielten ≥ 60 min"; }
+  else if(mVerdict==="maybe"){ vClass="maybe"; vWord="Knapp"; vWhy=mWhy+" Unter 12 kn in Cressier, am See meist etwas mehr."; vBasis="Messung Cressier, Regel E"; }
+  else if(hour>=16 && mVerdict==="stop"){ vClass="stop"; vWord="Läuft nicht"; vWhy=mWhy+(bestM?` Modelle sähen bis ${bestM.e.bestHour!=null?bestM.e.bestHour+":00":"–"} maximal ${r1(bestM.e.maxSector)} kn.`:""); vBasis="Messung Cressier"; }
+  else if(bestM && hits>0){ vClass=sc.c; vWord=sc.t.charAt(0).toUpperCase()+sc.t.slice(1); vWhy=`${hits} von ${evAll.length} Modellen sehen heute Abend ≥ ${TH.modelFoil} kn im Sektor, Maximum ${r1(bestM.e.maxSector)} kn gegen ${bestM.e.bestHour}:00.`; vBasis="Modelle für den Seepunkt, Messung noch ohne Signal"; }
+  else { vClass="stop"; vWord="Unwahrscheinlich"; vWhy=bestM?`Kein Modell sieht heute Abend ${TH.modelFoil} kn im Sektor 270–350°; Maximum ${r1(bestM.e.max)} kn.`:"Keine Modelldaten verfügbar."; vBasis="Modelle für den Seepunkt"; }
+
+  /* --- Kipp-Kriterium --- */
+  const kipp=[];
+  const bise = biseCheck(primary, today);
+  if(bise) kipp.push("Bise oder Ostwind am Tag — das reduziert die Joran-Chance stark und dominiert alles andere.");
+  if(D.jura && D.jura.dp!=null) kipp.push(`Druckgefälle Jura-Nordseite zum Seeland ${D.jura.dp>0?"+":""}${r1(D.jura.dp)} hPa${D.jura.dp<=0?" — kein antreibendes Gefälle":""}.`);
+  if(primary){
+    let capeMax=0;
+    for(let i=0;i<primary.time.length;i++){
+      if(!primary.time[i].startsWith(today)) continue;
+      const hr=+primary.time[i].slice(11,13);
+      if(hr>=14&&hr<=22&&primary.cape&&primary.cape[i]!=null) capeMax=Math.max(capeMax,primary.cape[i]);
+    }
+    if(capeMax>=500) kipp.push(`CAPE bis ${Math.round(capeMax)} J/kg — Schauer möglich, dann Böenfront statt Joran.`);
+  }
+  if(evAll.length>1){
+    const sp = Math.max(...evAll.map(x=>x.e.maxSector)) - Math.min(...evAll.map(x=>x.e.maxSector));
+    if(sp>=6) kipp.push(`Modelle uneinig: ${r1(sp)} kn Spannweite zwischen den Läufen.`);
+  }
+
+  /* ---------- HTML ---------- */
+  let H = "";
+
+  H += `<div class="verdict ${vClass}"><span class="word">${esc(vWord)}</span>
+        <div class="why">${esc(vWhy)}</div><div class="basis">${esc(vBasis)}</div></div>`;
+
+  if(kipp.length){
+    H += `<h2>Was die Lage kippen kann</h2><div class="note${bise?" bad":""}"><ul>${kipp.map(k=>`<li>${esc(k)}</li>`).join("")}</ul></div>`;
+  }
+
+  /* Messwerte */
+  H += `<h2>Messwerte jetzt</h2>`;
+  const anyStation = STATIONS.some(s=>D.stations[s.abk] && !D.stations[s.abk].err);
+  if(!anyStation){
+    H += `<div class="note bad">Keine Messwerte abrufbar. Das Dashboard läuft dann nur auf Modellbasis — für heute Abend ist das deutlich schwächer. Vingelz und Ipsach lassen sich über die Direktlinks unten von Hand prüfen.</div>`;
+  } else {
+    STATIONS.forEach(s=>{
+      const d=D.stations[s.abk];
+      if(!d || d.err){ H+=`<div class="row"><div class="nm"><b>${s.name}</b><em>${esc(s.role)}</em></div><div class="val off">nicht erreichbar</div></div>`; return; }
+      const l=d.rows[d.rows.length-1];
+      const on=inSector(l.dir);
+      H += `<div class="row"><div class="nm"><b>${s.name}</b><em>${esc(s.role)} — ${hhmm(l.t)}</em></div>
+            <div class="val ${on?"on":"off"}">${arrow(l.dir)} ${card(l.dir)} ${r1(l.mean)}<span class="dim"> / ${r1(l.gust)} kn</span></div></div>`;
+    });
+    if(crm && !crm.err){
+      const e=crm.e;
+      H += `<div class="note${e.front?" bad":""}" style="margin-top:12px">
+        <b>Regel E an der Entscheidungsstation:</b> ${e.ok?"ausgelöst":"nicht ausgelöst"}.
+        ${e.ok? `Mittelwind über 30 min ${r1(e.mean30)} kn, gehalten seit ${e.since?hhmm(e.since):"–"}.`
+              : `<ul>${e.fail.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`}
+      </div>`;
+    }
+  }
+
+  /* Heute Abend Modelle */
+  if(primary){
+    H += `<h2>Heute Abend im Modell</h2>${chart(primary, today)}
+      <small>Balken = Mittelwind, Strich = Böe. Teal heisst Richtung im Sektor 270–350°, grau heisst falsche Richtung. Linie bei 14 kn.</small>`;
+  }
+
+  /* Modelltabelle heute */
+  if(evAll.length){
+    H += `<table style="margin-top:14px"><tr><th>Modell</th><th class="n">Sektor</th><th class="n">Böe</th><th class="n">beste Std.</th></tr>`;
+    evAll.forEach(x=>{
+      H += `<tr><td>${x.m.name}<br><small>${x.m.note}</small></td>
+            <td class="n">${x.e.maxSector?r1(x.e.maxSector)+" kn":"–"}</td>
+            <td class="n">${x.e.gust?r1(x.e.gust)+" kn":"–"}</td>
+            <td class="n">${x.e.bestHour!=null?x.e.bestHour+":00":"–"}</td></tr>`;
+    });
+    H += `</table>`;
+  }
+
+  /* Ausblick */
+  H += `<h2>Nächste Tage</h2>`;
+  for(let k=1;k<=3;k++){
+    const day=localDay(k);
+    const per = okModels.map(m=>({m, e:evening(D.models[m.id].h, day)})).filter(x=>x.e);
+    const label = fmtCH(new Date(day+"T12:00:00Z"),{weekday:"long",day:"numeric",month:"long"});
+    if(!per.length){ H+=`<div class="day"><div class="day-head"><b>${label}</b><span class="tag stop">keine Daten</span></div></div>`; continue; }
+    const hi = per.filter(x=>x.e.maxSector>=TH.modelFoil).length;
+    const s = scaleFrom(hi, per.length);
+    const best = per.reduce((a,b)=>(!a||b.e.maxSector>a.e.maxSector)?b:a,null);
+    const gesamt = hi/per.length>=0.5 ? "foilbar" : (best.e.maxSector>=TH.modelKnapp ? "knapp" : "nicht foilbar");
+    H += `<div class="day"><div class="day-head"><b>${label}</b><span class="tag ${s.c}">${s.t}</span></div>
+      <div style="font-size:.85rem;margin-top:4px">Bis ${r1(best.e.maxSector)} kn im Sektor gegen ${best.e.bestHour!=null?best.e.bestHour+":00":"–"}, Böen ${r1(best.e.gust)} kn. Gesamt: ${gesamt}.</div>
+      <small>${per.map(x=>`${x.m.name} ${x.e.maxSector?r1(x.e.maxSector):"–"}`).join(" · ")}${k>=2?" — für übermorgen ist die Sicherheit geringer.":""}</small></div>`;
+  }
+
+  /* Quellenstatus */
+  H += `<h2>Quellen in diesem Lauf</h2><div class="chips">`;
+  MODELS.forEach(m=>{
+    const d=D.models[m.id];
+    H += `<span class="chip ${d&&!d.err?"ok":"fail"}">${m.name}${d&&d.err?" — "+esc(d.err):""}</span>`;
+  });
+  STATIONS.forEach(s=>{
+    const d=D.stations[s.abk];
+    H += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?" — "+esc(d.err):""}</span>`;
+  });
+  H += `<span class="chip ${D.jura&&!D.jura.err?"ok":"fail"}">Druckgefälle Jura</span>`;
+  H += `</div>`;
+
+  $("#out").innerHTML = H;
+  $("#stamp").textContent = "Stand " + hhmm(new Date());
+}
+
+/* ---------- Ablauf ---------- */
+async function run(){
+  const b=$("#go"); b.disabled=true; b.textContent="Lade …";
+  $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`;
+  const D = {models:{}, stations:{}, jura:null};
+
+  const jobs = [];
+  MODELS.forEach(m=>jobs.push(
+    fetchModel(m).then(h=>D.models[m.id]={h}).catch(e=>D.models[m.id]={err:e.message})
+  ));
+  STATIONS.forEach(s=>jobs.push(
+    fetchStation(s).then(rows=>D.stations[s.abk]={rows, e:ruleE(rows)}).catch(e=>D.stations[s.abk]={err:e.message||"blockiert"})
+  ));
+  jobs.push(fetchJuraPressure().then(p=>{
+    const i = p.time.findIndex(t=>t.startsWith(localDay(0)) && +t.slice(11,13)===18);
+    D.jura = i>-1 ? {dp:p.jura[i]-p.see[i]} : {err:"kein 18-Uhr-Wert"};
+  }).catch(e=>D.jura={err:e.message}));
+
+  await Promise.allSettled(jobs);
+  try{ render(D); }
+  catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
+  b.disabled=false; b.textContent="Neu laden";
+}
+
+$("#go").addEventListener("click", run);
+run();
+</script>
+</body>
+</html>
