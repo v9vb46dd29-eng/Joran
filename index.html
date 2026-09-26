@@ -7,51 +7,72 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Joran — Bielersee</title>
+<title>Joran — Wingfoil Bielersee</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#e9edee; --ink:#14262c; --water:#0e6a7e; --water-d:#0a4e5d;
-  --jura:#4a6b57; --warn:#b4531f; --muted:#7a8b90; --line:#c8d4d6; --card:#fff;
+  --paper:#e9edee; --ink:#14262c; --water:#0e6a7e; --water-d:#0a4e5d; --water-l:#cfe3e7;
+  --jura:#4a6b57; --warn:#b4531f; --muted:#6c7e83; --line:#c8d4d6; --card:#fff;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{
   background:var(--paper); color:var(--ink);
   font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-variant-numeric:tabular-nums; line-height:1.45; -webkit-text-size-adjust:100%;
 }
-.wrap{max-width:640px;margin:0 auto;padding:0 16px 56px}
+.wrap{max-width:660px;margin:0 auto;padding:0 16px 64px}
 h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0}
-h2{font-size:.95rem;font-weight:600;margin:32px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+h2{font-size:.95rem;font-weight:600;margin:30px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 p{margin:.4em 0}
 small{color:var(--muted)}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--water);outline-offset:2px}
 
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 0 14px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 0 12px}
 header .sub{font-size:.8rem;color:var(--muted)}
 
-.trigger{
-  display:block;width:100%;padding:14px;margin:4px 0 20px;
-  background:var(--ink);color:#fff;border:0;border-radius:3px;
-  font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;
-}
+.trigger{display:block;width:100%;padding:13px;margin:4px 0 16px;background:var(--ink);color:#fff;border:0;border-radius:3px;font-size:1rem;font-weight:600;cursor:pointer}
 .trigger:hover{background:var(--water-d)}
 .trigger:disabled{background:var(--muted);cursor:progress}
-.trigger:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+.btn2{font-size:.85rem;padding:7px 11px;border:1px solid var(--line);background:var(--card);border-radius:2px;cursor:pointer;color:var(--ink)}
+
+/* Schwelle — das eine prägnante Element */
+.thr{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:3px;padding:12px 14px;margin-bottom:14px}
+.thr .num{font-size:2.1rem;font-weight:800;letter-spacing:-.04em;line-height:1;min-width:3.6ch;color:var(--water)}
+.thr .num span{font-size:.9rem;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:2px}
+.thr .lab{font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px}
+.thr .sl{flex:1;min-width:0}
+input[type=range]{width:100%;accent-color:var(--water);height:28px;margin:0}
+.scale{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)}
+
+/* Tage */
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.dbtn{border:1px solid var(--line);background:var(--card);border-radius:3px;padding:8px 6px 9px;text-align:left;cursor:pointer;color:var(--ink);border-top-width:5px}
+.dbtn b{display:block;font-size:.8rem;font-weight:600}
+.dbtn .kn{font-size:1.15rem;font-weight:800;letter-spacing:-.02em;display:block;margin-top:2px}
+.dbtn .lv{font-size:.68rem;color:var(--muted);display:block;line-height:1.2}
+.dbtn.sel{outline:2px solid var(--ink);outline-offset:-1px}
+.dbtn.c4,.dbtn.c3{border-top-color:var(--water)}
+.dbtn.c2{border-top-color:#6fa7b3}
+.dbtn.c1{border-top-color:var(--jura)}
+.dbtn.c0{border-top-color:var(--line)}
 
 /* Verdict */
-.verdict{padding:20px;border-radius:3px;color:#fff;background:var(--muted)}
-.verdict.go{background:var(--water)}
-.verdict.maybe{background:var(--jura)}
-.verdict.stop{background:#41565d}
+.verdict{padding:18px 20px;border-radius:3px;color:#fff;background:#41565d}
+.verdict.c4{background:var(--water-d)}
+.verdict.c3{background:var(--water)}
+.verdict.c2{background:#3f7f8c}
+.verdict.c1{background:var(--jura)}
 .verdict.danger{background:var(--warn)}
-.verdict .word{font-size:2rem;font-weight:800;letter-spacing:-.03em;line-height:1.05;display:block}
-.verdict .why{font-size:.9rem;opacity:.92;margin-top:8px}
-.verdict .basis{font-size:.75rem;opacity:.75;margin-top:10px}
+.verdict .word{font-size:1.9rem;font-weight:800;letter-spacing:-.03em;line-height:1.05;display:block}
+.verdict .why{font-size:.9rem;opacity:.94;margin-top:8px}
+.verdict .basis{font-size:.75rem;opacity:.78;margin-top:10px}
 
-/* Rows */
 .row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
 .row .nm{flex:1;min-width:0}
@@ -64,32 +85,66 @@ header .sub{font-size:.8rem;color:var(--muted)}
 .arrow path{fill:currentColor}
 .dim{color:var(--muted)}
 
-.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--water);padding:12px 14px;border-radius:0 3px 3px 0;font-size:.85rem}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--water);padding:11px 14px;border-radius:0 3px 3px 0;font-size:.85rem;margin-top:10px}
 .note.bad{border-left-color:var(--warn)}
-.note ul{margin:6px 0 0;padding-left:18px}
+.note ul{margin:4px 0 0;padding-left:18px}
 
+.tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.85rem}
-th{text-align:left;font-weight:500;color:var(--muted);font-size:.72rem;padding:0 0 6px}
-td{padding:7px 0;border-top:1px solid var(--line)}
-td.n{text-align:right;white-space:nowrap}
-
-.day{padding:12px 0;border-bottom:1px solid var(--line)}
-.day-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.day-head b{font-weight:600}
-.tag{font-size:.75rem;padding:2px 7px;border-radius:2px;border:1px solid currentColor;white-space:nowrap}
-.tag.go{color:var(--water);background:#0e6a7e12}
-.tag.maybe{color:var(--jura)}
-.tag.stop{color:var(--muted)}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:.72rem;padding:0 6px 6px 0}
+td{padding:7px 6px 7px 0;border-top:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{font-size:.75rem;padding:4px 9px;border:1px solid var(--line);border-radius:2px;background:var(--card);text-decoration:none;color:var(--ink)}
+.chip{font-size:.78rem;padding:5px 10px;border:1px solid var(--line);border-radius:2px;background:var(--card);text-decoration:none;color:var(--ink)}
 .chip.ok{border-color:var(--water);color:var(--water)}
 .chip.fail{border-color:var(--warn);color:var(--warn)}
+button.chip{cursor:pointer}
+button.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
 
-svg.chart{width:100%;height:170px;display:block;background:var(--card);border:1px solid var(--line);border-radius:3px}
-details{margin-top:14px;font-size:.85rem}
-summary{cursor:pointer;color:var(--muted)}
+.set{display:grid;gap:14px;margin-top:10px}
+.set .lab{font-size:.8rem;color:var(--muted);margin-bottom:2px}
+.kval{font-weight:600}
+
+svg.chart{width:100%;height:190px;display:block;background:var(--card);border:1px solid var(--line);border-radius:3px}
+details{margin-top:12px;font-size:.88rem}
+details>summary{cursor:pointer;font-weight:600;padding:6px 0}
+details.sec{border-top:1px solid var(--line);margin-top:26px;padding-top:4px}
+details.sec>summary{font-size:.95rem}
 .skel{color:var(--muted);font-size:.9rem;padding:18px 0}
+
+/* Rückblick */
+.hrow{display:grid;grid-template-columns:5.2em 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.83rem}
+.hrow .fc b{font-weight:600}
+.mk{display:flex;gap:4px}
+.mk button{font-size:.75rem;padding:5px 7px;border:1px solid var(--line);background:var(--card);border-radius:2px;cursor:pointer;color:var(--ink)}
+.mk button[aria-pressed=true].y{background:var(--water);border-color:var(--water);color:#fff}
+.mk button[aria-pressed=true].k{background:var(--jura);border-color:var(--jura);color:#fff}
+.mk button[aria-pressed=true].n{background:#41565d;border-color:#41565d;color:#fff}
+.out{font-size:.72rem;display:block;margin-top:2px}
+.out.tp{color:var(--water)} .out.fn,.out.fp{color:var(--warn)} .out.tn{color:var(--muted)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
+@media (max-width:420px){ .days .kn{font-size:1rem} .verdict .word{font-size:1.6rem} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* v3 */
+.dbtn .tm{font-size:.68rem;display:block;color:var(--ink);font-weight:500}
+.sw{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:3px;padding:12px 14px}
+.sw input{appearance:none;-webkit-appearance:none;width:46px;height:26px;border-radius:13px;background:#b3c2c5;position:relative;cursor:pointer;flex:none;transition:background .15s}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.sw input:checked{background:var(--water)}
+.sw input:checked::after{left:23px}
+.sw .t b{display:block}
+.sw .t small{display:block}
+.fld{display:grid;gap:6px;margin-top:8px}
+.fld input[type=text],.fld input[type=password]{font:inherit;font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:2px;width:100%;background:#fff;color:var(--ink)}
+.sig{font-size:.7rem;padding:2px 6px;border-radius:2px;border:1px solid currentColor;margin-left:6px;white-space:nowrap}
+.sig.on{color:var(--water);background:#0e6a7e14}
+.sig.near{color:var(--jura)}
+.sig.off{color:var(--muted)}
+ol.steps{padding-left:20px;margin:6px 0}
+ol.steps li{margin:3px 0}
+code{font-size:.85em;background:#dde6e8;padding:1px 4px;border-radius:2px}
 </style>
 </head>
 <body>
@@ -98,564 +153,523 @@ summary{cursor:pointer;color:var(--muted)}
 <header>
   <div>
     <h1>Joran</h1>
-    <div class="sub">Bielersee — Vingelz, Biel, Ipsach</div>
+    <div class="sub">Wingfoil Bielersee — Vingelz, Ipsach, Seemitte</div>
   </div>
   <div class="sub" id="stamp">noch nicht geladen</div>
 </header>
+
+<div class="thr">
+  <div class="num" id="thrNum">14<span>kn</span></div>
+  <div class="sl">
+    <label class="lab" for="thr">Ab dieser Windstärke auf dem Wasser gehe ich foilen</label>
+    <input type="range" id="thr" min="10" max="30" step="1" value="14">
+    <div class="scale"><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span></div>
+  </div>
+</div>
 
 <button class="trigger" id="go">Prognose laden</button>
 
 <div id="out"><div class="skel">Modelle und Messwerte werden geholt …</div></div>
 
-<h2>Direktlinks</h2>
-<div class="chips">
-  <a class="chip" href="https://vingelz.meteobase.ch/" target="_blank" rel="noopener">Vingelz live</a>
-  <a class="chip" href="https://wsa-ipsach.meteobase.ch/" target="_blank" rel="noopener">Ipsach live</a>
-  <a class="chip" href="https://www.windguru.cz/56996" target="_blank" rel="noopener">Windguru</a>
-  <a class="chip" href="https://www.meteoschweiz.admin.ch/service-und-publikationen/applikationen/niederschlag.html" target="_blank" rel="noopener">Radar</a>
-</div>
+<details class="sec" id="pushBox">
+<summary>Push-Benachrichtigung</summary>
+<div id="pushOut"></div>
+</details>
 
-<details>
-<summary>Methode und Schwellen</summary>
-<p><b>Regel E</b> (retrospektiv an 1030 Abenden geprüft, 69 % Treffer, 78 % Erfassung): Wind im Sektor 270–350°, Mittelwind ≥ 10 kn über ≥ 30 zusammenhängende Minuten, dabei zunehmend, und keine Böenfront-Merkmale.</p>
-<p><b>Zwei Massstäbe, nicht vermischen.</b> Cressier ist eine Landstation und misst systematisch weniger als der See: dort gelten 12 kn = foilbar, 9 kn = knapp. Die Modellwerte gelten für den Seepunkt, dort gelten 14 kn = foilbar, 11 kn = knapp.</p>
-<p><b>Böenfront</b> ist kein fahrbarer Joran: Temperatursturz &gt; 2 °C in 10–20 min, Böenfaktor &gt; 2, Dauer &lt; 45 min. Sie überschreibt jede positive Bewertung.</p>
-<p><b>Modelle:</b> ICON-CH1 (MeteoSchweiz, 1 km, 33 h), ICON-CH2 (MeteoSchweiz, 2 km, 120 h), ICON-D2 (DWD), AROME (Météo-France) über Open-Meteo. Kein GFS.</p>
-<p><b>Messwerte:</b> MeteoSchweiz SwissMetNet, 10-Minuten-Werte, Aktualisierung alle 20 Minuten.</p>
-<p><b>Trefferbilanz:</b> Bei jedem Öffnen wird festgehalten, was die Modelle für heute bis in drei Tagen sagen — je Vorlauftag nur der erste Eintrag. Verglichen wird gegen den besten 60-Minuten-Mittelwind im Sektor an der Station Cressier zwischen 15 und 23 Uhr. Das Protokoll liegt nur in diesem Browser.</p>
-<p><button id="wipe" style="font:inherit;font-size:.85rem;padding:6px 10px;border:1px solid #c8d4d6;background:#fff;border-radius:2px">Protokoll löschen</button></p>
+<details class="sec" id="setBox">
+<summary>Einstellungen</summary>
+<div class="set">
+  <div><div class="lab">Zeitfenster</div><div class="chips" id="setWin"></div></div>
+  <div><div class="lab">Mindestdauer über der Schwelle</div><div class="chips" id="setMin"></div></div>
+  <div><div class="lab">Windrichtungen, die zählen</div><div class="chips" id="setDir"></div></div>
+  <div><div class="lab">Spots — es reicht, wenn einer die Schwelle erreicht</div><div class="chips" id="setSpot"></div></div>
+  <div>
+    <div class="lab">Modellfaktor: <span class="kval" id="kVal">1.00</span> — gleicht aus, dass die Modelle den Wind auf dem See unterschätzen. Am besten über den Rückblick kalibrieren.</div>
+    <input type="range" id="kSl" min="0.8" max="2" step="0.05" value="1">
+    <div id="kDirOut" class="lab"></div>
+  </div>
+  <div><div class="lab">Ein Tag gilt als «lohnt sich» ab</div><div class="chips" id="setCut"></div></div>
+  <div><button class="btn2" id="reset">Einstellungen zurücksetzen</button></div>
+</div>
+</details>
+
+<details class="sec" id="histBox">
+<summary>Rückblick und Kalibrierung</summary>
+<p style="font-size:.85rem">Markiere die Tage der letzten 45 Tage, an denen du weisst, ob es foilbar war. Joran kalibriert daraus zwei Dinge: den Modellfaktor (Prognose) und die Schwellen der Upwind-Stationen (Messung).</p>
+<button class="trigger" id="hgo" style="margin-top:10px">Rückblick laden</button>
+<div id="hout"></div>
+</details>
+
+<details class="sec">
+<summary>Methode und Quellen</summary>
+<p><b>Prognose.</b> Vier hochauflösende Modelle über Open-Meteo: ICON-CH1 (MeteoSchweiz, 1 km, 33 h), ICON-CH2 (MeteoSchweiz, 2 km, 5 Tage), ICON-D2 (DWD, 2 km, 2 Tage), AROME HD (Météo-France, 1.3 km, ca. 2 Tage). Abgefragt wird die nächste Wasserzelle. Pro Stunde zählt der stärkste aktive Spot in einer gewählten Richtung.</p>
+<p><b>Ob.</b> Ein Modell trifft, wenn es die Schwelle im Zeitfenster so lange hält wie die Mindestdauer. Sehr wahrscheinlich: drei Viertel der Modelle (mindestens zwei). Wahrscheinlich: die Hälfte. Möglich: eines. Knapp: bestes Modell höchstens 3 kn darunter. Ab Übermorgen rechnet nur noch ICON-CH2.</p>
+<p><b>Wann.</b> Das Zeitfenster umfasst die Stunden, in denen mindestens die Hälfte der Modelle die Schwelle erreicht. Gibt es solche Stunden nicht, zählen Stunden mit mindestens einem Modell (Anzeige «einzelne Modelle»).</p>
+<p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Stationen mit Peirce-Score unter 0.25 lösen keinen Push aus. Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
+<p><b>Böenfront</b> (Temperatursturz &gt; 2 °C in 10–20 min oder Böenfaktor &gt; 2 an einer Station auf Seehöhe) überschreibt jede positive Bewertung.</p>
+<p><b>Push.</b> Eine GitHub Action prüft alle 10 Minuten zwischen 6 und 21 Uhr dieselben Regeln (Datei <code>core.js</code>) mit den Einstellungen aus <code>config.json</code> und sendet über ntfy.sh. GitHub startet geplante Läufe teils mit Verspätung.</p>
+<p>Einstellungen und Markierungen liegen in diesem Browser; nur was du an Push überträgst, steht öffentlich in <code>config.json</code>. Wetterdaten: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD).</p>
 </details>
 
 </div>
 
+<script src="core.js"></script>
 <script>
 "use strict";
+const C = window.JoranCore;
+const {SPOTS, MODELS, DIRS, WINS, LEVELS, UPWIND, REGEL_E, DEF} = C;
+const {r0, r1, card, dirOf, dirOn, over, spotName, hhmm, localDay, dayLabel, summarize, evalHours, clsOf, ensShare} = C;
 
-/* ---------- Konstanten ---------- */
-const SPOT = {lat:47.115, lon:7.190};          // Seemitte vor Vingelz/Ipsach
-const JURA = {lat:47.100, lon:6.830};          // Jura-Nordwestseite, für Druckgefälle
-const SECTOR = [270, 350];
-const KN = 1/1.852;
-
-const MODELS = [
-  {id:"meteoswiss_icon_ch1", name:"ICON-CH1", note:"MeteoSchweiz 1 km, 33 h", w:3},
-  {id:"meteoswiss_icon_ch2", name:"ICON-CH2", note:"MeteoSchweiz 2 km, 120 h", w:3},
-  {id:"icon_d2",             name:"ICON-D2",  note:"DWD 2 km", w:2},
-  {id:"meteofrance_arome_france_hd", name:"AROME", note:"Météo-France 1.3 km", w:2}
-];
-
-const STATIONS = [
-  {abk:"crm", name:"Cressier",   role:"Entscheidungsstation, 10 km westlich, Seeniveau", decide:true},
-  {abk:"neu", name:"Neuchâtel",  role:"Seeniveau, ca. 10 min Vorlauf — kaum nutzbar"},
-  {abk:"cha", name:"Chasseral",  role:"1594 m, ca. 70 min Vorlauf, sehr streuend — nur Hinweis"},
-  {abk:"mub", name:"Mühleberg",  role:"östlich, Gegenprobe Bise"}
-];
-
-const TH = {
-  stationFoil:12, stationKnapp:9,   // Cressier, über Land
-  modelFoil:14,   modelKnapp:11     // Seepunkt
-};
-
-/* ---------- Helfer ---------- */
+const S_KEY = "joran.settings.v2", T_KEY = "joran.truth.v2", G_KEY = "joran.github.v1";
 const $ = s => document.querySelector(s);
-const inSector = d => d!=null && d>=SECTOR[0] && d<=SECTOR[1];
-const card = d => d==null ? "–" : ["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(d/22.5)%16];
-const r1 = v => v==null||isNaN(v) ? null : Math.round(v*10)/10;
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-
+const localHourNow = () => C.localHour();
+const shortDay = (k, day) => k===0?"Heute":k===1?"Morgen":dayLabel(day,{weekday:"short",day:"numeric"});
 function arrow(dir){
   if(dir==null) return "";
   return `<svg class="arrow" viewBox="0 0 16 16" aria-hidden="true" style="transform:rotate(${dir+180}deg)"><path d="M8 1 L12.5 14 L8 11 L3.5 14 Z"/></svg>`;
 }
-function fmtCH(dt, opts){
-  return new Intl.DateTimeFormat("de-CH", Object.assign({timeZone:"Europe/Zurich"}, opts)).format(dt);
-}
-const hhmm = dt => fmtCH(dt,{hour:"2-digit",minute:"2-digit"});
+const winTxt = w => w ? `${w.from}–${w.to} Uhr` : "";
 
-/* Lokales Datum YYYY-MM-DD mit Offset in Tagen */
-function localDay(offset){
-  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit"})
-    .format(new Date(Date.now()+offset*86400000));
-  return p;
-}
-function localHourNow(){
-  return parseInt(fmtCH(new Date(),{hour:"2-digit",hour12:false}),10);
-}
+/* ================= Speicher ================= */
+function loadS(){ try{ return C.merge(JSON.parse(localStorage.getItem(S_KEY))); }catch(e){ return C.merge(null); } }
+function saveS(){ try{ localStorage.setItem(S_KEY, JSON.stringify(S)); }catch(e){} }
+function loadT(){ try{ return JSON.parse(localStorage.getItem(T_KEY)) || {}; }catch(e){ return {}; } }
+function saveT(t){ try{ localStorage.setItem(T_KEY, JSON.stringify(t)); }catch(e){} }
+function loadG(){ try{ return Object.assign({owner:"v9vb46dd29-eng", repo:"Joran", token:""}, JSON.parse(localStorage.getItem(G_KEY))||{}); }catch(e){ return {owner:"v9vb46dd29-eng", repo:"Joran", token:""}; } }
+function saveG(g){ try{ localStorage.setItem(G_KEY, JSON.stringify(g)); }catch(e){} }
 
-/* ---------- Datenabruf ---------- */
-async function fetchModel(m){
-  const u = "https://api.open-meteo.com/v1/forecast"
-    + `?latitude=${SPOT.lat}&longitude=${SPOT.lon}`
-    + "&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,cloud_cover,cape"
-    + `&models=${m.id}&wind_speed_unit=kn&timezone=Europe%2FZurich&forecast_days=4`;
-  const r = await fetch(u);
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  const j = await r.json();
-  if(!j.hourly || !j.hourly.time) throw new Error("keine Stundenwerte");
-  return j.hourly;
-}
+let S = loadS();
+let D = null, H = null, HS = null, SEL = null;
+let REMOTE = null, PUSHMSG = "";
 
-async function fetchStation(st){
-  const u = `https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${st.abk}/ogd-smn_${st.abk}_t_now.csv`;
-  const r = await fetch(u);
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  const buf = await r.arrayBuffer();
-  const txt = new TextDecoder("windows-1252").decode(buf);
-  return parseSMN(txt);
+/* ================= Rendern: gesamt ================= */
+function renderAll(){
+  $("#thrNum").innerHTML = `${S.T}<span>kn</span>`;
+  $("#thr").value = S.T;
+  $("#kVal").textContent = S.k.toFixed(2);
+  $("#kSl").value = S.k;
+  const kd = Object.keys(S.kDir||{});
+  $("#kDirOut").innerHTML = kd.length ? "Eigene Faktoren: " + kd.map(id=>`${esc((DIRS.find(d=>d.id===id)||{}).name||id)} ${S.kDir[id].toFixed(2)}`).join(", ") + ` <button class="btn2" id="kdClr" style="padding:3px 7px">entfernen</button>` : "";
+  const kc = $("#kdClr"); if(kc) kc.addEventListener("click",()=>{ S.kDir = {}; saveS(); renderAll(); });
+  renderSettings();
+  renderPush();
+  if(D) renderLive();
+  if(H) renderHist();
 }
 
-function parseSMN(txt){
-  const lines = txt.trim().split(/\r?\n/);
-  const head = lines[0].split(";").map(s=>s.trim());
-  const ix = n => head.indexOf(n);
-  const iT=ix("reference_timestamp"), iD=ix("dkl010z0"), iM=ix("fu3010z0"), iG=ix("fu3010z1"), iTe=ix("tre200s0");
-  const num = v => (v==null||v.trim()==="") ? null : parseFloat(v);
-  const out = [];
-  for(let k=1;k<lines.length;k++){
-    const c = lines[k].split(";");
-    if(c.length<3) continue;
-    const t = parseTsUTC(c[iT]);
-    if(!t) continue;
-    out.push({
-      t,
-      dir: iD>-1 ? num(c[iD]) : null,
-      mean: iM>-1 && num(c[iM])!=null ? num(c[iM])*KN : null,
-      gust: iG>-1 && num(c[iG])!=null ? num(c[iG])*KN : null,
-      temp: iTe>-1 ? num(c[iTe]) : null
-    });
-  }
-  return out.filter(r=>r.mean!=null).sort((a,b)=>a.t-b.t);
-}
+/* ================= Live ================= */
+function renderLive(){
+  const hour = localHourNow();
+  const days = [0,1,2,3].map(k=>({k, day:localDay(k)}));
+  days.forEach(x=>{ x.s = summarize(D.models, x.day, S); x.ens = x.k<=1 ? ensShare(D.ens, x.day, S) : null; });
+  if(SEL==null) SEL = hour>WINS[S.win][1] ? 1 : 0;
+  const cur = days[SEL];
+  const nc = C.nowcast(D.stations, S);
 
-/* MeteoSchweiz liefert UTC, entweder ISO oder dd.MM.yyyy HH:mm */
-function parseTsUTC(s){
-  if(!s) return null;
-  s = s.trim();
-  let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
-  if(m) return new Date(Date.UTC(+m[3],+m[2]-1,+m[1],+m[4],+m[5]));
-  m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
-  if(m) return new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5]));
-  return null;
-}
-
-async function fetchJuraPressure(){
-  const u = "https://api.open-meteo.com/v1/forecast"
-    + `?latitude=${JURA.lat},${SPOT.lat}&longitude=${JURA.lon},${SPOT.lon}`
-    + "&hourly=pressure_msl&models=meteoswiss_icon_ch2&timezone=Europe%2FZurich&forecast_days=3";
-  const r = await fetch(u);
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  const j = await r.json();
-  const arr = Array.isArray(j) ? j : [j];
-  if(arr.length<2) throw new Error("nur ein Punkt");
-  return {time:arr[0].hourly.time, jura:arr[0].hourly.pressure_msl, see:arr[1].hourly.pressure_msl};
-}
-
-/* ---------- Auswertung Messstation: Regel E ---------- */
-function ruleE(rows){
-  const res = {ok:false, front:false, fail:[], last:null, since:null, mean30:null};
-  if(!rows || rows.length<3){ res.fail.push("zu wenig Messwerte"); return res; }
-  const last3 = rows.slice(-3);
-  res.last = rows[rows.length-1];
-
-  // Böenfront zuerst — Sicherheitsregel, überschreibt alles
-  const fr = [];
-  for(let i=Math.max(1,rows.length-4); i<rows.length; i++){
-    const c=rows[i], p=rows[i-1], pp=rows[i-2];
-    if(c.gust && c.mean && c.mean>2 && c.gust/c.mean>2 && c.gust>=14) fr.push("Böenfaktor über 2");
-    if(c.temp!=null && p && p.temp!=null && p.temp-c.temp>2) fr.push("Temperatursturz über 2 °C in 10 min");
-    else if(c.temp!=null && pp && pp.temp!=null && pp.temp-c.temp>2) fr.push("Temperatursturz über 2 °C in 20 min");
-  }
-  if(fr.length){ res.front=true; res.frontWhy=[...new Set(fr)]; }
-
-  const dirOK  = last3.every(r=>inSector(r.dir));
-  const lvlOK  = last3.every(r=>r.mean>=10);
-  const riseOK = last3[2].mean >= last3[0].mean;
-  res.mean30 = last3.reduce((a,r)=>a+r.mean,0)/3;
-
-  if(!dirOK)  res.fail.push("Richtung nicht durchgehend im Sektor 270–350°");
-  if(!lvlOK)  res.fail.push("Mittelwind nicht durchgehend ≥ 10 kn");
-  if(!riseOK) res.fail.push("Mittelwind nicht zunehmend");
-  if(res.front) res.fail.push("Böenfront-Merkmale erfüllt");
-
-  res.ok = dirOK && lvlOK && riseOK && !res.front;
-
-  // seit wann läuft der NW-Wind
-  if(dirOK && lvlOK){
-    let i = rows.length-1;
-    while(i>0 && inSector(rows[i-1].dir) && rows[i-1].mean>=10) i--;
-    res.since = rows[i].t;
-  }
-  return res;
-}
-
-/* ---------- Auswertung Modelle ---------- */
-function evening(h, day, h0=17, h1=22){
-  if(!h) return null;
-  const out = {max:0, maxSector:0, gust:0, dir:null, bestHour:null, any:false};
-  for(let i=0;i<h.time.length;i++){
-    const t = h.time[i];
-    if(!t.startsWith(day)) continue;
-    const hr = parseInt(t.slice(11,13),10);
-    if(hr<h0 || hr>h1) continue;
-    const sp=h.wind_speed_10m[i], di=h.wind_direction_10m[i], gu=h.wind_gusts_10m[i];
-    if(sp==null) continue;
-    out.any = true;
-    if(sp>out.max) out.max=sp;
-    if(gu!=null && gu>out.gust) out.gust=gu;
-    if(inSector(di) && sp>out.maxSector){ out.maxSector=sp; out.dir=di; out.bestHour=hr; }
-  }
-  return out.any ? out : null;
-}
-
-function biseCheck(h, day){
-  if(!h) return null;
-  let n=0, hit=0;
-  for(let i=0;i<h.time.length;i++){
-    const t=h.time[i];
-    if(!t.startsWith(day)) continue;
-    const hr=parseInt(t.slice(11,13),10);
-    if(hr<6||hr>13) continue;
-    const d=h.wind_direction_10m[i], s=h.wind_speed_10m[i];
-    if(s==null) continue;
-    n++;
-    if(d!=null && d>=20 && d<=90 && s>=8) hit++;
-  }
-  return n>2 ? (hit/n>0.5) : null;
-}
-
-function scaleFrom(hits, total){
-  if(total===0) return {t:"unklar", c:"stop"};
-  const f = hits/total;
-  if(f>=0.99) return {t:"sehr wahrscheinlich", c:"go"};
-  if(f>=0.5)  return {t:"wahrscheinlich", c:"go"};
-  if(f>0)     return {t:"möglich", c:"maybe"};
-  return {t:"unwahrscheinlich", c:"stop"};
-}
-
-/* ---------- Trefferbilanz ---------- */
-const LKEY = "joran.log.v1";
-function logLoad(){ try{ return JSON.parse(localStorage.getItem(LKEY)) || {}; }catch(e){ return {}; } }
-function logSave(o){ try{ localStorage.setItem(LKEY, JSON.stringify(o)); return true; }catch(e){ return false; } }
-function logRec(log, day){ if(!log[day]) log[day]={f:{}, m:null}; return log[day]; }
-
-/* Modellprognose je Vorlauftag festhalten — nur der erste Eintrag pro Vorlauf zaehlt */
-function logForecast(D){
-  const log = logLoad();
-  const ok = MODELS.filter(m=>D.models[m.id] && !D.models[m.id].err);
-  for(let k=0;k<=3;k++){
-    const day = localDay(k);
-    const per = ok.map(m=>evening(D.models[m.id].h, day)).filter(Boolean);
-    if(!per.length) continue;
-    const hi = per.filter(e=>e.maxSector>=TH.modelFoil).length;
-    const best = Math.max(...per.map(e=>e.maxSector));
-    const v = hi/per.length>=0.5 ? "foilbar" : (best>=TH.modelKnapp ? "knapp" : "nicht foilbar");
-    const rec = logRec(log, day);
-    if(rec.f[k]===undefined) rec.f[k] = {v, kn:r1(best), n:per.length, at:new Date().toISOString()};
-  }
-  logSave(log);
-}
-
-/* Bester 60-Minuten-Mittelwind im Sektor, Fenster 15-23 Uhr lokal */
-function best60(rows){
-  let best = 0;
-  for(let i=5;i<rows.length;i++){
-    const w = rows.slice(i-5, i+1);
-    if(!w.every(r=>inSector(r.dir) && r.mean!=null)) continue;
-    const hr = parseInt(fmtCH(w[5].t,{hour:"2-digit",hour12:false}),10);
-    if(hr<15 || hr>23) continue;
-    const av = w.reduce((a,r)=>a+r.mean,0)/6;
-    if(av>best) best = av;
-  }
-  return best;
-}
-function measVerdict(kn){ return kn>=TH.stationFoil ? "foilbar" : (kn>=TH.stationKnapp ? "knapp" : "nicht foilbar"); }
-
-/* Messung eintragen — fuer heute erst nach 22 Uhr, vorher ist der Abend nicht vorbei */
-function logMeasure(day, rows, force){
-  if(!force && day===localDay(0) && localHourNow()<22) return;
-  const log = logLoad();
-  const kn = best60(rows);
-  const rec = logRec(log, day);
-  rec.m = {kn:r1(kn), v:measVerdict(kn)};
-  logSave(log);
-}
-
-/* Kontingenz fuer die Frage "foilbar" */
-function scoreReport(){
-  const log = logLoad();
-  const days = Object.keys(log).filter(d=>log[d].m).sort();
-  const out = {n:0, tp:0, fp:0, fn:0, tn:0, base:0, byLead:{}};
-  days.forEach(d=>{
-    const m = log[d].m.v==="foilbar";
-    if(m) out.base++;
-    Object.keys(log[d].f).forEach(k=>{
-      const f = log[d].f[k].v==="foilbar";
-      const L = out.byLead[k] || (out.byLead[k]={n:0,tp:0,fp:0,fn:0});
-      L.n++;
-      if(f&&m) L.tp++; else if(f&&!m) L.fp++; else if(!f&&m) L.fn++;
-      if(k==="0"||k==="1"){ out.n++; if(f&&m) out.tp++; else if(f&&!m) out.fp++; else if(!f&&m) out.fn++; else out.tn++; }
-    });
+  let h = `<div class="days" role="tablist">`;
+  days.forEach(x=>{
+    const c = clsOf(x.s.level, S);
+    h += `<button class="dbtn c${c}${x.k===SEL?" sel":""}" role="tab" aria-selected="${x.k===SEL}" data-k="${x.k}">
+      <b>${esc(shortDay(x.k,x.day))}</b><span class="kn">${x.s.top?r0(x.s.top.v):"–"}<small> kn</small></span>
+      <span class="lv">${x.s.level<0?"keine Daten":esc(LEVELS[x.s.level])}</span>
+      <span class="tm">${x.s.win?esc(winTxt(x.s.win)):"&nbsp;"}</span></button>`;
   });
-  out.days = days.length;
-  return out;
+  h += `</div>`;
+  h += verdictHTML(cur, hour, nc);
+
+  h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
+  h += chartHTML(cur.day);
+  h += `<small>Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich = Spannweite der Modelle. Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. Hinterlegt: dein Zeitfenster.</small>`;
+  h += modelTable(cur);
+  const warn = warnings(cur);
+  if(warn.length) h += `<div class="note bad"><b>Was die Lage kippen kann</b><ul>${warn.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div>`;
+
+  h += `<h2>Upwind-Stationen jetzt</h2>` + stationsHTML(nc);
+  h += `<div class="chips" style="margin-top:12px">
+    <a class="chip" href="https://vingelz.meteobase.ch/" target="_blank" rel="noopener">Vingelz live</a>
+    <a class="chip" href="https://wsa-ipsach.meteobase.ch/" target="_blank" rel="noopener">Ipsach live</a>
+    <a class="chip" href="https://www.windguru.cz/56996" target="_blank" rel="noopener">Windguru</a>
+    <a class="chip" href="https://www.meteoschweiz.admin.ch/service-und-publikationen/applikationen/niederschlag.html" target="_blank" rel="noopener">Radar</a></div>`;
+
+  h += `<h2>Quellen in diesem Lauf</h2><div class="chips">`;
+  MODELS.forEach(m=>{ const d = D.err[m.id]; h += `<span class="chip ${d?"fail":"ok"}">${m.name}${d?" — "+esc(d):""}</span>`; });
+  h += `<span class="chip ${D.ens?"ok":"fail"}">Ensemble${D.ens?" ("+D.ens.members.length+" Läufe)":" — "+esc(D.err.ens||"")}</span>`;
+  UPWIND.forEach(s=>{ const d = D.stations[s.abk]; h += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?" — "+esc(d.err):""}</span>`; });
+  h += `<span class="chip ${D.jura?"ok":"fail"}">Druck Jura</span></div>`;
+  h += diagHTML();
+
+  $("#out").innerHTML = h;
+  document.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",()=>{ SEL = +b.dataset.k; renderLive(); }));
 }
 
-/* Offene Tage gegen das Jahresarchiv Cressier nachtragen */
-async function verifyPending(){
-  const log = logLoad();
-  const today = localDay(0);
-  const open = Object.keys(log).filter(d => !log[d].m && d < today);
-  if(!open.length) return "Keine offenen Tage.";
-  const u = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/crm/ogd-smn_crm_t_recent.csv";
-  const r = await fetch(u);
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  const rows = parseSMN(new TextDecoder("windows-1252").decode(await r.arrayBuffer()));
-  const byDay = {};
-  rows.forEach(x=>{
-    const d = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit"}).format(x.t);
-    (byDay[d] || (byDay[d]=[])).push(x);
-  });
-  let n = 0;
-  open.forEach(d=>{ if(byDay[d]){ logMeasure(d, byDay[d], true); n++; } });
-  return n ? `${n} von ${open.length} Tagen nachgetragen.` : "Für die offenen Tage liegen noch keine Archivwerte vor.";
+function verdictHTML(cur, hour, nc){
+  const s = cur.s, today = cur.k===0;
+  const [h0,h1] = WINS[S.win];
+  const live = today && hour>=h0-2 && hour<=h1;
+
+  if(live && nc.front.length){
+    return `<div class="verdict danger"><span class="word">Nicht rausfahren</span>
+      <div class="why">Böenfront gemessen — ${esc(nc.front.map(x=>x.up.name+": "+x.f.join(", ")).join("; "))}. Das ist kein fahrbarer Wind.</div>
+      <div class="basis">Messung, Sicherheitsregel — überschreibt die Prognose</div></div>`;
+  }
+  if(s.level<0) return `<div class="verdict"><span class="word">Keine Daten</span><div class="why">Kein Modell liefert Werte für diesen Tag und dieses Zeitfenster.</div></div>`;
+
+  let cls = "c"+clsOf(s.level,S), word = LEVELS[s.level].charAt(0).toUpperCase()+LEVELS[s.level].slice(1), why = "", basis;
+  if(s.top){
+    const dn = dirOf(s.top.d);
+    why = s.win ? `Wind ≥ ${S.T} kn erwartet von ${winTxt(s.win)}${s.win.consensus?"":" (nur einzelne Modelle)"}. ` : "";
+    why += `${s.hits} von ${s.n} Modellen treffen. Bestes Signal: ${r0(s.top.v)} kn ${dn?dn.name:""} (${card(s.top.d)}) in ${spotName(s.top.spot)} gegen ${s.top.hr}:00, ${s.topM.name}.`;
+  } else why = "In den gewählten Richtungen zeigt kein Modell nennenswerten Wind.";
+  if(cur.ens) why += ` Ensemble: ${cur.ens.hit} von ${cur.ens.n} Läufen erreichen die Schwelle.`;
+  if(s.n===1) why += " Nur ein Modell reicht so weit — Aussage unsicher.";
+  basis = `Prognose, ${WINS[S.win][2]}` + (s.level>=S.cut ? " — lohnt sich nach deiner Einstellung" : "");
+
+  if(live && (nc.eOk || nc.trusted.length)){
+    const parts = [];
+    if(nc.eOk) parts.push(`Joran-Regel E in Cressier: ${r1(nc.e.mean30)} kn seit ${nc.e.since?hhmm(nc.e.since):"–"}`);
+    nc.trusted.forEach(x=>{ if(nc.eOk && x.up.abk==="crm") return;
+      parts.push(`${x.up.name} ${r0(x.u.mean30)} kn ${x.u.sys?x.u.sys.name:""}${x.u.since?" seit "+hhmm(x.u.since):""}${x.u.trust==null?" (ungeprüft)":""}`); });
+    const strong = nc.eOk || nc.trusted.some(x=>x.u.trust!=null);
+    cls = strong ? "c4" : "c3";
+    word = s.level>=S.cut ? "Wind kommt" : "Upwind-Signal";
+    why = `Messung: ${parts.join("; ")}. ` + why;
+    basis = "Messung an Upwind-Stationen plus Prognose";
+  }
+  if(today && hour>h1) why += " Dein Zeitfenster heute ist vorbei.";
+  return `<div class="verdict ${cls}"><span class="word">${esc(word)}</span>
+    <div class="why">${esc(why)}</div><div class="basis">${esc(basis)}</div></div>`;
 }
 
-/* ---------- Diagramm ---------- */
-function chart(h, day){
-  if(!h) return "";
-  const pts=[];
-  for(let i=0;i<h.time.length;i++){
-    const t=h.time[i]; if(!t.startsWith(day)) continue;
-    const hr=parseInt(t.slice(11,13),10);
-    if(hr<13||hr>23) continue;
-    if(h.wind_speed_10m[i]==null) continue;
-    pts.push({hr, m:h.wind_speed_10m[i], g:h.wind_gusts_10m[i]||0, d:h.wind_direction_10m[i]});
-  }
-  if(!pts.length) return "";
-  const W=600,H=170,PL=28,PR=8,PT=12,PB=22;
-  const maxV=Math.max(20, ...pts.map(p=>p.g||p.m))*1.1;
-  const bw=(W-PL-PR)/pts.length;
-  const y=v=>H-PB-(v/maxV)*(H-PT-PB);
-  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Windverlauf heute Abend">`;
-  [10,14,20].forEach(v=>{
-    if(v>maxV) return;
-    s+=`<line x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}" stroke="${v===14?"#0e6a7e":"#c8d4d6"}" stroke-width="1" stroke-dasharray="${v===14?"":"3 3"}"/>`;
-    s+=`<text x="2" y="${y(v)+4}" font-size="10" fill="#7a8b90">${v}</text>`;
+function modelTable(cur){
+  if(!cur.s.n) return "";
+  let h = `<div class="tw"><table style="margin-top:14px"><tr><th>Modell</th><th class="n">max</th><th>Richtung</th><th class="n">h ≥ ${S.T}</th><th class="n">Zeit, Spot</th></tr>`;
+  cur.s.per.forEach(x=>{
+    if(!x.e){ h += `<tr><td>${x.m.name}</td><td class="n dim" colspan="4">${D.err[x.m.id]?"nicht erreichbar":"reicht nicht bis hier"}</td></tr>`; return; }
+    const t = x.e.top, dn = t ? dirOf(t.d) : null;
+    h += `<tr><td>${x.m.name}<br><small>${x.m.note}</small></td>
+      <td class="n"><b>${t?r0(t.v):"–"}</b> kn${t&&t.g!=null?`<br><small>Böe ${r0(t.g)}</small>`:""}</td>
+      <td>${t?arrow(t.d)+" "+(dn?dn.name:card(t.d)):"–"}</td>
+      <td class="n">${x.e.nOver}</td>
+      <td class="n">${t?t.hr+":00<br><small>"+spotName(t.spot)+"</small>":"–"}</td></tr>`;
   });
-  pts.forEach((p,i)=>{
-    const x=PL+i*bw+2, w=Math.max(3,bw-5);
-    const col=inSector(p.d)?"#0e6a7e":"#b3c2c5";
-    s+=`<rect x="${x}" y="${y(p.m)}" width="${w}" height="${H-PB-y(p.m)}" fill="${col}"/>`;
-    if(p.g>p.m) s+=`<line x1="${x+w/2}" x2="${x+w/2}" y1="${y(p.g)}" y2="${y(p.m)}" stroke="${col}" stroke-width="1.5" opacity=".55"/>`;
-    if(p.hr%2===0) s+=`<text x="${x+w/2}" y="${H-6}" font-size="10" fill="#7a8b90" text-anchor="middle">${p.hr}</text>`;
-  });
-  s+=`</svg>`;
-  return s;
+  h += `</table></div>`;
+  if(cur.ens) h += `<div class="note">ICON-D2-Ensemble: <b>${cur.ens.hit} von ${cur.ens.n}</b> Läufen erreichen ${S.T} kn. ${cur.ens.hit/cur.ens.n>=0.5?"Die Läufe sind sich weitgehend einig.":cur.ens.hit>0?"Nur ein Teil der Läufe zeigt das Signal.":"Kein Lauf zeigt das Signal."}</div>`;
+  return h;
 }
 
-/* ---------- Rendern ---------- */
-function render(D){
-  const today = localDay(0), hour = localHourNow();
-  const okModels = MODELS.filter(m=>D.models[m.id] && !D.models[m.id].err);
-  const primary = D.models["meteoswiss_icon_ch1"]?.h || D.models["meteoswiss_icon_ch2"]?.h || okModels[0]?.h;
-
-  /* --- Messung: Entscheidungsstation --- */
-  const crm = D.stations["crm"];
-  let mVerdict=null, mWhy="";
-  if(crm && !crm.err && crm.rows.length){
-    const e = crm.e;
-    if(e.front){ mVerdict="danger"; mWhy="Böenfront erkannt — "+e.frontWhy.join(", ")+". Das ist kein fahrbarer Joran."; }
-    else if(e.ok){
-      const v=e.mean30;
-      mVerdict = v>=TH.stationFoil ? "go" : (v>=TH.stationKnapp ? "maybe" : "maybe");
-      mWhy=`Regel E ausgelöst: ${r1(v)} kn Mittelwind aus ${card(e.last.dir)}, seit ${e.since?hhmm(e.since):"–"} gehalten und zunehmend.`;
-    } else if(hour>=16 && hour<=22){
-      mVerdict="stop"; mWhy="Regel E nicht ausgelöst: "+e.fail[0]+".";
-    }
+function warnings(cur){
+  const w = [], s = cur.s;
+  const cape = Math.max(0, ...s.ok.map(x=>x.e.capeMax||0));
+  if(cape>=500) w.push(`CAPE bis ${Math.round(cape)} J/kg — Schauer oder Gewitter möglich, dann Böenfront statt Foilwind.`);
+  if(s.top && s.top.g!=null && s.top.g>=25 && s.top.g>=1.8*(s.top.v/C.kFor(s.top.d,S))) w.push(`Sehr böig: Böen bis ${r0(s.top.g)} kn.`);
+  const tops = s.ok.filter(x=>x.e.top).map(x=>x.e.top.v);
+  if(tops.length>1 && Math.max(...tops)-Math.min(...tops)>=6) w.push(`Modelle uneinig: ${r0(Math.max(...tops)-Math.min(...tops))} kn Spannweite.`);
+  if(s.top && S.dirs.joran && dirOf(s.top.d) && dirOf(s.top.d).id==="joran" && D.jura && D.jura[cur.day]!=null){
+    const dp = D.jura[cur.day];
+    w.push(`Druckgefälle Jura-Nordseite zum See um 18 Uhr: ${dp>0?"+":""}${r1(dp)} hPa${dp<=0?" — kein antreibendes Gefälle für Joran":""}.`);
   }
+  return w;
+}
 
-  /* --- Modelle heute Abend --- */
-  const evAll = okModels.map(m=>({m, e:evening(D.models[m.id].h, today)})).filter(x=>x.e);
-  const hits = evAll.filter(x=>x.e.maxSector>=TH.modelFoil).length;
-  const sc = scaleFrom(hits, evAll.length);
-  const bestM = evAll.reduce((a,b)=>(!a||b.e.maxSector>a.e.maxSector)?b:a, null);
-
-  /* --- Gesamturteil --- */
-  let vClass, vWord, vWhy, vBasis;
-  if(mVerdict==="danger"){ vClass="danger"; vWord="Nicht rausfahren"; vWhy=mWhy; vBasis="Messung Cressier, Sicherheitsregel"; }
-  else if(mVerdict==="go"){ vClass="go"; vWord="Foilbar"; vWhy=mWhy; vBasis="Messung Cressier, Regel E — 69 % dieser Auslösungen hielten ≥ 60 min"; }
-  else if(mVerdict==="maybe"){ vClass="maybe"; vWord="Knapp"; vWhy=mWhy+" Unter 12 kn in Cressier, am See meist etwas mehr."; vBasis="Messung Cressier, Regel E"; }
-  else if(hour>=16 && mVerdict==="stop"){ vClass="stop"; vWord="Läuft nicht"; vWhy=mWhy+(bestM?` Modelle sähen bis ${bestM.e.bestHour!=null?bestM.e.bestHour+":00":"–"} maximal ${r1(bestM.e.maxSector)} kn.`:""); vBasis="Messung Cressier"; }
-  else if(bestM && hits>0){ vClass=sc.c; vWord=sc.t.charAt(0).toUpperCase()+sc.t.slice(1); vWhy=`${hits} von ${evAll.length} Modellen sehen heute Abend ≥ ${TH.modelFoil} kn im Sektor, Maximum ${r1(bestM.e.maxSector)} kn gegen ${bestM.e.bestHour}:00.`; vBasis="Modelle für den Seepunkt, Messung noch ohne Signal"; }
-  else { vClass="stop"; vWord="Unwahrscheinlich"; vWhy=bestM?`Kein Modell sieht heute Abend ${TH.modelFoil} kn im Sektor 270–350°; Maximum ${r1(bestM.e.max)} kn.`:"Keine Modelldaten verfügbar."; vBasis="Modelle für den Seepunkt"; }
-
-  /* --- Kipp-Kriterium --- */
-  const kipp=[];
-  const bise = biseCheck(primary, today);
-  if(bise) kipp.push("Bise oder Ostwind am Tag — das reduziert die Joran-Chance stark und dominiert alles andere.");
-  if(D.jura && D.jura.dp!=null) kipp.push(`Druckgefälle Jura-Nordseite zum Seeland ${D.jura.dp>0?"+":""}${r1(D.jura.dp)} hPa${D.jura.dp<=0?" — kein antreibendes Gefälle":""}.`);
-  if(primary){
-    let capeMax=0;
-    for(let i=0;i<primary.time.length;i++){
-      if(!primary.time[i].startsWith(today)) continue;
-      const hr=+primary.time[i].slice(11,13);
-      if(hr>=14&&hr<=22&&primary.cape&&primary.cape[i]!=null) capeMax=Math.max(capeMax,primary.cape[i]);
-    }
-    if(capeMax>=500) kipp.push(`CAPE bis ${Math.round(capeMax)} J/kg — Schauer möglich, dann Böenfront statt Joran.`);
-  }
-  if(evAll.length>1){
-    const sp = Math.max(...evAll.map(x=>x.e.maxSector)) - Math.min(...evAll.map(x=>x.e.maxSector));
-    if(sp>=6) kipp.push(`Modelle uneinig: ${r1(sp)} kn Spannweite zwischen den Läufen.`);
-  }
-
-  /* ---------- HTML ---------- */
-  let H = "";
-
-  H += `<div class="verdict ${vClass}"><span class="word">${esc(vWord)}</span>
-        <div class="why">${esc(vWhy)}</div><div class="basis">${esc(vBasis)}</div></div>`;
-
-  if(kipp.length){
-    H += `<h2>Was die Lage kippen kann</h2><div class="note${bise?" bad":""}"><ul>${kipp.map(k=>`<li>${esc(k)}</li>`).join("")}</ul></div>`;
-  }
-
-  /* Messwerte */
-  H += `<h2>Messwerte jetzt</h2>`;
-  const anyStation = STATIONS.some(s=>D.stations[s.abk] && !D.stations[s.abk].err);
-  if(!anyStation){
-    H += `<div class="note bad">Keine Messwerte abrufbar. Das Dashboard läuft dann nur auf Modellbasis — für heute Abend ist das deutlich schwächer. Vingelz und Ipsach lassen sich über die Direktlinks unten von Hand prüfen.</div>`;
-  } else {
-    STATIONS.forEach(s=>{
-      const d=D.stations[s.abk];
-      if(!d || d.err){ H+=`<div class="row"><div class="nm"><b>${s.name}</b><em>${esc(s.role)}</em></div><div class="val off">nicht erreichbar</div></div>`; return; }
-      const l=d.rows[d.rows.length-1];
-      const on=inSector(l.dir);
-      H += `<div class="row"><div class="nm"><b>${s.name}</b><em>${esc(s.role)} — ${hhmm(l.t)}</em></div>
-            <div class="val ${on?"on":"off"}">${arrow(l.dir)} ${card(l.dir)} ${r1(l.mean)}<span class="dim"> / ${r1(l.gust)} kn</span></div></div>`;
-    });
-    if(crm && !crm.err){
-      const e=crm.e;
-      H += `<div class="note${e.front?" bad":""}" style="margin-top:12px">
-        <b>Regel E an der Entscheidungsstation:</b> ${e.ok?"ausgelöst":"nicht ausgelöst"}.
-        ${e.ok? `Mittelwind über 30 min ${r1(e.mean30)} kn, gehalten seit ${e.since?hhmm(e.since):"–"}.`
-              : `<ul>${e.fail.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`}
-      </div>`;
-    }
-  }
-
-  /* Heute Abend Modelle */
-  if(primary){
-    H += `<h2>Heute Abend im Modell</h2>${chart(primary, today)}
-      <small>Balken = Mittelwind, Strich = Böe. Teal heisst Richtung im Sektor 270–350°, grau heisst falsche Richtung. Linie bei 14 kn.</small>`;
-  }
-
-  /* Modelltabelle heute */
-  if(evAll.length){
-    H += `<table style="margin-top:14px"><tr><th>Modell</th><th class="n">Sektor</th><th class="n">Böe</th><th class="n">beste Std.</th></tr>`;
-    evAll.forEach(x=>{
-      H += `<tr><td>${x.m.name}<br><small>${x.m.note}</small></td>
-            <td class="n">${x.e.maxSector?r1(x.e.maxSector)+" kn":"–"}</td>
-            <td class="n">${x.e.gust?r1(x.e.gust)+" kn":"–"}</td>
-            <td class="n">${x.e.bestHour!=null?x.e.bestHour+":00":"–"}</td></tr>`;
-    });
-    H += `</table>`;
-  }
-
-  /* Ausblick */
-  H += `<h2>Nächste Tage</h2>`;
-  for(let k=1;k<=3;k++){
-    const day=localDay(k);
-    const per = okModels.map(m=>({m, e:evening(D.models[m.id].h, day)})).filter(x=>x.e);
-    const label = fmtCH(new Date(day+"T12:00:00Z"),{weekday:"long",day:"numeric",month:"long"});
-    if(!per.length){ H+=`<div class="day"><div class="day-head"><b>${label}</b><span class="tag stop">keine Daten</span></div></div>`; continue; }
-    const hi = per.filter(x=>x.e.maxSector>=TH.modelFoil).length;
-    const s = scaleFrom(hi, per.length);
-    const best = per.reduce((a,b)=>(!a||b.e.maxSector>a.e.maxSector)?b:a,null);
-    const gesamt = hi/per.length>=0.5 ? "foilbar" : (best.e.maxSector>=TH.modelKnapp ? "knapp" : "nicht foilbar");
-    H += `<div class="day"><div class="day-head"><b>${label}</b><span class="tag ${s.c}">${s.t}</span></div>
-      <div style="font-size:.85rem;margin-top:4px">Bis ${r1(best.e.maxSector)} kn im Sektor gegen ${best.e.bestHour!=null?best.e.bestHour+":00":"–"}, Böen ${r1(best.e.gust)} kn. Gesamt: ${gesamt}.</div>
-      <small>${per.map(x=>`${x.m.name} ${x.e.maxSector?r1(x.e.maxSector):"–"}`).join(" · ")}${k>=2?" — für übermorgen ist die Sicherheit geringer.":""}</small></div>`;
-  }
-
-  /* Trefferbilanz */
-  H += `<h2>Trefferbilanz</h2><div id="score"></div>`;
-
-  /* Quellenstatus */
-  H += `<h2>Quellen in diesem Lauf</h2><div class="chips">`;
+function chartHTML(day){
+  const h0 = 8, h1 = 22, [w0,w1] = WINS[S.win];
+  const cols = [];
+  for(let hr=h0; hr<=h1; hr++) cols.push({hr, vals:[], raw:[], dirs:[]});
   MODELS.forEach(m=>{
-    const d=D.models[m.id];
-    H += `<span class="chip ${d&&!d.err?"ok":"fail"}">${m.name}${d&&d.err?" — "+esc(d.err):""}</span>`;
+    const sp = D.models[m.id]; if(!sp) return;
+    const r = evalHours(sp, day, S, h0, h1); if(!r) return;
+    r.hours.forEach((x,i)=>{ if(x.best){ cols[i].vals.push(x.best.v); cols[i].dirs.push(x.best.d); } if(x.raw) cols[i].raw.push(x.raw.v); });
   });
-  STATIONS.forEach(s=>{
-    const d=D.stations[s.abk];
-    H += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?" — "+esc(d.err):""}</span>`;
+  if(!cols.some(c=>c.vals.length||c.raw.length)) return `<div class="note">Keine Stundenwerte für diesen Tag.</div>`;
+  const med = a => { const b = [...a].sort((x,y)=>x-y); const n = b.length; return n%2 ? b[(n-1)/2] : (b[n/2-1]+b[n/2])/2; };
+  const W=600, Hh=190, PL=28, PR=8, PT=22, PB=22;
+  const maxV = Math.max(S.T+4, 20, ...cols.map(c=>Math.max(0,...c.vals,...c.raw)))*1.08;
+  const bw = (W-PL-PR)/cols.length;
+  const y = v => Hh-PB-(v/maxV)*(Hh-PT-PB);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Windverlauf ${esc(day)}">`;
+  const xw0 = PL+(w0-h0)*bw, xw1 = PL+(w1-h0+1)*bw;
+  s += `<rect x="${xw0}" y="${PT-4}" width="${xw1-xw0}" height="${Hh-PB-PT+4}" fill="#0e6a7e" opacity=".06"/>`;
+  [S.T-3, S.T].forEach((v,j)=>{
+    s += `<line x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}" stroke="${j?"#0e6a7e":"#4a6b57"}" stroke-width="1" stroke-dasharray="${j?"":"3 3"}"/>`;
+    s += `<text x="2" y="${y(v)+4}" font-size="10" fill="${j?"#0e6a7e":"#6c7e83"}">${v}</text>`;
   });
-  H += `<span class="chip ${D.jura&&!D.jura.err?"ok":"fail"}">Druckgefälle Jura</span>`;
-  H += `</div>`;
-
-  $("#out").innerHTML = H;
-  $("#stamp").textContent = "Stand " + hhmm(new Date());
+  cols.forEach((c,i)=>{
+    const x = PL+i*bw+2, w = Math.max(3,bw-5);
+    if(c.vals.length){
+      const m = med(c.vals), lo = Math.min(...c.vals), hi = Math.max(...c.vals);
+      const col = over(m,S) ? "#0e6a7e" : Math.round(m)>=S.T-3 ? "#4a6b57" : "#9fb0b4";
+      s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" fill="${col}"/>`;
+      if(hi>lo) s += `<line x1="${x+w/2}" x2="${x+w/2}" y1="${y(hi)}" y2="${y(lo)}" stroke="#14262c" stroke-width="1.5" opacity=".45"/>`;
+      const d = c.dirs[0];
+      if(d!=null) s += `<g transform="translate(${x+w/2},${PT-11}) rotate(${d+180})"><path d="M0 -6 L4 6 L0 3.5 L-4 6 Z" fill="#14262c" opacity=".7"/></g>`;
+    } else if(c.raw.length){
+      const m = med(c.raw);
+      s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" fill="none" stroke="#b3c2c5" stroke-dasharray="2 2"/>`;
+    }
+    if(c.hr%2===0) s += `<text x="${x+w/2}" y="${Hh-6}" font-size="10" fill="#6c7e83" text-anchor="middle">${c.hr}</text>`;
+  });
+  return s + `</svg>`;
 }
 
-function renderScore(msg){
-  const el = document.getElementById("score");
-  if(!el) return;
-  const s = scoreReport();
-  const log = logLoad();
-  const open = Object.keys(log).filter(d=>!log[d].m && d<localDay(0)).length;
+function stationsHTML(nc){
+  const any = UPWIND.some(s=>D.stations[s.abk] && !D.stations[s.abk].err);
+  if(!any) return `<div class="note bad">Keine Messwerte abrufbar. Vingelz und Ipsach lassen sich über die Links unten prüfen.</div>`;
   let h = "";
-  if(s.days===0){
-    h += `<div class="note">Noch keine abgeschlossenen Abende im Protokoll. Das Dashboard hält bei jedem Öffnen fest, was die Modelle für heute und die nächsten drei Tage sagen, und stellt das später gegen die Messung in Cressier. Bei rund 12 Prozent foilbaren Abenden braucht es ein bis zwei Saisons für eine belastbare Zahl.</div>`;
-  } else {
-    const prec = (s.tp+s.fp) ? Math.round(100*s.tp/(s.tp+s.fp)) : null;
-    const rec  = (s.tp+s.fn) ? Math.round(100*s.tp/(s.tp+s.fn)) : null;
-    h += `<div class="row"><div class="nm"><b>Abende im Protokoll</b><em>gemessen und abgeschlossen</em></div><div class="val">${s.days}</div></div>`;
-    h += `<div class="row"><div class="nm"><b>davon foilbar gemessen</b><em>Vergleichsmassstab: rund 12 Prozent</em></div><div class="val">${s.base}</div></div>`;
-    h += `<div class="row"><div class="nm"><b>Prognose foilbar traf zu</b><em>Vorlauf heute und morgen</em></div><div class="val">${prec!=null?prec+" %":"–"} <span class="dim">(${s.tp} von ${s.tp+s.fp})</span></div></div>`;
-    h += `<div class="row"><div class="nm"><b>foilbare Abende erkannt</b><em>wie viele gute Abende gemeldet wurden</em></div><div class="val">${rec!=null?rec+" %":"–"} <span class="dim">(${s.tp} von ${s.tp+s.fn})</span></div></div>`;
-    if(s.days<20) h += `<div class="note" style="margin-top:10px">Erst ${s.days} Abende — die Zahlen sind noch nicht belastbar. Ab etwa 20 foilbaren Ereignissen wird der Vergleich aussagekräftig.</div>`;
+  UPWIND.forEach(up=>{
+    const d = D.stations[up.abk];
+    if(!d || d.err){ h += `<div class="row"><div class="nm"><b>${up.name}</b><em>${esc(up.role)}</em></div><div class="val off">nicht erreichbar</div></div>`; return; }
+    const u = C.upwindNow(d.rows, up, S), l = d.rows[d.rows.length-1], dn = dirOf(l.dir);
+    const old = !C.fresh(d.rows);
+    const sysTxt = up.sys.map(id=>(DIRS.find(x=>x.id===id)||{}).name).join(", ");
+    const trust = u.trust==null ? "ungeprüft" : `geprüft, Peirce ${u.trust.toFixed(2)}`;
+    const tag = u.off ? `<span class="sig off">Richtung abgewählt</span>` : old ? `<span class="sig off">veraltet</span>`
+      : u.ok ? (u.trust!=null && u.trust<0.25 ? `<span class="sig near">Signal, unzuverlässig</span>` : `<span class="sig on">Signal</span>`) : u.near ? `<span class="sig near">fast</span>` : "";
+    h += `<div class="row"><div class="nm"><b>${up.name}</b>${tag}<em>${esc(up.role)} — zeigt ${esc(sysTxt)}. Schwelle ${u.ts} kn, ${trust}. ${hhmm(l.t)}</em></div>
+      <div class="val ${u.ok?"on":"off"}">${arrow(l.dir)} ${dn?dn.name:card(l.dir)} ${r0(l.mean)}<span class="dim"> / ${r0(l.gust)} kn</span></div></div>`;
+  });
+  if(nc.e){
+    const e = nc.e;
+    h += `<div class="note${e.front.length?" bad":""}"><b>Joran-Regel E in Cressier:</b> ${e.ok?"ausgelöst":"nicht ausgelöst"}.
+      ${e.ok?`Mittelwind über 30 min ${r1(e.mean30)} kn, gehalten seit ${e.since?hhmm(e.since):"–"}.`:`<ul>${e.fail.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`}</div>`;
   }
-  if(msg) h += `<div class="note" style="margin-top:10px">${esc(msg)}</div>`;
-  if(open) h += `<button class="trigger" id="vfy" style="margin-top:12px">${open} offene Tage nachtragen</button><small>Lädt das Jahresarchiv von Cressier, einige Megabyte. Am besten im WLAN.</small>`;
+  if(!Object.keys(S.st||{}).length) h += `<div class="note">Die Stationsschwellen sind Startwerte. Im Rückblick kannst du sie an deinen markierten Tagen kalibrieren.</div>`;
+  return h;
+}
+
+function diagHTML(){
+  let h = `<details><summary>Diagnose: verwendete Modellzellen</summary><div class="tw"><table><tr><th>Modell</th>${SPOTS.map(s=>`<th>${s.name}</th>`).join("")}</tr>`;
+  MODELS.forEach(m=>{
+    const sp = D.models[m.id];
+    h += `<tr><td>${m.name}</td>` + SPOTS.map(s=>{
+      const c = sp && sp.find(x=>x.id===s.id);
+      return `<td><small>${c&&c.cell.lat!=null?`${c.cell.lat.toFixed(3)}, ${c.cell.lon.toFixed(3)}`:"–"}</small></td>`;
+    }).join("") + `</tr>`;
+  });
+  return h + `</table></div><small>Gleiche Koordinaten bei zwei Spots heissen: Das Modell löst die beiden Spots nicht getrennt auf. Liegt eine Zelle weit weg vom Spot, fehlt dort eine Wasserzelle.</small></details>`;
+}
+
+/* ================= Einstellungen ================= */
+function chipGroup(el, items, isOn, onClick){
+  el.innerHTML = items.map(it=>`<button class="chip" aria-pressed="${isOn(it)}" data-v="${esc(it.v)}">${esc(it.t)}</button>`).join("");
+  el.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ onClick(b.dataset.v); saveS(); renderAll(); }));
+}
+function renderSettings(){
+  chipGroup($("#setWin"), Object.keys(WINS).map(k=>({v:k,t:WINS[k][2]})), it=>S.win===it.v, v=>{ S.win=v; });
+  chipGroup($("#setMin"), [{v:"1",t:"1 Stunde"},{v:"2",t:"2 Stunden"}], it=>String(S.minH)===it.v, v=>{ S.minH=+v; });
+  chipGroup($("#setDir"), DIRS.map(d=>({v:d.id,t:`${d.name} ${d.a}–${d.b}°`})), it=>!!S.dirs[it.v], v=>{
+    S.dirs[v] = S.dirs[v]?0:1; if(!Object.values(S.dirs).some(Boolean)) S.dirs[v] = 1; });
+  chipGroup($("#setSpot"), SPOTS.map(s=>({v:s.id,t:s.name})), it=>!!S.spots[it.v], v=>{
+    S.spots[v] = S.spots[v]?0:1; if(!Object.values(S.spots).some(Boolean)) S.spots[v] = 1; });
+  chipGroup($("#setCut"), [{v:"2",t:"«möglich»"},{v:"3",t:"«wahrscheinlich»"}], it=>String(S.cut)===it.v, v=>{ S.cut=+v; });
+}
+
+/* ================= Push ================= */
+const PUSH_FIELDS = ["T","win","minH","dirs","spots","k","kDir","cut","st","push","pushForecast","pushLive"];
+const pushCfg = st => { const o = {}; PUSH_FIELDS.forEach(k=>o[k]=st[k]); return o; };
+const same = (a,b) => JSON.stringify(pushCfg(C.merge(a)))===JSON.stringify(pushCfg(C.merge(b)));
+function b64(str){ const b = new TextEncoder().encode(str); let s = ""; b.forEach(x=>s+=String.fromCharCode(x)); return btoa(s); }
+function unb64(s){ const bin = atob(s.replace(/\n/g,"")); return new TextDecoder().decode(Uint8Array.from(bin, c=>c.charCodeAt(0))); }
+async function gh(path, opt){
+  const g = loadG();
+  const r = await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/${path}`, Object.assign({headers:{
+    "Authorization":"Bearer "+g.token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"}}, opt||{}));
+  if(!r.ok){ let m = "HTTP "+r.status; try{ const j = await r.json(); if(j.message) m += " — "+j.message; }catch(e){} throw new Error(m); }
+  return r.status===204 ? null : r.json();
+}
+async function readRemote(){
+  const g = loadG();
+  try{
+    if(g.token){ const j = await gh("contents/config.json"); REMOTE = {cfg:JSON.parse(unb64(j.content)), sha:j.sha}; }
+    else { const r = await fetch("config.json?"+Date.now()); if(r.ok) REMOTE = {cfg:await r.json()}; }
+  }catch(e){ PUSHMSG = "config.json nicht lesbar: "+e.message; }
+  renderPush();
+}
+async function writeRemote(msg){
+  const g = loadG();
+  if(!g.token){ PUSHMSG = "Nicht mit GitHub verbunden — Schalter wirkt erst nach dem Verbinden."; renderPush(); return; }
+  PUSHMSG = "Übertrage …"; renderPush();
+  try{
+    let sha = null;
+    try{ sha = (await gh("contents/config.json")).sha; }catch(e){}
+    const body = {message:msg, content:b64(JSON.stringify(pushCfg(S), null, 1)+"\n")};
+    if(sha) body.sha = sha;
+    const j = await gh("contents/config.json", {method:"PUT", body:JSON.stringify(body)});
+    REMOTE = {cfg:pushCfg(S), sha:j.content.sha};
+    PUSHMSG = `Gespeichert in GitHub, ${hhmm(new Date())}.`;
+  }catch(e){ PUSHMSG = "Übertragen fehlgeschlagen: "+e.message; }
+  renderPush();
+}
+async function testPush(){
+  PUSHMSG = "Starte Testlauf …"; renderPush();
+  try{
+    await gh("actions/workflows/joran-push.yml/dispatches", {method:"POST", body:JSON.stringify({ref:"main", inputs:{test:true}})});
+    PUSHMSG = "Testlauf gestartet — die Nachricht kommt in 1–2 Minuten.";
+  }catch(e){ PUSHMSG = "Testlauf nicht gestartet: "+e.message; }
+  renderPush();
+}
+function renderPush(){
+  const el = $("#pushOut"); if(!el) return;
+  const g = loadG();
+  if(!g.topicHint){ g.topicHint = "joran-"+Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>x.toString(36).padStart(2,"0")).join("").slice(0,12); saveG(g); }
+  const rc = REMOTE && REMOTE.cfg ? C.merge(REMOTE.cfg) : null;
+  const on = rc ? !!rc.push : !!S.push;
+  const diff = rc && !same(rc, S);
+  let h = `<div class="sw"><input type="checkbox" id="pushSw" ${on?"checked":""} aria-label="Push ein oder aus">
+    <div class="t"><b>${on?"Push ist eingeschaltet":"Push ist ausgeschaltet"}</b>
+    <small>${rc?"Stand in GitHub":"Noch nicht mit GitHub abgeglichen"}${rc?`: Schwelle ${rc.T} kn, ${WINS[rc.win][2]}`:""}</small></div></div>`;
+  h += `<div class="chips" style="margin-top:10px">
+    <button class="chip" id="pF" aria-pressed="${!!S.pushForecast}">Prognose-Push</button>
+    <button class="chip" id="pL" aria-pressed="${!!S.pushLive}">Mess-Push (Upwind)</button></div>`;
+  if(diff) h += `<div class="note">Deine App-Einstellungen weichen von den Push-Einstellungen in GitHub ab. <button class="btn2" id="pSync" style="margin-top:6px">Einstellungen an Push übertragen</button></div>`;
+  if(PUSHMSG) h += `<div class="note">${esc(PUSHMSG)}</div>`;
+  h += `<details${g.token?"":" open"}><summary>${g.token?"Mit GitHub verbunden":"Einrichten (einmalig, ca. 10 Minuten)"}</summary>
+    <ol class="steps">
+      <li>App <b>ntfy</b> installieren (iOS/Android, gratis, ohne Konto) und ein Thema mit zufälligem Namen abonnieren, z. B. <code>${esc(g.topicHint)}</code>.</li>
+      <li>Im Repo unter Settings → Secrets and variables → Actions ein Secret <code>NTFY_TOPIC</code> mit genau diesem Namen anlegen.</li>
+      <li>Auf github.com einen <b>Fine-grained Token</b> erstellen: nur Repository «Joran», Rechte «Contents: Read and write» und «Actions: Read and write». Token unten einfügen — er bleibt nur in diesem Browser.</li>
+      <li>Schalter oben einschalten, dann «Testnachricht».</li>
+    </ol>
+    <div class="fld">
+      <input type="text" id="gOwner" value="${esc(g.owner)}" aria-label="GitHub-Benutzer" placeholder="GitHub-Benutzer">
+      <input type="text" id="gRepo" value="${esc(g.repo)}" aria-label="Repository" placeholder="Repository">
+      <input type="password" id="gTok" value="${esc(g.token)}" aria-label="Token" placeholder="github_pat_…" autocomplete="off">
+      <div class="chips"><button class="btn2" id="gSave">Verbinden</button>${g.token?`<button class="btn2" id="gTest">Testnachricht</button><button class="btn2" id="gDel">Token löschen</button>`:""}</div>
+    </div></details>
+    <small>Ohne Token: Push lässt sich auch direkt auf github.com in <code>config.json</code> umschalten (<code>"push": true</code> oder <code>false</code>).</small>`;
   el.innerHTML = h;
-  const b = document.getElementById("vfy");
-  if(b) b.addEventListener("click", async ()=>{
-    b.disabled=true; b.textContent="Prüfe …";
-    try{ renderScore(await verifyPending()); }
-    catch(e){ renderScore("Nachtragen fehlgeschlagen: "+e.message); }
+
+  $("#pushSw").addEventListener("change", e=>{ S.push = e.target.checked; saveS(); writeRemote(S.push?"Joran: Push ein":"Joran: Push aus"); });
+  $("#pF").addEventListener("click", ()=>{ S.pushForecast = !S.pushForecast; saveS(); renderPush(); });
+  $("#pL").addEventListener("click", ()=>{ S.pushLive = !S.pushLive; saveS(); renderPush(); });
+  const ps = $("#pSync"); if(ps) ps.addEventListener("click", ()=>{ S.push = on; writeRemote("Joran: Einstellungen übertragen"); });
+  $("#gSave").addEventListener("click", ()=>{ saveG(Object.assign(loadG(), {owner:$("#gOwner").value.trim(), repo:$("#gRepo").value.trim(), token:$("#gTok").value.trim()})); PUSHMSG = ""; readRemote(); });
+  const gt = $("#gTest"); if(gt) gt.addEventListener("click", testPush);
+  const gd = $("#gDel"); if(gd) gd.addEventListener("click", ()=>{ const x = loadG(); x.token = ""; saveG(x); PUSHMSG = "Token gelöscht."; renderPush(); });
+}
+
+/* ================= Rückblick ================= */
+function histDays(){ const out = []; for(let k=1;k<=H.days;k++) out.push(localDay(-k)); return out; }
+function renderHist(){
+  const el = $("#hout");
+  const days = histDays(), truth = loadT();
+  const cal = C.calibrate(days, S, H.models, truth);
+  const b = cal.base;
+  let h = "";
+  const fails = MODELS.filter(m=>H.err[m.id]);
+  if(fails.length) h += `<div class="note bad">Nicht geladen: ${fails.map(m=>m.name+" ("+esc(H.err[m.id])+")").join(", ")}.</div>`;
+
+  h += `<h2>Prognose</h2><div class="note"><b>Bilanz mit den aktuellen Einstellungen</b> (Schwelle ${S.T} kn, Faktor ${S.k.toFixed(2)}, lohnt sich ab «${LEVELS[S.cut]}»):<br>
+    ${b.ev+b.nev===0 ? "Noch keine Tage markiert." :
+    `Windtage erkannt: <b>${b.tp} von ${b.ev}</b>. Fehlalarme: <b>${b.fp} von ${b.nev}</b>.${b.pss!=null?` Peirce-Score ${b.pss.toFixed(2)} (1 = perfekt, 0 = wertlos).`:""}`}</div>`;
+  if(cal.best){
+    const c = cal.best.c, pd = cal.perDir, pdk = Object.keys(pd);
+    const isSet = Math.abs(cal.best.k-S.k)<1e-9 && cal.best.cut===S.cut && JSON.stringify(Object.fromEntries(pdk.map(id=>[id,pd[id].k])))===JSON.stringify(S.kDir||{});
+    h += `<div class="note"><b>Beste Einstellung:</b> Faktor ${cal.best.k.toFixed(2)}, lohnt sich ab «${LEVELS[cal.best.cut]}». Erkannt ${c.tp} von ${c.ev}, Fehlalarme ${c.fp} von ${c.nev}, Peirce ${c.pss.toFixed(2)}.
+      ${pdk.length?`<br>Eigener Faktor je Windsystem: ${pdk.map(id=>`${(DIRS.find(d=>d.id===id)||{}).name} ${pd[id].k.toFixed(2)} (${pd[id].ev} Windtage)`).join(", ")}.`:""}
+      ${b.ev<10?"<br><small>Weniger als zehn Windtage markiert — das Ergebnis ist vorläufig.</small>":""}
+      ${isSet?"<br><small>Ist bereits eingestellt.</small>":`<br><button class="btn2" id="apply" style="margin-top:8px">Übernehmen</button>`}</div>`;
+  } else h += `<div class="note">Für eine Kalibrierung braucht es mindestens drei foilbare und drei nicht foilbare Tage. Markiert: ${b.ev} foilbar, ${b.nev} nicht foilbar.</div>`;
+
+  h += `<h2>Upwind-Stationen</h2>`;
+  if(!HS) h += `<p style="font-size:.85rem">Lädt die Stundenwerte aller Stationen seit Januar (einige Megabyte, am besten im WLAN) und sucht je Station die Schwelle, die deine markierten Tage am besten trennt.</p><button class="btn2" id="sgo">Stationen kalibrieren</button>`;
+  else {
+    const res = UPWIND.map(up=>({up, r: HS.rows[up.abk] ? C.calibrateStation(HS.rows[up.abk], up, S, days, truth) : null}));
+    h += `<div class="tw"><table><tr><th>Station</th><th class="n">Schwelle</th><th class="n">erkannt</th><th class="n">Fehlalarm</th><th class="n">Peirce</th></tr>`;
+    res.forEach(x=>{
+      if(!x.r){ h += `<tr><td>${x.up.name}</td><td class="n dim" colspan="4">${esc(HS.err[x.up.abk]||"keine Daten")}</td></tr>`; return; }
+      if(!x.r.best){ h += `<tr><td>${x.up.name}</td><td class="n dim" colspan="4">zu wenige markierte Tage</td></tr>`; return; }
+      const c = x.r.best.c;
+      h += `<tr><td>${x.up.name}</td><td class="n">${x.r.best.ts!=null?x.r.best.ts+" kn":"kein Bezug"}</td><td class="n">${c.tp}/${c.ev}</td><td class="n">${c.fp}/${c.nev}</td><td class="n"><b>${x.r.best.pss.toFixed(2)}</b></td></tr>`;
+    });
+    h += `</table></div><small>Peirce unter 0.25: Station löst keinen Push aus, wird aber angezeigt. Werte als Stunden-Mittelwind, Fenster ab 2 h vor deinem Zeitfenster.</small>`;
+    if(res.some(x=>x.r && x.r.best)) h += `<div><button class="btn2" id="sapply" style="margin-top:8px">Stationsschwellen übernehmen</button></div>`;
+    HS.res = res;
+  }
+
+  h += `<h2>Tage markieren</h2><div>`;
+  days.forEach(d=>{
+    const s = summarize(H.models, d, S), t = truth[d], lv = s.level, c = clsOf(lv,S);
+    const col = ["#c8d4d6","#4a6b57","#6fa7b3","#0e6a7e","#0a4e5d"][c];
+    let out = "";
+    if((t==="y"||t==="n") && s.n){
+      const alarm = lv>=S.cut;
+      out = t==="y" ? (alarm?`<span class="out tp">Treffer</span>`:`<span class="out fn">verpasst</span>`) : (alarm?`<span class="out fp">Fehlalarm</span>`:`<span class="out tn">richtig ruhig</span>`);
+    }
+    const tp = s.top, dn = tp ? dirOf(tp.d) : null;
+    h += `<div class="hrow"><div><b>${esc(dayLabel(d))}</b></div>
+      <div class="fc"><span class="dot" style="background:${col}"></span><b>${tp?r0(tp.v)+" kn":"–"}</b> ${tp?(dn?dn.name:card(tp.d))+", "+(s.win?winTxt(s.win):tp.hr+":00"):""}
+        <span class="dim">${lv<0?"keine Daten":LEVELS[lv]}</span>${out}</div>
+      <div class="mk" data-d="${d}">
+        <button class="y" aria-pressed="${t==="y"}" data-t="y" title="war foilbar">Ja</button>
+        <button class="k" aria-pressed="${t==="k"}" data-t="k" title="knapp, zählt nicht">~</button>
+        <button class="n" aria-pressed="${t==="n"}" data-t="n" title="nicht foilbar">Nein</button></div></div>`;
+  });
+  h += `</div><div class="chips" style="margin-top:14px"><button class="btn2" id="exp">Markierungen kopieren</button><button class="btn2" id="imp">Markierungen einfügen</button></div>
+    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, fliesst nicht in die Bilanz ein.</small>`;
+  el.innerHTML = h;
+
+  el.querySelectorAll(".mk button").forEach(bt=>bt.addEventListener("click",()=>{
+    const d = bt.parentElement.dataset.d, tv = bt.dataset.t, tr = loadT();
+    if(tr[d]===tv) delete tr[d]; else tr[d] = tv;
+    saveT(tr); renderHist();
+  }));
+  const ap = $("#apply");
+  if(ap) ap.addEventListener("click",()=>{ S.k = cal.best.k; S.cut = cal.best.cut; S.kDir = Object.fromEntries(Object.keys(cal.perDir).map(id=>[id,cal.perDir[id].k])); saveS(); renderAll(); });
+  const sg = $("#sgo"); if(sg) sg.addEventListener("click", runStations);
+  const sa = $("#sapply");
+  if(sa) sa.addEventListener("click",()=>{ const st = {}; HS.res.forEach(x=>{ if(x.r && x.r.best) st[x.up.abk] = {ts:x.r.best.ts, pss:x.r.best.pss, n:x.r.ev};  /* ts null = Startwert behalten */ }); S.st = st; saveS(); renderAll(); });
+  $("#exp").addEventListener("click", async ()=>{
+    const txt = JSON.stringify(loadT());
+    try{ await navigator.clipboard.writeText(txt); $("#exp").textContent = "Kopiert"; } catch(e){ window.prompt("Markierungen kopieren:", txt); }
+  });
+  $("#imp").addEventListener("click", ()=>{
+    const txt = window.prompt("Markierungen einfügen (JSON):"); if(!txt) return;
+    try{
+      const o = JSON.parse(txt), tr = loadT(); let n = 0;
+      Object.keys(o).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(k) && ["y","n","k"].includes(o[k])){ tr[k] = o[k]; n++; } });
+      saveT(tr); renderHist(); alert(n+" Markierungen übernommen.");
+    }catch(e){ alert("Das ist kein gültiger Markierungs-Text."); }
   });
 }
 
-/* ---------- Ablauf ---------- */
+/* ================= Abläufe ================= */
 async function run(){
-  const b=$("#go"); b.disabled=true; b.textContent="Lade …";
-  $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`;
-  const D = {models:{}, stations:{}, jura:null};
-
-  const jobs = [];
-  MODELS.forEach(m=>jobs.push(
-    fetchModel(m).then(h=>D.models[m.id]={h}).catch(e=>D.models[m.id]={err:e.message})
-  ));
-  STATIONS.forEach(s=>jobs.push(
-    fetchStation(s).then(rows=>D.stations[s.abk]={rows, e:ruleE(rows)}).catch(e=>D.stations[s.abk]={err:e.message||"blockiert"})
-  ));
-  jobs.push(fetchJuraPressure().then(p=>{
-    const i = p.time.findIndex(t=>t.startsWith(localDay(0)) && +t.slice(11,13)===18);
-    D.jura = i>-1 ? {dp:p.jura[i]-p.see[i]} : {err:"kein 18-Uhr-Wert"};
-  }).catch(e=>D.jura={err:e.message}));
-
-  await Promise.allSettled(jobs);
-  try{ logForecast(D); }catch(e){}
-  try{ if(D.stations["crm"] && !D.stations["crm"].err) logMeasure(localDay(0), D.stations["crm"].rows); }catch(e){}
-  try{ render(D); renderScore(); }
-  catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
-  b.disabled=false; b.textContent="Neu laden";
+  const b = $("#go"); b.disabled = true; b.textContent = "Lade …";
+  if(!D) $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`;
+  D = await C.fetchAll(S);
+  try{ renderLive(); } catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
+  $("#stamp").textContent = "Stand " + hhmm(new Date());
+  b.disabled = false; b.textContent = "Neu laden";
+}
+async function runHist(){
+  const b = $("#hgo"); b.disabled = true; b.textContent = "Lade Archiv …";
+  const N = {models:{}, err:{}, days:45};
+  await Promise.allSettled(MODELS.map(m=>C.fetchHistory(m, N.days).then(x=>N.models[m.id]=x).catch(e=>N.err[m.id]=e.message||"Fehler")));
+  H = N;
+  if(!Object.keys(H.models).length) $("#hout").innerHTML = `<div class="note bad">Das Prognosearchiv ist nicht erreichbar: ${esc(Object.values(H.err).join("; "))}</div>`;
+  else renderHist();
+  b.disabled = false; b.textContent = "Rückblick neu laden";
+}
+async function runStations(){
+  const sg = $("#sgo"); if(sg){ sg.disabled = true; sg.textContent = "Lade Stationsarchiv …"; }
+  const N = {rows:{}, err:{}};
+  await Promise.allSettled(UPWIND.map(up=>C.fetchStation(up.abk, "h", "recent").then(r=>N.rows[up.abk]=r).catch(e=>N.err[up.abk]=e.message||"Fehler")));
+  HS = N; renderHist();
 }
 
+/* ================= Start ================= */
+function debounce(f, ms){ let t; return ()=>{ clearTimeout(t); t = setTimeout(f, ms); }; }
 $("#go").addEventListener("click", run);
-const wipe = document.getElementById("wipe");
-if(wipe) wipe.addEventListener("click", ()=>{
-  if(confirm("Trefferbilanz vollständig löschen?")){ try{localStorage.removeItem(LKEY);}catch(e){} renderScore("Protokoll gelöscht."); }
-});
+$("#hgo").addEventListener("click", runHist);
+$("#thr").addEventListener("input", e=>{ S.T = +e.target.value; $("#thrNum").innerHTML = `${S.T}<span>kn</span>`; });
+$("#thr").addEventListener("input", debounce(()=>{ saveS(); if(D) renderLive(); if(H) renderHist(); renderPush(); }, 120));
+$("#kSl").addEventListener("input", e=>{ S.k = +e.target.value; $("#kVal").textContent = S.k.toFixed(2); });
+$("#kSl").addEventListener("change", ()=>{ saveS(); renderAll(); });
+$("#reset").addEventListener("click", ()=>{ const p = S.push; S = C.merge(null); S.push = p; saveS(); renderAll(); });
+try{ if(!localStorage.getItem(S_KEY)) $("#setBox").open = true; }catch(e){}
+renderAll();
+readRemote();
 run();
 </script>
 </body>
