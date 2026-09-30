@@ -1,0 +1,25 @@
+{
+ "T": 14,
+ "win": "abend",
+ "minH": 1,
+ "dirs": {
+  "n": 1,
+  "bise": 1,
+  "so": 1,
+  "s": 1,
+  "w": 1,
+  "joran": 1
+ },
+ "spots": {
+  "vin": 1,
+  "ips": 1,
+  "mit": 1
+ },
+ "k": 1,
+ "kDir": {},
+ "cut": 2,
+ "st": {},
+ "push": true,
+ "pushForecast": true,
+ "pushLive": true
+}
