@@ -19,7 +19,7 @@
  "kDir": {},
  "cut": 3,
  "st": {},
- "push": true,
+ "push": false,
  "pushForecast": true,
  "pushLive": true
 }
