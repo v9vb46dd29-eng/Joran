@@ -1,6 +1,6 @@
 {
- "T": 14,
- "win": "abend",
+ "T": 12,
+ "win": "tag",
  "minH": 1,
  "dirs": {
   "n": 1,
@@ -15,11 +15,11 @@
   "ips": 1,
   "mit": 1
  },
- "k": 1,
+ "k": 1.1,
  "kDir": {},
- "cut": 2,
+ "cut": 3,
  "st": {},
- "push": true,
+ "push": false,
  "pushForecast": true,
  "pushLive": true
 }
