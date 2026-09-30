@@ -12,4 +12,3 @@ Wingfoil-Prognose für den Bielersee (Vingelz, Ipsach, Seemitte): Modellprognose
 Deine Einstellungen stehen öffentlich lesbar in `users/<name>.json`, dein ntfy-Thema nicht.
 
 Wetterdaten: Open-Meteo.com (CC BY 4.0), MeteoSchweiz (OGD).
-

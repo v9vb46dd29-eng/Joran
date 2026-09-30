@@ -1,0 +1,22 @@
+name: Joran Push-Einstellungen
+description: Deine Push-Einstellungen für Joran speichern oder löschen
+title: "Joran Push-Einstellungen"
+body:
+  - type: markdown
+    attributes:
+      value: Den Code erzeugt die Joran-App im Bereich «Push-Benachrichtigung». Gespeichert wird nur für deinen GitHub-Namen.
+  - type: dropdown
+    id: aktion
+    attributes:
+      label: Aktion
+      options:
+        - Speichern
+        - Löschen
+      default: 0
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Einstellungs-Code
+      render: json
