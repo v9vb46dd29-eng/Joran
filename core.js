@@ -9,7 +9,14 @@ const SPOTS = [
   {id:"ips", name:"Ipsach",   lat:47.119, lon:7.224},
   {id:"mit", name:"Seemitte", lat:47.088, lon:7.180}
 ];
-const JURA = {lat:47.100, lon:6.830};
+const JURA = {lat:47.083, lon:6.792};            /* Jura-Hochfläche bei La Chaux-de-Fonds */
+const CREST = {lat:47.132, lon:7.054};           /* Chasseral, Kammhöhe */
+/* Messstationen direkt am See (meteoBase). Kein CORS: Die GitHub Action liest sie und legt sie im Branch «live» ab. */
+const LAKE = [
+  {id:"vin", name:"Vingelz", url:"https://vingelz.meteobase.ch/"},
+  {id:"ips", name:"Ipsach",  url:"https://wsa-ipsach.meteobase.ch/"}
+];
+const LAKE_KEEP_H = 18;
 const KN = 1/1.852;
 
 const MODELS = [
@@ -40,10 +47,15 @@ const UPWIND = [
   {abk:"pay", name:"Payerne",   sys:["w","s","so"], f:0.8,  role:"Broyetal, 35 km SW"},
   {abk:"gre", name:"Grenchen",  sys:["bise","n"],   f:0.8,  role:"Jurasüdfuss, 15 km NO"},
   {abk:"wyn", name:"Wynau",     sys:["bise"],       f:0.75, role:"Aaretal, 40 km NO"},
-  {abk:"mub", name:"Mühleberg", sys:["s","so"],     f:0.75, role:"Mittelland, 25 km S"}
+  {abk:"mub", name:"Mühleberg", sys:["s","so"],     f:0.75, role:"Mittelland, 25 km S"},
+  /* Erweiterung für Joran. extra = zählt erst, wenn der Rückblick sie als verlässlich ausweist. */
+  {abk:"chm", name:"Chaumont",  sys:["joran","w"],  f:1.0,  role:"erster Jurakamm 1136 m, 25 km SW", extra:true},
+  {abk:"cdf", name:"La Chaux-de-Fonds", sys:["joran","w"], f:0.7, role:"Jurahochfläche 1018 m, 30 km WNW", extra:true}
 ];
 const LAKE_LEVEL = ["crm","neu","gre","pay"];     /* für die Böenfront-Prüfung */
 const REGEL_E = {sector:[270,350], min:10, foil:12};
+/* Joran-Zutaten aus dem Modell: Hinweis, nicht kalibriert (siehe Methode) */
+const JORAN_X = {crestSector:[270,360], crest:12, dpRise:0.5, cape:500};
 
 const DEF = {T:14, win:"abend", minH:1, dirs:{n:1,bise:1,so:1,s:1,w:1,joran:1}, spots:{vin:1,ips:1,mit:1},
   k:1, kDir:{}, cut:2, st:{}, push:false, pushForecast:true, pushLive:true};
@@ -136,17 +148,20 @@ async function fetchEnsemble(){
   }
   throw lastErr || new Error("kein Ensemble");
 }
+/* Joran-Zutaten (ICON-CH2): Druck Jurahochfläche minus See, Wind auf dem Chasseral-Kamm, je Stunde */
 async function fetchJura(){
+  const P = [JURA, CREST, SPOTS[2]];
   const u = "https://api.open-meteo.com/v1/forecast"
-    + `?latitude=${JURA.lat},${SPOTS[2].lat}&longitude=${JURA.lon},${SPOTS[2].lon}`
-    + "&hourly=pressure_msl&models=meteoswiss_icon_ch2&timezone=Europe%2FZurich&forecast_days=4";
+    + `?latitude=${P.map(p=>p.lat).join(",")}&longitude=${P.map(p=>p.lon).join(",")}`
+    + "&hourly=pressure_msl,wind_speed_10m,wind_direction_10m&models=meteoswiss_icon_ch2&wind_speed_unit=kn&timezone=Europe%2FZurich&forecast_days=4";
   const j = await getJSON(u);
   const arr = Array.isArray(j) ? j : [j];
-  if(arr.length<2) throw new Error("nur ein Punkt");
+  if(arr.length<3) throw new Error("zu wenige Punkte");
+  const [jj, cr, lk] = arr.map(x=>x.hourly);
   const out = {};
-  arr[0].hourly.time.forEach((t,i)=>{
-    const a = arr[0].hourly.pressure_msl[i], b = arr[1].hourly.pressure_msl[i];
-    if(t.slice(11,13)==="18" && a!=null && b!=null) out[t.slice(0,10)] = a-b;
+  jj.time.forEach((t,i)=>{
+    const a = jj.pressure_msl[i], b = lk.pressure_msl[i];
+    out[t] = {dp: a!=null && b!=null ? a-b : null, cv: cr.wind_speed_10m[i], cd: cr.wind_direction_10m[i]};
   });
   return out;
 }
@@ -169,7 +184,7 @@ function parseSMN(txt){
   const head = lines[0].split(";").map(s=>s.trim());
   const find = re => head.findIndex(h=>re.test(h));
   const iT = head.indexOf("reference_timestamp");
-  const iD = find(/^dkl010[zh]0$/), iM = find(/^fu3010[zh]0$/), iG = find(/^fu3010[zh]1$/), iTe = find(/^tre200[sh]0$/);
+  const iD = find(/^dkl010[zh]0$/), iM = find(/^fu3010[zh]0$/), iG = find(/^fu3010[zh]1$/), iTe = find(/^tre200[sh]0$/), iP = find(/^pp0qff[sh]0$/);
   const num = v => (v==null||v.trim()==="") ? null : parseFloat(v);
   const out = [];
   for(let k=1;k<lines.length;k++){
@@ -177,7 +192,7 @@ function parseSMN(txt){
     if(c.length<3) continue;
     const t = parseTsUTC(c[iT]); if(!t) continue;
     const m = iM>-1 ? num(c[iM]) : null, g = iG>-1 ? num(c[iG]) : null;
-    out.push({t, dir:iD>-1?num(c[iD]):null, mean:m!=null?m*KN:null, gust:g!=null?g*KN:null, temp:iTe>-1?num(c[iTe]):null});
+    out.push({t, dir:iD>-1?num(c[iD]):null, mean:m!=null?m*KN:null, gust:g!=null?g*KN:null, temp:iTe>-1?num(c[iTe]):null, qff:iP>-1?num(c[iP]):null});
   }
   return out.filter(r=>r.mean!=null).sort((a,b)=>a.t-b.t);
 }
@@ -189,6 +204,65 @@ function parseTsUTC(s){
   if(m) return new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5]));
   return null;
 }
+/* ---- Seestationen (meteoBase): HTML-Seite auslesen ---- */
+const DIR16 = ["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const dir16 = s => { const i = DIR16.indexOf(String(s||"").toUpperCase().replace(/E/g,"O")); return i<0 ? null : i*22.5; };
+function parseMeteobase(html){
+  const txt = String(html).replace(/&nbsp;/g," ").replace(/&Oslash;|&#216;/g,"Ø");
+  const m = txt.match(/(\d{2})\.(\d{2})\.(\d{4})\s*\((CEST|CET|MESZ|MEZ)\)\s*(\d{1,2}):(\d{2})/);
+  if(!m) throw new Error("kein Zeitstempel");
+  const off = /CEST|MESZ/.test(m[4]) ? 2 : 1;
+  const t = new Date(Date.UTC(+m[3], +m[2]-1, +m[1], +m[5]-off, +m[6]));
+  const w = re => { const x = txt.match(re); return x ? {kn:parseFloat(x[1]), dir:x[2]} : null; };
+  const mean = w(/Wind-10min-Ø:\s*[\d.]+\s*km\/h\s*\(([\d.]+)\s*kn[^)]*\)\s*([A-Z]{1,3})/);
+  const gust = w(/Wind-10min-Max:\s*[\d.]+\s*km\/h\s*\(([\d.]+)\s*kn[^)]*\)\s*([A-Z]{1,3})/);
+  if(!mean) throw new Error("kein Windwert");
+  const n = re => { const x = txt.match(re); return x ? parseFloat(x[1]) : null; };
+  return {t:t.toISOString(), mean:mean.kn, dir:dir16(mean.dir), gust:gust?gust.kn:null,
+    steady:n(/Richtungstreue:\s*(\d+)\s*%/), air:n(/Lufttemperatur:\s*(-?[\d.]+)/), water:n(/Wassertemperatur:\s*(-?[\d.]+)/)};
+}
+async function getText(url, ms){
+  const ctl = new AbortController();
+  const t = setTimeout(()=>ctl.abort(), ms||20000);
+  try{
+    const r = await fetch(url, {signal:ctl.signal, headers:{"User-Agent":"Joran-Wingfoil (github.com/v9vb46dd29-eng/Joran)"}});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return await r.text();
+  } catch(e){ if(e.name==="AbortError") throw new Error("Zeitüberschreitung"); throw e; }
+  finally { clearTimeout(t); }
+}
+/* Action: neue Werte an die gespeicherte Reihe anhängen, ältere als LAKE_KEEP_H Stunden verwerfen */
+async function updateLake(prev, now){
+  const o = {updated:(now||new Date()).toISOString(), st:{}};
+  const lim = (now||new Date()) - LAKE_KEEP_H*3600e3;
+  await Promise.all(LAKE.map(async L=>{
+    const rows = ((prev && prev.st && prev.st[L.id] && prev.st[L.id].rows) || []).filter(r=>new Date(r.t)>=lim);
+    let err = null;
+    try{ const r = parseMeteobase(await getText(L.url)); if(!rows.some(x=>x.t===r.t)) rows.push(r); }
+    catch(e){ err = e.message || "Fehler"; }
+    rows.sort((a,b)=>a.t<b.t?-1:1);
+    o.st[L.id] = err ? {rows, err} : {rows};
+  }));
+  return o;
+}
+/* Browser: Reihe aus dem Branch «live» lesen (raw.githubusercontent.com erlaubt CORS) */
+async function fetchLake(owner, repo){
+  return getJSON(`https://raw.githubusercontent.com/${owner}/${repo}/live/lake.json?${Date.now()}`, 15000);
+}
+const lakeRows = (lk, id) => ((lk && lk.st && lk.st[id] && lk.st[id].rows) || []).map(r=>Object.assign({}, r, {t:new Date(r.t)}));
+/* Messlage am See: letzter Wert frisch (< 40 min), die letzten zwei Werte ≥ Schwelle in aktiver Richtung */
+function lakeNow(lk, St, now){
+  return LAKE.map(L=>{
+    const rows = lakeRows(lk, L.id), last = rows[rows.length-1] || null;
+    const fr = !!(last && ((now||new Date()) - last.t) < 40*60000);
+    const k2 = rows.slice(-2).filter(r=>((now||new Date()) - r.t) < 40*60000);
+    const ok = fr && k2.length>=2 && k2.every(r=>over(r.mean,St) && dirOn(r.dir,St));
+    let since = null;
+    if(ok){ let i = rows.length-1; while(i>0 && over(rows[i-1].mean,St) && dirOn(rows[i-1].dir,St) && rows[i].t-rows[i-1].t < 40*60000) i--; since = rows[i].t; }
+    return {L, rows, last, fresh:fr, ok, since, err: lk && lk.st && lk.st[L.id] ? lk.st[L.id].err : null};
+  });
+}
+
 async function fetchAll(St, opts){
   opts = opts||{};
   const N = {models:{}, stations:{}, err:{}, ens:null, jura:null, at:new Date()};
@@ -271,6 +345,27 @@ function ensShare(ens, day, St){
   return n ? {n, hit} : null;
 }
 
+/* Joran-Zutaten für einen Tag (ab 14 Uhr bis Fensterende): NW-Strömung auf Kammhöhe,
+   steigendes Druckgefälle Jura → See, Gewitterneigung. Reiner Hinweis, verändert die Stufe nicht. */
+function joranCheck(J, day, St, capeMax){
+  if(!J) return null;
+  const h1 = WINS[St.win][1], h0 = Math.max(14, WINS[St.win][0]);
+  const at = hr => J[day+"T"+String(hr).padStart(2,"0")+":00"];
+  let crest = null, dpMax = null, dpHr = null;
+  for(let hr=h0; hr<=h1; hr++){
+    const x = at(hr); if(!x) continue;
+    if(x.cv!=null && x.cd!=null && x.cd>=JORAN_X.crestSector[0] && x.cd<=JORAN_X.crestSector[1] && (!crest || x.cv>crest.v)) crest = {v:x.cv, d:x.cd, hr};
+    if(x.dp!=null && (dpMax==null || x.dp>dpMax)){ dpMax = x.dp; dpHr = hr; }
+  }
+  const noon = at(12), dp12 = noon && noon.dp!=null ? noon.dp : null;
+  if(dpMax==null && !crest) return null;
+  const rise = dpMax!=null && dp12!=null ? dpMax-dp12 : null;
+  const c = {crest, dpMax, dpHr, rise,
+    crestOk: !!(crest && crest.v>=JORAN_X.crest), dpOk: rise!=null && rise>=JORAN_X.dpRise, storm: (capeMax||0)>=JORAN_X.cape};
+  c.n = (c.crestOk?1:0) + (c.dpOk?1:0);
+  return c;
+}
+
 /* ================= Messung auswerten ================= */
 function frontCheck(rows){
   const fr = [];
@@ -342,7 +437,7 @@ function nowcast(stations, St, now){
   });
   const crm = stations.crm;
   const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows) : null;
-  const trusted = sig.filter(s=>s.u.trust==null || s.u.trust>=0.25);
+  const trusted = sig.filter(s=>(s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25));
   return {sig, trusted, e, eOk: !!(e && e.ok && St.dirs.joran), front};
 }
 
@@ -456,9 +551,9 @@ function describe(s, St){
   return `${r0(s.top.v)} kn ${dn?dn.name:card(s.top.d)}, ${w}, bester Spot ${spotName(s.top.spot)} (${s.hits} von ${s.n} Modellen ≥ ${St.T} kn)`;
 }
 
-const api = {SPOTS, JURA, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, DEF,
+const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, DEF,
   clone, merge, r0, r1, card, dirOf, dirOn, over, kFor, spotName, fmtCH, hhmm, localDay, localHour, dayOfDate, dayLabel,
-  getJSON, fetchModel, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchAll, parseSMN,
+  getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, lakeRows, lakeNow, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
   frontCheck, fresh, ruleE, stTs, stTrust, upwindNow, nowcast,
   contingency, calibrate, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};

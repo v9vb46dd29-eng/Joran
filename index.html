@@ -43,7 +43,7 @@ header .sub{font-size:.8rem;color:var(--muted)}
 
 /* Schwelle — das eine prägnante Element */
 .thr{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:3px;padding:12px 14px;margin-bottom:14px}
-.thr .num{font-size:2.1rem;font-weight:800;letter-spacing:-.04em;line-height:1;min-width:3.6ch;color:var(--water)}
+.thr .num{font-size:1.6rem;font-weight:800;letter-spacing:-.04em;line-height:1;min-width:3.6ch;color:var(--water)}
 .thr .num span{font-size:.9rem;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:2px}
 .thr .lab{font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px}
 .thr .sl{flex:1;min-width:0}
@@ -145,6 +145,32 @@ details.sec>summary{font-size:.95rem}
 ol.steps{padding-left:20px;margin:6px 0}
 ol.steps li{margin:3px 0}
 code{font-size:.85em;background:#dde6e8;padding:1px 4px;border-radius:2px}
+
+/* v5: See live */
+.hd-r{display:flex;align-items:center;gap:8px}
+.reload{border:1px solid var(--line);background:var(--card);border-radius:3px;padding:6px 10px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--ink)}
+.reload:disabled{color:var(--muted);cursor:progress}
+.lake{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.lk{display:block;background:var(--card);border:1px solid var(--line);border-radius:3px;padding:10px 12px 8px;color:var(--ink);text-decoration:none;min-width:0}
+.lk.on{background:var(--water);border-color:var(--water);color:#fff}
+.lk.on .dim,.lk.on small{color:#d7ecf0}
+.lk.old{opacity:.72}
+.lk .lh{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:.8rem}
+.lk .lh b{font-weight:600}
+.lk .lv{font-size:2.1rem;font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-top:2px;white-space:nowrap}
+.lk .lv small{font-size:.85rem;font-weight:600;letter-spacing:0}
+.lk .ls{font-size:.74rem;line-height:1.3}
+.lk svg{display:block;width:100%;height:34px;margin-top:6px}
+.lakehead{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);margin:2px 0 6px}
+details.sub{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:2px 12px;margin-top:10px}
+details.sub[open]{padding-bottom:10px}
+details.sub>summary{font-size:.9rem}
+details.sub>summary .dim{font-weight:400;font-size:.8rem}
+.ing{list-style:none;padding:0;margin:6px 0 0}
+.ing li{padding:3px 0 3px 22px;position:relative}
+.ing li::before{content:"";position:absolute;left:4px;top:.6em;width:9px;height:9px;border-radius:50%;background:var(--line)}
+.ing li.y::before{background:var(--water)}
+.ing li.w::before{background:var(--warn)}
 </style>
 </head>
 <body>
@@ -155,10 +181,13 @@ code{font-size:.85em;background:#dde6e8;padding:1px 4px;border-radius:2px}
     <h1>Joran</h1>
     <div class="sub">Wingfoil Bielersee — Vingelz, Ipsach, Seemitte</div>
   </div>
-  <div class="sub" id="stamp">noch nicht geladen</div>
+  <div class="hd-r"><span class="sub" id="stamp">noch nicht geladen</span><button class="reload" id="go" aria-label="Neu laden">↻ Laden</button></div>
 </header>
 
-<div class="thr">
+<div class="lakehead"><span>Am See jetzt — Messung meteoBase</span><span id="lakeStamp"></span></div>
+<div id="lake" class="lake"><div class="lk old"><div class="lh"><b>Vingelz</b></div><div class="lv">–</div></div><div class="lk old"><div class="lh"><b>Ipsach</b></div><div class="lv">–</div></div></div>
+
+<div class="thr" style="padding:8px 14px">
   <div class="num" id="thrNum">14<span>kn</span></div>
   <div class="sl">
     <label class="lab" for="thr">Ab dieser Windstärke auf dem Wasser gehe ich foilen</label>
@@ -167,7 +196,6 @@ code{font-size:.85em;background:#dde6e8;padding:1px 4px;border-radius:2px}
   </div>
 </div>
 
-<button class="trigger" id="go">Prognose laden</button>
 
 <div id="out"><div class="skel">Modelle und Messwerte werden geholt …</div></div>
 
@@ -205,6 +233,8 @@ code{font-size:.85em;background:#dde6e8;padding:1px 4px;border-radius:2px}
 <p><b>Prognose.</b> Vier hochauflösende Modelle über Open-Meteo: ICON-CH1 (MeteoSchweiz, 1 km, 33 h), ICON-CH2 (MeteoSchweiz, 2 km, 5 Tage), ICON-D2 (DWD, 2 km, 2 Tage), AROME HD (Météo-France, 1.3 km, ca. 2 Tage). Abgefragt wird die nächste Wasserzelle. Pro Stunde zählt der stärkste aktive Spot in einer gewählten Richtung.</p>
 <p><b>Ob.</b> Ein Modell trifft, wenn es die Schwelle im Zeitfenster so lange hält wie die Mindestdauer. Sehr wahrscheinlich: drei Viertel der Modelle (mindestens zwei). Wahrscheinlich: die Hälfte. Möglich: eines. Knapp: bestes Modell höchstens 3 kn darunter. Ab Übermorgen rechnet nur noch ICON-CH2.</p>
 <p><b>Wann.</b> Das Zeitfenster umfasst die Stunden, in denen mindestens die Hälfte der Modelle die Schwelle erreicht. Gibt es solche Stunden nicht, zählen Stunden mit mindestens einem Modell (Anzeige «einzelne Modelle»).</p>
+<p><b>Am See jetzt.</b> Vingelz und Ipsach (meteoBase.ch, 10-Minuten-Mittel und -Spitze). Die Seiten erlauben keinen direkten Abruf aus dem Browser; darum liest die GitHub Action sie bei jedem Lauf (etwa alle 10 Minuten, 6–21 Uhr) und legt die letzten 18 Stunden im Branch <code>live</code> ab. Die Kachel ist blau, wenn die letzten zwei Werte deine Schwelle in einer aktiven Richtung erreichen. Dann gibt es auch einen Mess-Push «Am See». Im Tagesdiagramm erscheinen die Seewerte als Punkte — so siehst du direkt, wie gut die Modelle heute liegen.</p>
+<p><b>Joran-Zutaten.</b> Thermischer Joran entsteht, wenn auf Jurahöhe Luft aus Nordwest anliegt und am Abend die Luft auf der Jura-Hochfläche relativ zum See schwerer wird. Joran zeigt dazu aus ICON-CH2: Wind auf dem Chasseral-Kamm aus 270–360° ab 12 kn und den Anstieg des Druckgefälles La Chaux-de-Fonds → See seit Mittag um mindestens 0.5 hPa. Das sind Erfahrungswerte, nicht kalibriert; sie ändern die Stufe nicht, sondern sagen dir, wann sich der Blick auf die Messung lohnt.</p>
 <p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Stationen mit Peirce-Score unter 0.25 lösen keinen Push aus. Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
 <p><b>Böenfront</b> (Temperatursturz &gt; 2 °C in 10–20 min oder Böenfaktor &gt; 2 an einer Station auf Seehöhe) überschreibt jede positive Bewertung.</p>
 <p><b>Push.</b> Eine GitHub Action prüft alle 10 Minuten zwischen 6 und 21 Uhr dieselben Regeln (Datei <code>core.js</code>) für jeden Nutzer mit dessen eigenen Einstellungen (<code>users/&lt;name&gt;.json</code>) und sendet über ntfy.sh an dessen eigenes Thema. GitHub startet geplante Läufe teils mit Verspätung.</p>
@@ -244,7 +274,7 @@ function loadG(){ const d = Object.assign(repoFromURL(), {token:"", me:""}); try
 function saveG(g){ try{ localStorage.setItem(G_KEY, JSON.stringify(g)); }catch(e){} }
 
 let S = loadS();
-let D = null, H = null, HS = null, SEL = null;
+let D = null, H = null, HS = null, SEL = null, LK = null, LKERR = "";
 let PUSHMSG = "";
 
 /* ================= Rendern: gesamt ================= */
@@ -258,8 +288,46 @@ function renderAll(){
   const kc = $("#kdClr"); if(kc) kc.addEventListener("click",()=>{ S.kDir = {}; saveS(); renderAll(); });
   renderSettings();
   renderPush();
+  renderLake();
   if(D) renderLive();
   if(H) renderHist();
+}
+
+/* ================= See live ================= */
+function ago(t){ const m = Math.round((Date.now()-t)/60000); return m<1 ? "gerade" : m<60 ? `vor ${m} min` : `vor ${Math.floor(m/60)} h ${m%60} min`; }
+function spark(rows){
+  const r = rows.filter(x=>Date.now()-x.t < 3*3600e3);
+  if(r.length<2) return "";
+  const W = 200, Hh = 34, t0 = Date.now()-3*3600e3, maxV = Math.max(S.T+3, ...r.map(x=>x.gust||x.mean))*1.05;
+  const X = t => ((t-t0)/(3*3600e3))*W, Y = v => Hh-2-(v/maxV)*(Hh-4);
+  const line = k => r.filter(x=>x[k]!=null).map((x,i)=>(i?"L":"M")+X(x.t).toFixed(1)+" "+Y(x[k]).toFixed(1)).join(" ");
+  return `<svg viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" aria-hidden="true">
+    <line x1="0" x2="${W}" y1="${Y(S.T)}" y2="${Y(S.T)}" stroke="currentColor" stroke-dasharray="3 3" opacity=".5"/>
+    <path d="${line("gust")}" fill="none" stroke="currentColor" stroke-width="1" opacity=".4"/>
+    <path d="${line("mean")}" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+}
+function renderLake(){
+  const el = $("#lake"); if(!el) return;
+  const lk = C.lakeNow(LK, S);
+  el.innerHTML = lk.map(x=>{
+    const l = x.last;
+    if(!l) return `<a class="lk old" href="${x.L.url}" target="_blank" rel="noopener"><div class="lh"><b>${x.L.name}</b><small>Station öffnen ↗</small></div>
+      <div class="lv">–</div><div class="ls dim">${LK?"keine Messwerte":LKERR?"Messreihe nicht erreichbar":"lädt …"}</div></a>`;
+    const dn = dirOf(l.dir), on = x.fresh && over(l.mean,S) && dirOn(l.dir,S);
+    return `<a class="lk${on?" on":""}${x.fresh?"":" old"}" href="${x.L.url}" target="_blank" rel="noopener" title="Station ${x.L.name} öffnen">
+      <div class="lh"><b>${x.L.name}</b><small>${hhmm(l.t)}${x.fresh?"":" · veraltet"}</small></div>
+      <div class="lv">${r0(l.mean)}<small> kn</small> <small>${arrow(l.dir)} ${dn?dn.name:card(l.dir)}</small></div>
+      <div class="ls">Böen ${r0(l.gust)} kn${l.steady!=null?` · Richtung ${l.steady}% stabil`:""}${l.water!=null?` · Wasser ${l.water}°`:""}</div>
+      <div class="ls dim">${x.ok?`≥ ${S.T} kn seit ${hhmm(x.since)}`:ago(l.t)}</div>
+      ${spark(x.rows)}</a>`;
+  }).join("");
+  $("#lakeStamp").textContent = LK && LK.updated ? "geholt " + hhmm(new Date(LK.updated)) : "";
+}
+async function loadLake(){
+  const g = loadG();
+  try{ LK = await C.fetchLake(g.owner, g.repo); LKERR = ""; }catch(e){ LKERR = e.message || "Fehler"; }
+  renderLake();
+  if(D) renderLive();
 }
 
 /* ================= Live ================= */
@@ -270,6 +338,7 @@ function renderLive(){
   if(SEL==null) SEL = hour>WINS[S.win][1] ? 1 : 0;
   const cur = days[SEL];
   const nc = C.nowcast(D.stations, S);
+  nc.lake = C.lakeNow(LK, S).filter(x=>S.spots[x.L.id]);
 
   let h = `<div class="days" role="tablist">`;
   days.forEach(x=>{
@@ -281,27 +350,30 @@ function renderLive(){
   });
   h += `</div>`;
   h += verdictHTML(cur, hour, nc);
-
-  h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
-  h += chartHTML(cur.day);
-  h += `<small>Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich = Spannweite der Modelle. Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. Hinterlegt: dein Zeitfenster.</small>`;
-  h += modelTable(cur);
+  const jc = S.dirs.joran && D.jura ? C.joranCheck(D.jura, cur.day, S, Math.max(0, ...cur.s.ok.map(x=>x.e.capeMax||0))) : null;
   const warn = warnings(cur);
   if(warn.length) h += `<div class="note bad"><b>Was die Lage kippen kann</b><ul>${warn.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div>`;
 
-  h += `<h2>Upwind-Stationen jetzt</h2>` + stationsHTML(nc);
-  h += `<div class="chips" style="margin-top:12px">
-    <a class="chip" href="https://vingelz.meteobase.ch/" target="_blank" rel="noopener">Vingelz live</a>
-    <a class="chip" href="https://wsa-ipsach.meteobase.ch/" target="_blank" rel="noopener">Ipsach live</a>
-    <a class="chip" href="https://www.windguru.cz/56996" target="_blank" rel="noopener">Windguru</a>
-    <a class="chip" href="https://www.meteoschweiz.admin.ch/service-und-publikationen/applikationen/niederschlag.html" target="_blank" rel="noopener">Radar</a></div>`;
+  h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
+  h += chartHTML(cur.day);
+  h += `<small>Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich = Spannweite der Modelle. Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. ${cur.k===0?"Punkte = gemessen am See (bester von Vingelz/Ipsach, Stundenmittel). ":""}Hinterlegt: dein Zeitfenster.</small>`;
+  if(jc) h += joranHTML(jc, cur, nc);
 
-  h += `<h2>Quellen in diesem Lauf</h2><div class="chips">`;
+  h += `<details class="sub"><summary>Modelle im Detail <span class="dim">— ${cur.s.hits} von ${cur.s.n} treffen</span></summary>${modelTable(cur)}</details>`;
+  const nSig = nc.sig.length;
+  h += `<details class="sub"><summary>Upwind-Stationen <span class="dim">— Modell-Input, ${nSig?nSig+" mit Signal":"kein Signal"}</span></summary>
+    <p style="font-size:.82rem;margin-top:6px">Diese Stationen liegen in Anströmrichtung und zeigen Wind oft 30–90 Minuten bevor er am See ankommt. Für die Entscheidung zählt am Ende, was oben am See gemessen wird.</p>${stationsHTML(nc)}</details>`;
+
+  h += `<details class="sub"><summary>Quellen und Diagnose</summary><div class="chips">`;
   MODELS.forEach(m=>{ const d = D.err[m.id]; h += `<span class="chip ${d?"fail":"ok"}">${m.name}${d?" — "+esc(d):""}</span>`; });
   h += `<span class="chip ${D.ens?"ok":"fail"}">Ensemble${D.ens?" ("+D.ens.members.length+" Läufe)":" — "+esc(D.err.ens||"")}</span>`;
+  h += `<span class="chip ${LK?"ok":"fail"}">See Vingelz/Ipsach${LK?"":" — "+esc(LKERR||"keine Messreihe")}</span>`;
   UPWIND.forEach(s=>{ const d = D.stations[s.abk]; h += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?" — "+esc(d.err):""}</span>`; });
-  h += `<span class="chip ${D.jura?"ok":"fail"}">Druck Jura</span></div>`;
-  h += diagHTML();
+  h += `<span class="chip ${D.jura?"ok":"fail"}">Joran-Zutaten</span></div>`;
+  h += `<div class="chips" style="margin-top:10px">
+    <a class="chip" href="https://www.windguru.cz/56996" target="_blank" rel="noopener">Windguru</a>
+    <a class="chip" href="https://www.meteoschweiz.admin.ch/service-und-publikationen/applikationen/niederschlag.html" target="_blank" rel="noopener">Radar</a></div>`;
+  h += diagHTML() + `</details>`;
 
   $("#out").innerHTML = h;
   document.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",()=>{ SEL = +b.dataset.k; renderLive(); }));
@@ -329,6 +401,12 @@ function verdictHTML(cur, hour, nc){
   if(s.n===1) why += " Nur ein Modell reicht so weit — Aussage unsicher.";
   basis = `Prognose, ${WINS[S.win][2]}` + (s.level>=S.cut ? " — lohnt sich nach deiner Einstellung" : "");
 
+  const lakeOk = live ? nc.lake.filter(x=>x.ok) : [];
+  if(lakeOk.length){
+    return `<div class="verdict c4"><span class="word">Jetzt foilbar</span>
+      <div class="why">${esc("Gemessen am See: " + lakeOk.map(x=>`${x.L.name} ${r0(x.last.mean)} kn ${dirOf(x.last.dir)?dirOf(x.last.dir).name:card(x.last.dir)}, Böen ${r0(x.last.gust)} kn, seit ${hhmm(x.since)}`).join("; ") + ". " + why)}</div>
+      <div class="basis">Messung am See plus Prognose</div></div>`;
+  }
   if(live && (nc.eOk || nc.trusted.length)){
     const parts = [];
     if(nc.eOk) parts.push(`Joran-Regel E in Cressier: ${r1(nc.e.mean30)} kn seit ${nc.e.since?hhmm(nc.e.since):"–"}`);
@@ -347,7 +425,7 @@ function verdictHTML(cur, hour, nc){
 
 function modelTable(cur){
   if(!cur.s.n) return "";
-  let h = `<div class="tw"><table style="margin-top:14px"><tr><th>Modell</th><th class="n">max</th><th>Richtung</th><th class="n">h ≥ ${S.T}</th><th class="n">Zeit, Spot</th></tr>`;
+  let h = `<div class="tw"><table style="margin-top:6px"><tr><th>Modell</th><th class="n">max</th><th>Richtung</th><th class="n">h ≥ ${S.T}</th><th class="n">Zeit, Spot</th></tr>`;
   cur.s.per.forEach(x=>{
     if(!x.e){ h += `<tr><td>${x.m.name}</td><td class="n dim" colspan="4">${D.err[x.m.id]?"nicht erreichbar":"reicht nicht bis hier"}</td></tr>`; return; }
     const t = x.e.top, dn = t ? dirOf(t.d) : null;
@@ -369,11 +447,25 @@ function warnings(cur){
   if(s.top && s.top.g!=null && s.top.g>=25 && s.top.g>=1.8*(s.top.v/C.kFor(s.top.d,S))) w.push(`Sehr böig: Böen bis ${r0(s.top.g)} kn.`);
   const tops = s.ok.filter(x=>x.e.top).map(x=>x.e.top.v);
   if(tops.length>1 && Math.max(...tops)-Math.min(...tops)>=6) w.push(`Modelle uneinig: ${r0(Math.max(...tops)-Math.min(...tops))} kn Spannweite.`);
-  if(s.top && S.dirs.joran && dirOf(s.top.d) && dirOf(s.top.d).id==="joran" && D.jura && D.jura[cur.day]!=null){
-    const dp = D.jura[cur.day];
-    w.push(`Druckgefälle Jura-Nordseite zum See um 18 Uhr: ${dp>0?"+":""}${r1(dp)} hPa${dp<=0?" — kein antreibendes Gefälle für Joran":""}.`);
-  }
   return w;
+}
+
+function joranHTML(jc, cur, nc){
+  const live = cur.k===0;
+  const li = [];
+  li.push(`<li class="${jc.crestOk?"y":""}">Nordwest auf Kammhöhe (Chasseral): ${jc.crest?`${r0(jc.crest.v)} kn aus ${card(jc.crest.d)} gegen ${jc.crest.hr} Uhr`:"keine NW-Strömung"}${jc.crestOk?"":` <span class="dim">— ab ${C.JORAN_X.crest} kn</span>`}</li>`);
+  li.push(`<li class="${jc.dpOk?"y":""}">Druckgefälle Jura → See: ${jc.rise!=null?`${jc.rise>=0?"+":""}${r1(jc.rise)} hPa seit Mittag`:"–"}${jc.dpMax!=null?`, höchstens ${jc.dpMax>0?"+":""}${r1(jc.dpMax)} hPa um ${jc.dpHr} Uhr`:""}</li>`);
+  if(live){
+    const cdf = D.stations.cdf, neu = D.stations.neu;
+    const lq = r => r && !r.err && r.rows.length ? r.rows[r.rows.length-1] : null;
+    const a = lq(cdf), b = lq(neu);
+    if(a && b && a.qff!=null && b.qff!=null && C.fresh(cdf.rows) && C.fresh(neu.rows))
+      li.push(`<li>Gemessen: Druck La Chaux-de-Fonds − Neuchâtel ${a.qff-b.qff>=0?"+":""}${r1(a.qff-b.qff)} hPa (${hhmm(a.t)})</li>`);
+  }
+  if(jc.storm) li.push(`<li class="w">Gewitterneigung (CAPE) — Joran kann als Böenfront kommen</li>`);
+  const hint = jc.n===2 && cur.s.level<S.cut ? `<br><b>Die Modelle zeigen am See wenig, aber beide Zutaten sind da.</b> Thermischer Joran wird oft unterschätzt — ab 16 Uhr Messung oben beobachten.`
+    : jc.n===0 && cur.s.top && dirOf(cur.s.top.d) && dirOf(cur.s.top.d).id==="joran" ? `<br>Modelle zeigen Joran, aber ohne Zutaten — eher vorsichtig sein.` : "";
+  return `<div class="note"><b>Joran-Zutaten</b> <span class="dim">(ICON-CH2, Hinweis, nicht kalibriert)</span><ul class="ing">${li.join("")}</ul>${hint}</div>`;
 }
 
 function chartHTML(day){
@@ -385,10 +477,21 @@ function chartHTML(day){
     const r = evalHours(sp, day, S, h0, h1); if(!r) return;
     r.hours.forEach((x,i)=>{ if(x.best){ cols[i].vals.push(x.best.v); cols[i].dirs.push(x.best.d); } if(x.raw) cols[i].raw.push(x.raw.v); });
   });
+  if(day===localDay(0) && LK){
+    const lk = C.lakeNow(LK, S).filter(x=>S.spots[x.L.id]);
+    cols.forEach(c=>{
+      lk.forEach(x=>{
+        const r = x.rows.filter(z=>C.localHour(z.t)===c.hr && C.dayOfDate(z.t)===day);
+        if(!r.length) return;
+        const m = r.reduce((a,z)=>a+z.mean,0)/r.length;
+        if(c.lake==null || m>c.lake) c.lake = m;
+      });
+    });
+  }
   if(!cols.some(c=>c.vals.length||c.raw.length)) return `<div class="note">Keine Stundenwerte für diesen Tag.</div>`;
   const med = a => { const b = [...a].sort((x,y)=>x-y); const n = b.length; return n%2 ? b[(n-1)/2] : (b[n/2-1]+b[n/2])/2; };
   const W=600, Hh=190, PL=28, PR=8, PT=22, PB=22;
-  const maxV = Math.max(S.T+4, 20, ...cols.map(c=>Math.max(0,...c.vals,...c.raw)))*1.08;
+  const maxV = Math.max(S.T+4, 20, ...cols.map(c=>Math.max(0,c.lake||0,...c.vals,...c.raw)))*1.08;
   const bw = (W-PL-PR)/cols.length;
   const y = v => Hh-PB-(v/maxV)*(Hh-PT-PB);
   let s = `<svg class="chart" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Windverlauf ${esc(day)}">`;
@@ -411,6 +514,7 @@ function chartHTML(day){
       const m = med(c.raw);
       s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" fill="none" stroke="#b3c2c5" stroke-dasharray="2 2"/>`;
     }
+    if(c.lake!=null) s += `<circle cx="${x+w/2}" cy="${y(c.lake)}" r="4.5" fill="#fff" stroke="#b4531f" stroke-width="2.5"/>`;
     if(c.hr%2===0) s += `<text x="${x+w/2}" y="${Hh-6}" font-size="10" fill="#6c7e83" text-anchor="middle">${c.hr}</text>`;
   });
   return s + `</svg>`;
@@ -418,7 +522,7 @@ function chartHTML(day){
 
 function stationsHTML(nc){
   const any = UPWIND.some(s=>D.stations[s.abk] && !D.stations[s.abk].err);
-  if(!any) return `<div class="note bad">Keine Messwerte abrufbar. Vingelz und Ipsach lassen sich über die Links unten prüfen.</div>`;
+  if(!any) return `<div class="note bad">Keine Messwerte abrufbar. Massgebend ist ohnehin die Messung am See oben.</div>`;
   let h = "";
   UPWIND.forEach(up=>{
     const d = D.stations[up.abk];
@@ -713,11 +817,12 @@ function renderHist(){
 /* ================= Abläufe ================= */
 async function run(){
   const b = $("#go"); b.disabled = true; b.textContent = "Lade …";
+  loadLake();
   if(!D) $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`;
   D = await C.fetchAll(S);
   try{ renderLive(); } catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
   $("#stamp").textContent = "Stand " + hhmm(new Date());
-  b.disabled = false; b.textContent = "Neu laden";
+  b.disabled = false; b.textContent = "↻ Laden";
 }
 async function runHist(){
   const b = $("#hgo"); b.disabled = true; b.textContent = "Lade Archiv …";
@@ -748,6 +853,15 @@ try{ if(!localStorage.getItem(S_KEY)) $("#setBox").open = true; }catch(e){}
 renderAll();
 readMine();
 run();
+/* Auto-Aktualisierung: Seemessung alle 5 min, Modelle alle 30 min — nur wenn die Seite sichtbar ist */
+let lastRun = Date.now(), lastLake = Date.now();
+function tick(){
+  if(document.hidden) return;
+  if(Date.now()-lastRun > 30*60000){ lastRun = lastLake = Date.now(); run(); }
+  else if(Date.now()-lastLake > 5*60000){ lastLake = Date.now(); loadLake(); }
+}
+setInterval(tick, 60000);
+document.addEventListener("visibilitychange", tick);
 </script>
 </body>
 </html>
