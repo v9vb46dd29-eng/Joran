@@ -380,7 +380,7 @@ function renderLake(){
 const L_KEY = "joran.lake.v1", P_KEY = "joran.proxy.v1";
 const S_PROXY = () => { try{ return localStorage.getItem(P_KEY) || ""; }catch(e){ return ""; } };
 let LKBUSY = false, LKNOW = null;
-async function loadLake(){
+async function loadLake(quiet){
   const g = loadG();
   LKBUSY = true; renderLake();
   let cache = null; try{ cache = JSON.parse(localStorage.getItem(L_KEY)); }catch(e){}
@@ -393,7 +393,7 @@ async function loadLake(){
   try{ localStorage.setItem(L_KEY, JSON.stringify(LK)); }catch(e){}
   LKBUSY = false;
   renderLake();
-  if(D) renderLive();
+  if(D && !quiet){ renderLive(); stamp(); }
 }
 
 /* ================= Live ================= */
@@ -423,6 +423,7 @@ function renderLive(){
   h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
   h += chartHTML(cur.day);
   h += `<small class="cap">Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich = Spannweite der Modelle. Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. ${cur.k===0?"Punkte = gemessen am See (bester von Vingelz/Ipsach, Stundenmittel). ":""}Hinterlegt: dein Zeitfenster.</small>`;
+  if(cur.k===0){ const ab = abgleich(cur.day); if(ab) h += ab; }
   if(jc) h += joranHTML(jc, cur, nc);
 
   h += `<details class="sub"><summary>Modelle im Detail <span class="dim">${cur.s.hits} von ${cur.s.n} treffen</span></summary>${modelTable(cur)}</details>`;
@@ -518,6 +519,26 @@ function warnings(cur){
   return w;
 }
 
+/* Abgleich: letzte Stunde gemessen am See vs. Modelle (gleicher Spot, gleiche Stunde) */
+function abgleich(day){
+  const lk = C.lakeNow(LK, S).filter(x=>x.fresh && S.spots[x.L.id]);
+  if(!lk.length) return "";
+  const hr = C.localHour(), key = day+"T"+String(hr).padStart(2,"0")+":00";
+  const rows = [];
+  lk.forEach(x=>{
+    const meas = x.rows.filter(r=>Date.now()-r.t < 60*60000); if(!meas.length) return;
+    const m = meas.reduce((a,r)=>a+r.mean,0)/meas.length;
+    const mv = MODELS.map(md=>{ const sp = D.models[md.id] && D.models[md.id].find(z=>z.id===x.L.id); const i = sp && sp.idx[key];
+      return i!=null && sp.h.ws[i]!=null ? sp.h.ws[i]*C.kFor(sp.h.wd[i],S) : null; }).filter(v=>v!=null);
+    if(!mv.length) return;
+    const mm = mv.reduce((a,v)=>a+v,0)/mv.length;
+    rows.push({n:x.L.name, m, mm, d:m-mm});
+  });
+  if(!rows.length) return "";
+  const d = rows.reduce((a,r)=>a+r.d,0)/rows.length;
+  const txt = Math.abs(d)<2 ? "Die Modelle liegen gerade richtig." : d>0 ? `Am See weht es ${r0(d)} kn mehr als die Modelle rechnen — die Prognose für die nächsten Stunden eher nach oben lesen.` : `Am See weht es ${r0(-d)} kn weniger als die Modelle rechnen — die Prognose eher nach unten lesen.`;
+  return `<div class="note"><b>Messung gegen Modell, ${hr}–${hr+1} Uhr</b><br>${rows.map(r=>`${r.n}: gemessen ${r0(r.m)} kn, Modelle ${r0(r.mm)} kn`).join(" · ")}<br>${txt}</div>`;
+}
 function joranHTML(jc, cur, nc){
   const live = cur.k===0;
   const li = [];
@@ -885,15 +906,34 @@ function renderHist(){
 }
 
 /* ================= Abläufe ================= */
-async function run(){
+/* Refresh: Modelle und ALLE Messstationen (Upwind + See) frisch laden, erst dann auswerten */
+function liveStatus(){
+  if(!D) return "";
+  const up = UPWIND.filter(u=>D.stations[u.abk] && !D.stations[u.abk].err && C.fresh(D.stations[u.abk].rows)).length;
+  const lk = C.lakeNow(LK, S).filter(x=>x.fresh).length;
+  return `${lk+up}/${UPWIND.length+C.LAKE.length} Stationen live`;
+}
+function stamp(){ $("#stamp").innerHTML = D ? `Stand ${hhmm(D.at)}<br>${liveStatus()}` : "noch nicht geladen"; }
+let BUSY = false;
+async function run(full){
+  if(BUSY) return; BUSY = true;
   const b = $("#go"); b.disabled = true; b.classList.add("busy"); b.classList.remove("stale"); $("#goTxt").textContent = "Lädt …";
-  lastRun = lastLake = Date.now();
-  loadLake();
+  lastLake = Date.now(); if(full!==false) lastRun = Date.now();
   if(!D) $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`;
-  D = await C.fetchAll(S);
-  try{ renderLive(); } catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
-  $("#stamp").innerHTML = "Stand<br>" + hhmm(new Date());
-  b.disabled = false; b.classList.remove("busy"); $("#goTxt").textContent = "Aktualisieren";
+  try{
+    if(full===false && D){
+      const [st] = await Promise.all([C.fetchStations(), loadLake(true)]);
+      D.stations = st; D.at = new Date();
+    } else {
+      const [N] = await Promise.all([C.fetchAll(S), loadLake(true)]);
+      D = N;
+    }
+    try{ renderLive(); } catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
+  } finally {
+    stamp();
+    b.disabled = false; b.classList.remove("busy"); $("#goTxt").textContent = "Aktualisieren";
+    BUSY = false;
+  }
 }
 async function runHist(){
   const b = $("#hgo"); b.disabled = true; b.textContent = "Lade Archiv …";
@@ -931,6 +971,8 @@ $("#done").addEventListener("click", closeSheet);
 document.addEventListener("click", e=>{ if(e.target.closest("[data-open=sheet]")) openSheet(); });
 $("#proxy").value = S_PROXY();
 $("#proxyS").addEventListener("click", ()=>{ try{ localStorage.setItem(P_KEY, $("#proxy").value.trim()); }catch(e){} loadLake(); });
+/* Zurück in die App (iOS): sofort alle Messwerte neu */
+window.addEventListener("pageshow", e=>{ if(e.persisted) run(false); });
 window.addEventListener("scroll", ()=>$("#nav").classList.toggle("scrolled", scrollY>30), {passive:true});
 
 let lastRun = Date.now(), lastLake = Date.now();
@@ -941,8 +983,8 @@ run();
 function tick(){
   $("#go").classList.toggle("stale", !$("#go").disabled && Date.now()-lastRun > 20*60000);
   if(document.hidden) return;
-  if(Date.now()-lastRun > 30*60000){ lastRun = lastLake = Date.now(); run(); }
-  else if(Date.now()-lastLake > 5*60000){ lastLake = Date.now(); loadLake(); }
+  if(Date.now()-lastRun > 30*60000) run();
+  else if(Date.now()-lastLake > 5*60000) run(false);      /* alle 5 min: alle Messstationen neu */
 }
 setInterval(tick, 60000);
 document.addEventListener("visibilitychange", tick);
