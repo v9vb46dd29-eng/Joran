@@ -141,6 +141,10 @@ details[open]>summary::after{transform:rotate(45deg)}
 details.sub{background:var(--card);border-radius:var(--r);padding:0 16px;margin-top:10px}
 details.sub[open]{padding-bottom:12px}
 details.sub>summary .dim{font-weight:400;font-size:13px}
+#out.loading{position:relative}
+#out.loading>*{opacity:.4;filter:grayscale(.6);pointer-events:none;transition:opacity .2s}
+#out.loading::before{content:attr(data-prog);position:sticky;top:64px;z-index:5;display:block;margin:0 0 10px;padding:9px 14px;border-radius:12px;
+  background:var(--card);color:var(--accent);font-size:14px;font-weight:600;text-align:center;box-shadow:0 2px 10px #0002}
 .skel{color:var(--muted);font-size:15px;padding:30px 0;text-align:center}
 .ing{list-style:none;padding:0;margin:6px 0 0}
 .ing li{padding:3px 0 3px 20px;position:relative}
@@ -222,7 +226,7 @@ ol.steps li{margin:3px 0}
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v9</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v10</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -291,7 +295,7 @@ ol.steps li{margin:3px 0}
 </div>
 </dialog>
 
-<script src="core.js?v=9"></script>
+<script src="core.js?v=10"></script>
 <script>
 "use strict";
 const C = window.JoranCore;
@@ -923,28 +927,43 @@ const M_KEY = "joran.models.v1", M_MAX = 20*60000;
 function loadMCache(){ try{ const c = JSON.parse(localStorage.getItem(M_KEY)); if(c && c.models){ c.mt = new Date(c.mt); return c; } }catch(e){} return null; }
 function saveMCache(){ try{ localStorage.setItem(M_KEY, JSON.stringify({models:D.models, err:D.err, ens:D.ens, jura:D.jura, mt:D.mt})); }catch(e){} }
 let rT = null;
-function renderSoon(){ clearTimeout(rT); rT = setTimeout(()=>{ if(!Object.keys(D.models).length){ stamp(); return; } try{ renderLive(); }catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; } stamp(); }, 60); }
+/* Während des Ladens keine neue Bewertung aus halben Daten: alter Stand bleibt ausgegraut, nur der Fortschritt zählt hoch.
+   Die Seekacheln (reine Messwerte) dürfen sofort erscheinen. */
+let DONE = 0, TOTAL = 0;
+function progress(){ const o = $("#out"); o.classList.add("loading"); o.dataset.prog = `Wird aktualisiert … (${DONE}/${TOTAL}) — Bewertung erst, wenn alles da ist`; }
+function renderSoon(){ DONE++; progress(); }
 async function run(full){
   if(BUSY) return; BUSY = true;
   const b = $("#go"); b.disabled = true; b.classList.add("busy"); b.classList.remove("stale"); $("#goTxt").textContent = "Lädt …";
   lastLake = lastRun = Date.now();
   if(!D){ const c = loadMCache(); D = c ? Object.assign(c, {stations:{}, at:new Date()}) : null; }
   const needModels = full!==false && (!D || Date.now()-D.mt > M_MAX);
+  const first = !D;
   if(!D){ D = {models:{}, err:{}, ens:null, jura:null, stations:{}, mt:new Date(0), at:new Date()}; $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`; }
-  else renderSoon();                                   /* sofort anzeigen, was schon da ist */
+  else if(!$("#out .verdict")){ try{ renderLive(); }catch(e){} }   /* letzter Stand aus dem Speicher, ausgegraut */
+  DONE = 0; TOTAL = 2 + (needModels ? MODELS.length + 2 : 0);
+  if(!first) progress();
   const jobs = [
-    C.fetchStations().then(st=>{ D.stations = st; D.at = new Date(); renderSoon(); }),
-    loadLake(true).then(renderSoon)
+    C.fetchStations().then(st=>{ D.stations = st; D.at = new Date(); }).then(renderSoon, renderSoon),
+    loadLake(true).then(renderSoon, renderSoon)
   ];
+  const N = {models:{}, err:{}};
   if(needModels){
-    const N = {models:{}, err:{}};
-    jobs.push(...MODELS.map(m=>C.fetchModel(m).then(x=>{ N.models[m.id] = x; }).catch(e=>{ N.err[m.id] = e.message||"Fehler"; })
-      .then(()=>{ if(Object.keys(N.models).length+Object.keys(N.err).length===MODELS.length){ D.models = N.models; D.err = Object.assign({}, N.err, D.err.ens?{ens:D.err.ens}:{}); D.mt = new Date(); renderSoon(); } })));
-    jobs.push(C.fetchEnsemble().then(x=>{ D.ens = x; delete D.err.ens; renderSoon(); }).catch(e=>{ D.err.ens = e.message||"Fehler"; }));
-    jobs.push(C.fetchJura().then(x=>{ D.jura = x; renderSoon(); }).catch(()=>{}));
+    jobs.push(...MODELS.map(m=>C.fetchModel(m).then(x=>{ N.models[m.id] = x; }).catch(e=>{ N.err[m.id] = e.message||"Fehler"; }).then(renderSoon)));
+    jobs.push(C.fetchEnsemble().then(x=>{ D.ens = x; delete D.err.ens; }).catch(e=>{ D.err.ens = e.message||"Fehler"; }).then(renderSoon));
+    jobs.push(C.fetchJura().then(x=>{ D.jura = x; }).catch(()=>{}).then(renderSoon));
   }
-  try{ await Promise.allSettled(jobs); if(needModels) saveMCache(); }
+  try{
+    await Promise.allSettled(jobs);
+    if(needModels){
+      /* Modelle nur ersetzen, wenn der neue Lauf nicht schlechter ist; sonst alten Stand behalten und Fehler zeigen */
+      if(Object.keys(N.models).length >= Object.keys(D.models).length || Date.now()-D.mt > 3*3600e3){ D.models = N.models; D.err = Object.assign({}, N.err, D.err.ens?{ens:D.err.ens}:{}); D.mt = new Date(); }
+      else Object.assign(D.err, N.err);
+      saveMCache();
+    }
+  }
   finally {
+    $("#out").classList.remove("loading");
     clearTimeout(rT);
     if(!Object.keys(D.models).length && !Object.keys(D.err).length) D.err.all = "keine Antwort";
     try{ renderLive(); }catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
