@@ -16,11 +16,13 @@
   --sep:#3c3c4329; --accent:#007aff; --water:#0a84c7; --water-d:#06659a; --water-l:#d6ecf7;
   --jura:#34a853; --warn:#ff3b30; --orange:#ff9500; --fill:#7878801f; --fill2:#78788033;
   --r:14px; color-scheme:light dark;
+  --ch-on:#0a84c7; --ch-near:#2e9e4f; --ch-off:#b9c4c8; --ch-range:#1c2b30; --ch-ink:#3c4a4f; --ch-win:#0a84c712;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#000; --card:#1c1c1e; --card2:#2c2c2e; --ink:#fff; --ink2:#ebebf599; --muted:#8d8d93; --line:#38383a;
   --sep:#54545899; --accent:#0a84ff; --water:#32a0e0; --water-d:#1d7fb8; --water-l:#0d2c3d;
   --jura:#30d158; --warn:#ff453a; --orange:#ff9f0a; --fill:#7676803d; --fill2:#7676805c;
+  --ch-on:#3aa8f0; --ch-near:#30d158; --ch-off:#4a4a50; --ch-range:#f2f2f7; --ch-ink:#c7c7cc; --ch-win:#3aa8f01f;
 }}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -226,7 +228,7 @@ ol.steps li{margin:3px 0}
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v10</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v11</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -295,7 +297,7 @@ ol.steps li{margin:3px 0}
 </div>
 </dialog>
 
-<script src="core.js?v=10"></script>
+<script src="core.js?v=11"></script>
 <script>
 "use strict";
 const C = window.JoranCore;
@@ -428,7 +430,7 @@ function renderLive(){
 
   h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
   h += chartHTML(cur.day);
-  h += `<small class="cap">Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich = Spannweite der Modelle. Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. ${cur.k===0?"Punkte = gemessen am See (bester von Vingelz/Ipsach, Stundenmittel). ":""}Hinterlegt: dein Zeitfenster.</small>`;
+  h += `<small class="cap">Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich mit Enden = Spannweite der Modelle (schwächstes bis stärkstes). Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. ${cur.k===0?"Punkte = gemessen am See (bester von Vingelz/Ipsach, Stundenmittel). ":""}Hinterlegt: dein Zeitfenster.</small>`;
   if(cur.k===0){ const ab = abgleich(cur.day); if(ab) h += ab; }
   if(jc) h += joranHTML(jc, cur, nc);
 
@@ -591,26 +593,27 @@ function chartHTML(day){
   const y = v => Hh-PB-(v/maxV)*(Hh-PT-PB);
   let s = `<svg class="chart" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Windverlauf ${esc(day)}">`;
   const xw0 = PL+(w0-h0)*bw, xw1 = PL+(w1-h0+1)*bw;
-  s += `<rect x="${xw0}" y="${PT-4}" width="${xw1-xw0}" height="${Hh-PB-PT+4}" fill="#0a84c7" opacity=".06"/>`;
+  s += `<rect x="${xw0}" y="${PT-4}" width="${xw1-xw0}" height="${Hh-PB-PT+4}" style="fill:var(--ch-win)"/>`;
   [S.T-3, S.T].forEach((v,j)=>{
-    s += `<line x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}" stroke="${j?"#0a84c7":"#34a853"}" stroke-width="1" stroke-dasharray="${j?"":"3 3"}"/>`;
-    s += `<text x="2" y="${y(v)+4}" font-size="10" fill="${j?"#0a84c7":"#6c7e83"}">${v}</text>`;
+    s += `<line x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(${j?"--ch-on":"--ch-near"})" stroke-width="1.5" stroke-dasharray="${j?"":"4 3"}"/>`;
+    s += `<text x="2" y="${y(v)+4}" font-size="11" font-weight="600" style="fill:var(${j?"--ch-on":"--ch-near"})">${v}</text>`;
   });
   cols.forEach((c,i)=>{
     const x = PL+i*bw+2, w = Math.max(3,bw-5);
     if(c.vals.length){
       const m = med(c.vals), lo = Math.min(...c.vals), hi = Math.max(...c.vals);
-      const col = over(m,S) ? "#0a84c7" : Math.round(m)>=S.T-3 ? "#34a853" : "#9fb0b4";
-      s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" fill="${col}"/>`;
-      if(hi>lo) s += `<line x1="${x+w/2}" x2="${x+w/2}" y1="${y(hi)}" y2="${y(lo)}" stroke="#14262c" stroke-width="1.5" opacity=".45"/>`;
+      const col = over(m,S) ? "--ch-on" : Math.round(m)>=S.T-3 ? "--ch-near" : "--ch-off";
+      s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" rx="2" style="fill:var(${col})"/>`;
+      if(hi>lo){ const cx = x+w/2, cw = Math.min(5, w/3);   /* Spannweite der Modelle: Strich mit Endkappen */
+        s += `<g style="stroke:var(--ch-range)" stroke-width="2" stroke-linecap="round"><line x1="${cx}" x2="${cx}" y1="${y(hi)}" y2="${y(lo)}"/><line x1="${cx-cw}" x2="${cx+cw}" y1="${y(hi)}" y2="${y(hi)}"/><line x1="${cx-cw}" x2="${cx+cw}" y1="${y(lo)}" y2="${y(lo)}"/></g>`; }
       const d = c.dirs[0];
-      if(d!=null) s += `<g transform="translate(${x+w/2},${PT-11}) rotate(${d+180})"><path d="M0 -6 L4 6 L0 3.5 L-4 6 Z" fill="#14262c" opacity=".7"/></g>`;
+      if(d!=null) s += `<g transform="translate(${x+w/2},${PT-11}) rotate(${d+180})"><path d="M0 -6 L4 6 L0 3.5 L-4 6 Z" style="fill:var(--ch-ink)"/></g>`;
     } else if(c.raw.length){
       const m = med(c.raw);
-      s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" fill="none" stroke="#b3c2c5" stroke-dasharray="2 2"/>`;
+      s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" fill="none" style="stroke:var(--ch-off)" stroke-dasharray="3 2"/>`;
     }
-    if(c.lake!=null) s += `<circle cx="${x+w/2}" cy="${y(c.lake)}" r="4.5" fill="#fff" stroke="#b4531f" stroke-width="2.5"/>`;
-    if(c.hr%2===0) s += `<text x="${x+w/2}" y="${Hh-6}" font-size="10" fill="#6c7e83" text-anchor="middle">${c.hr}</text>`;
+    if(c.lake!=null) s += `<circle cx="${x+w/2}" cy="${y(c.lake)}" r="4.5" style="fill:var(--card);stroke:var(--orange)" stroke-width="2.5"/>`;
+    if(c.hr%2===0) s += `<text x="${x+w/2}" y="${Hh-6}" font-size="11" style="fill:var(--muted)" text-anchor="middle">${c.hr}</text>`;
   });
   return s + `</svg>`;
 }
