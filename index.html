@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="tc" content="#f2f2f7">
+<script>
+/* Darstellung vor dem ersten Zeichnen setzen, damit nichts aufblitzt */
+(function(){ var t = "auto"; try{ t = localStorage.getItem("joran.theme.v1") || "auto"; }catch(e){}
+  if(t!=="auto") document.documentElement.setAttribute("data-theme", t); })();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Joran">
@@ -18,12 +22,20 @@
   --r:14px; color-scheme:light dark;
   --ch-on:#0a84c7; --ch-near:#2e9e4f; --ch-off:#b9c4c8; --ch-range:#1c2b30; --ch-ink:#3c4a4f; --ch-win:#0a84c712;
 }
-@media (prefers-color-scheme:dark){:root{
+/* Dunkel: automatisch nach System, oder fest gewählt über den Knopf oben (data-theme) */
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
   --bg:#000; --card:#1c1c1e; --card2:#2c2c2e; --ink:#fff; --ink2:#ebebf599; --muted:#8d8d93; --line:#38383a;
   --sep:#54545899; --accent:#0a84ff; --water:#32a0e0; --water-d:#1d7fb8; --water-l:#0d2c3d;
   --jura:#30d158; --warn:#ff453a; --orange:#ff9f0a; --fill:#7676803d; --fill2:#7676805c;
   --ch-on:#3aa8f0; --ch-near:#30d158; --ch-off:#4a4a50; --ch-range:#f2f2f7; --ch-ink:#c7c7cc; --ch-win:#3aa8f01f;
 }}
+:root[data-theme=dark]{
+  --bg:#000; --card:#1c1c1e; --card2:#2c2c2e; --ink:#fff; --ink2:#ebebf599; --muted:#8d8d93; --line:#38383a;
+  --sep:#54545899; --accent:#0a84ff; --water:#32a0e0; --water-d:#1d7fb8; --water-l:#0d2c3d;
+  --jura:#30d158; --warn:#ff453a; --orange:#ff9f0a; --fill:#7676803d; --fill2:#7676805c;
+  --ch-on:#3aa8f0; --ch-near:#30d158; --ch-off:#4a4a50; --ch-range:#f2f2f7; --ch-ink:#c7c7cc; --ch-win:#3aa8f01f;
+}
+:root[data-theme=light]{color-scheme:light} :root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font:17px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
@@ -221,14 +233,17 @@ ol.steps li{margin:3px 0}
 <body>
 
 <div class="nav" id="nav"><div class="nav-in">
-  <button class="ibtn" id="menu" aria-label="Einstellungen öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <div class="navbtns">
+    <button class="ibtn" id="menu" aria-label="Einstellungen öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button class="ibtn" id="theme" aria-label="Darstellung wechseln"></button>
+  </div>
   <span class="ttl">Joran</span>
   <button class="reload" id="go" aria-label="Aktualisieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span id="goTxt">Aktualisieren</span></button>
 </div></div>
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v11</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v12</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -297,7 +312,7 @@ ol.steps li{margin:3px 0}
 </div>
 </dialog>
 
-<script src="core.js?v=11"></script>
+<script src="core.js?v=12"></script>
 <script>
 "use strict";
 const C = window.JoranCore;
@@ -1000,6 +1015,29 @@ $("#thr").addEventListener("input", debounce(()=>{ saveS(); if(D) renderLive(); 
 $("#kSl").addEventListener("input", e=>{ S.k = +e.target.value; $("#kVal").textContent = S.k.toFixed(2); });
 $("#kSl").addEventListener("change", ()=>{ saveS(); renderAll(); });
 $("#reset").addEventListener("click", ()=>{ const p = S.push; S = C.merge(null); S.push = p; saveS(); renderAll(); });
+/* Darstellung: Automatisch → Hell → Dunkel */
+const TH_KEY = "joran.theme.v1";
+const TH_ICON = {
+  auto: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>`,
+  light: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`,
+  dark: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>`
+};
+const TH_NAME = {auto:"Automatisch (wie System)", light:"Hell", dark:"Dunkel"};
+function getTheme(){ try{ return localStorage.getItem(TH_KEY) || "auto"; }catch(e){ return "auto"; } }
+function applyTheme(t){
+  if(t==="auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t);
+  const dark = t==="dark" || (t==="auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  $("#tc").setAttribute("content", dark ? "#000000" : "#f2f2f7");
+  const b = $("#theme"); b.innerHTML = TH_ICON[t]; b.setAttribute("aria-label", "Darstellung: " + TH_NAME[t] + " — tippen zum Wechseln"); b.title = TH_NAME[t];
+}
+$("#theme").addEventListener("click", ()=>{
+  const n = {auto:"light", light:"dark", dark:"auto"}[getTheme()];
+  try{ localStorage.setItem(TH_KEY, n); }catch(e){}
+  applyTheme(n);
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>applyTheme(getTheme()));
+applyTheme(getTheme());
+
 /* Menü (Sheet) */
 const sheet = $("#sheet");
 function openSheet(){ if(sheet.showModal) sheet.showModal(); else sheet.setAttribute("open",""); document.body.style.overflow = "hidden"; }
