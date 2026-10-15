@@ -272,7 +272,7 @@ async function fetchLakeNow(own){
         out.st[L.id] = {rows:[parseMeteobase(txt)]}; out.via[L.id] = i; return;
       }catch(e){ err = e.message || err; }
     }
-    out.st[L.id] = {rows:[], err};
+    out.st[L.id] = {rows:[], err: err==="Load failed"||err==="Failed to fetch" ? "Netzwerk/CORS" : err};
   }));
   return out;
 }
