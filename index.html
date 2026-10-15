@@ -222,7 +222,7 @@ ol.steps li{margin:3px 0}
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v6</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v7</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -272,7 +272,8 @@ ol.steps li{margin:3px 0}
       <details id="lakeBox"><summary>Seestationen-Abruf</summary>
         <p style="font-size:15px">Vingelz und Ipsach erlauben keinen direkten Abruf aus dem Browser. Joran holt sie über einen eigenen Cloudflare Worker (Ordner <code>proxy</code> im Repo), zur Not über öffentliche Proxys. Feld leer lassen = Standard-Worker.</p>
         <div class="fld"><input type="text" id="proxy" placeholder="leer = Standard-Proxy von Joran" autocomplete="off" aria-label="Eigener Proxy"><div><button class="btn2" id="proxyS">Speichern</button></div></div>
-        <div id="lakeDiag" class="ftr" style="margin:8px 0 0"></div></details>
+        <div id="lakeDiag" class="ftr" style="margin:8px 0 0"></div>
+        <p class="ftr" style="margin:8px 0 0">Test: <a href="https://joran.rfjhvvs9p2.workers.dev/?url=https%3A%2F%2Fvingelz.meteobase.ch%2F" target="_blank" rel="noopener">Worker direkt öffnen</a> — muss die Vingelz-Seite zeigen.</p></details>
       <details><summary>Methode und Quellen</summary><div style="font-size:15px">
 <p><b>Prognose.</b> Vier hochauflösende Modelle über Open-Meteo: ICON-CH1 (MeteoSchweiz, 1 km, 33 h), ICON-CH2 (MeteoSchweiz, 2 km, 5 Tage), ICON-D2 (DWD, 2 km, 2 Tage), AROME HD (Météo-France, 1.3 km, ca. 2 Tage). Abgefragt wird die nächste Wasserzelle. Pro Stunde zählt der stärkste aktive Spot in einer gewählten Richtung.</p>
 <p><b>Ob.</b> Ein Modell trifft, wenn es die Schwelle im Zeitfenster so lange hält wie die Mindestdauer. Sehr wahrscheinlich: drei Viertel der Modelle (mindestens zwei). Wahrscheinlich: die Hälfte. Möglich: eines. Knapp: bestes Modell höchstens 3 kn darunter. Ab Übermorgen rechnet nur noch ICON-CH2.</p>
@@ -290,7 +291,7 @@ ol.steps li{margin:3px 0}
 </div>
 </dialog>
 
-<script src="core.js?v=6"></script>
+<script src="core.js?v=7"></script>
 <script>
 "use strict";
 const C = window.JoranCore;
@@ -373,7 +374,7 @@ function renderLake(){
   const dg = $("#lakeDiag");
   if(dg) dg.textContent = C.LAKE.map(L=>{ const d = LKNOW && LKNOW.st[L.id];
     const names = (S_PROXY() ? ["eigenen Proxy"] : []).concat(["direkt","allorigins","codetabs","corsproxy"]);
-    return `${L.name}: ${!d ? "–" : d.err ? "nicht erreichbar ("+d.err+")" : "ok über " + names[LKNOW.via[L.id]]}`; }).join(" · ")
+    return `${L.name}: ${!d ? "–" : d.err ? "nicht erreichbar (" + (d.errs||[d.err]).map((e,i)=>names[i]+": "+e).join(", ") + ")" : "ok über " + names[LKNOW.via[L.id]]}`; }).join(" · ")
     + (LKERR ? ` · Verlauf (Branch live): ${LKERR}` : "");
 }
 /* Seemessung: aktueller Wert direkt über CORS-Proxy, Verlauf aus dem Branch «live» und aus dem eigenen Browser-Speicher */

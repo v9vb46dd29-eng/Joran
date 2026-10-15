@@ -261,18 +261,19 @@ const LAKE_PROXIES = [
 async function fetchLakeNow(own){
   const list = (own ? [u => own + (own.includes("?") ? "" : "?url=") + encodeURIComponent(u)] : []).concat(LAKE_PROXIES);
   const out = {updated:new Date().toISOString(), st:{}, via:{}};
+  const why = m => m==="Load failed"||m==="Failed to fetch"||/NetworkError/.test(m) ? "Netzwerk/CORS" : /abort/i.test(m) ? "Zeitüberschreitung" : m;
   await Promise.all(LAKE.map(async L=>{
-    let err = "nicht erreichbar";
+    const errs = [];
     for(let i=0; i<list.length; i++){
       try{
-        const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), 8000);
+        const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), i===0 && own ? 15000 : 8000);
         let txt;
-        try{ const r = await fetch(list[i](L.url + "?" + Date.now()), {signal:ctl.signal, cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); txt = await r.text(); }
+        try{ const r = await fetch(list[i](L.url + "?" + Date.now()), {signal:ctl.signal}); if(!r.ok) throw new Error("HTTP "+r.status); txt = await r.text(); }
         finally{ clearTimeout(t); }
         out.st[L.id] = {rows:[parseMeteobase(txt)]}; out.via[L.id] = i; return;
-      }catch(e){ err = e.message || err; }
+      }catch(e){ errs.push(why(e.message || "Fehler")); }
     }
-    out.st[L.id] = {rows:[], err: err==="Load failed"||err==="Failed to fetch" ? "Netzwerk/CORS" : err};
+    out.st[L.id] = {rows:[], err: errs[0] || "nicht erreichbar", errs};   /* errs[0] = eigener Proxy, falls gesetzt */
   }));
   return out;
 }
