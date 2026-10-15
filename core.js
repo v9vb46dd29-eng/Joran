@@ -213,13 +213,13 @@ function parseTsUTC(s){
 const DIR16 = ["N","NNO","NO","ONO","O","OSO","SO","SSO","S","SSW","SW","WSW","W","WNW","NW","NNW"];
 const dir16 = s => { const i = DIR16.indexOf(String(s||"").toUpperCase().replace(/E/g,"O")); return i<0 ? null : i*22.5; };
 function parseMeteobase(html){
-  const txt = String(html).replace(/&nbsp;/g," ").replace(/&Oslash;|&#216;/g,"Ø");
+  const txt = String(html).replace(/&nbsp;/g," ").replace(/&Oslash;|&#216;/g,"Ø");   /* «Ø» nicht voraussetzen: Kodierung kann es verstümmeln */
   const m = txt.match(/(\d{2})\.(\d{2})\.(\d{4})\s*\((CEST|CET|MESZ|MEZ)\)\s*(\d{1,2}):(\d{2})/);
   if(!m) throw new Error("kein Zeitstempel");
   const off = /CEST|MESZ/.test(m[4]) ? 2 : 1;
   const t = new Date(Date.UTC(+m[3], +m[2]-1, +m[1], +m[5]-off, +m[6]));
   const w = re => { const x = txt.match(re); return x ? {kn:parseFloat(x[1]), dir:x[2]} : null; };
-  const mean = w(/Wind-10min-Ø:\s*[\d.]+\s*km\/h\s*\(([\d.]+)\s*kn[^)]*\)\s*([A-Z]{1,3})/);
+  const mean = w(/Wind-10min-(?!Max)[^:<]{1,6}:\s*[\d.]+\s*km\/h\s*\(([\d.]+)\s*kn[^)]*\)\s*([A-Z]{1,3})/);
   const gust = w(/Wind-10min-Max:\s*[\d.]+\s*km\/h\s*\(([\d.]+)\s*kn[^)]*\)\s*([A-Z]{1,3})/);
   if(!mean) throw new Error("kein Windwert");
   const n = re => { const x = txt.match(re); return x ? parseFloat(x[1]) : null; };
