@@ -1,9 +1,10 @@
 name: Joran Push
 
 on:
+  # Hauptzeitgeber: der Cloudflare Worker (proxy/worker.js) stösst alle 10 Minuten workflow_dispatch mit test=false an.
+  # Der GitHub-Zeitplan bleibt als Rückfall; GitHub startet ihn in der Praxis oft nur alle paar Stunden.
   schedule:
-    # alle 10 Minuten, 04–19 UTC (= 06–21 Uhr Sommerzeit). Ungerade Minuten, weil GitHub zur vollen Stunde oft verzögert.
-    - cron: "7,17,27,37,47,57 4-19 * * *"
+    - cron: "7,37 4-19 * * *"
   workflow_dispatch:
     inputs:
       test:
@@ -37,7 +38,7 @@ jobs:
         run: node push/check.cjs
         env:
           NTFY_TOPICS: ${{ secrets.NTFY_TOPICS }}
-          JORAN_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.test && '1' || '0' }}
+          JORAN_TEST: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.test) == 'true' && '1' || '0' }}
           JORAN_USER: ${{ inputs.user }}
           JORAN_LAKE: ${{ runner.temp }}/lake.json
           JORAN_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
@@ -53,7 +54,7 @@ jobs:
           fi
       - name: Messreihe Seestationen veröffentlichen
         # Ein einzelner Commit im Branch «live», jedes Mal ersetzt — keine Commit-Flut in main.
-        if: always() && github.event_name == 'schedule'
+        if: always() && (github.event_name == 'schedule' || format('{0}', inputs.test) != 'true')
         run: |
           f="$RUNNER_TEMP/lake.json"
           [ -s "$f" ] || exit 0
