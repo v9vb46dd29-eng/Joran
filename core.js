@@ -104,11 +104,12 @@ async function getJSON(url, ms){
   } catch(e){ if(e.name==="AbortError") throw new Error("Zeitüberschreitung"); throw e; }
   finally { clearTimeout(t); }
 }
+const IS_BROWSER = typeof window!=="undefined";
 async function getText1252(url, ms){
   const ctl = new AbortController();
   const t = setTimeout(()=>ctl.abort(), ms||20000);
   try{
-    const r = await fetch(url, {signal:ctl.signal});
+    const r = await fetch(url, IS_BROWSER ? {signal:ctl.signal, cache:"no-store"} : {signal:ctl.signal});   /* nie aus dem Browser-Cache */
     if(!r.ok) throw new Error("HTTP "+r.status);
     return new TextDecoder("windows-1252").decode(await r.arrayBuffer());
   } catch(e){ if(e.name==="AbortError") throw new Error("Zeitüberschreitung"); throw e; }
@@ -179,7 +180,8 @@ async function fetchHistory(m, days){
 }
 /* Messwerte SwissMetNet: kind "t" = 10 min, "h" = Stunde; period "now" oder "recent" */
 async function fetchStation(abk, kind, period){
-  const u = `https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${abk}/ogd-smn_${abk}_${kind||"t"}_${period||"now"}.csv`;
+  const u = `https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${abk}/ogd-smn_${abk}_${kind||"t"}_${period||"now"}.csv`
+    + ((period||"now")==="now" ? `?t=${Math.floor(Date.now()/60000)}` : "");      /* an CDN-Caches vorbei, neuester 10-min-Wert */
   return parseSMN(await getText1252(u, period==="recent"?45000:20000));
 }
 function parseSMN(txt){
@@ -248,31 +250,76 @@ async function updateLake(prev, now){
   }));
   return o;
 }
+/* Browser: meteoBase erlaubt keinen direkten Abruf (CORS). Darum der Reihe nach: direkt, eigener Proxy, öffentliche CORS-Proxys.
+   Liefert den aktuellen Wert je Station. */
+const LAKE_PROXIES = [
+  u => u,
+  u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  u => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
+  u => "https://corsproxy.io/?url=" + encodeURIComponent(u)
+];
+async function fetchLakeNow(own){
+  const list = (own ? [u => own + (own.includes("?") ? "" : "?url=") + encodeURIComponent(u)] : []).concat(LAKE_PROXIES);
+  const out = {updated:new Date().toISOString(), st:{}, via:{}};
+  await Promise.all(LAKE.map(async L=>{
+    let err = "nicht erreichbar";
+    for(let i=0; i<list.length; i++){
+      try{
+        const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), 8000);
+        let txt;
+        try{ const r = await fetch(list[i](L.url + "?" + Date.now()), {signal:ctl.signal, cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); txt = await r.text(); }
+        finally{ clearTimeout(t); }
+        out.st[L.id] = {rows:[parseMeteobase(txt)]}; out.via[L.id] = i; return;
+      }catch(e){ err = e.message || err; }
+    }
+    out.st[L.id] = {rows:[], err};
+  }));
+  return out;
+}
+/* Zwei Messreihen zusammenführen (Branch «live» + Direktabruf + bisher im Browser gesammelt) */
+function mergeLake(...src){
+  const o = {updated:null, st:{}};
+  const lim = Date.now() - LAKE_KEEP_H*3600e3;
+  LAKE.forEach(L=>{
+    const m = {}; let err = null;
+    src.forEach(x=>{ const d = x && x.st && x.st[L.id]; if(!d) return; (d.rows||[]).forEach(r=>{ if(new Date(r.t)>=lim) m[r.t] = r; }); if(d.err && !err) err = d.err; });
+    const rows = Object.values(m).sort((a,b)=>a.t<b.t?-1:1);
+    o.st[L.id] = rows.length ? {rows} : {rows, err};
+  });
+  src.forEach(x=>{ if(x && x.updated && (!o.updated || x.updated>o.updated)) o.updated = x.updated; });
+  return o;
+}
 /* Browser: Reihe aus dem Branch «live» lesen (raw.githubusercontent.com erlaubt CORS) */
 async function fetchLake(owner, repo){
   return getJSON(`https://raw.githubusercontent.com/${owner}/${repo}/live/lake.json?${Date.now()}`, 15000);
 }
 const lakeRows = (lk, id) => ((lk && lk.st && lk.st[id] && lk.st[id].rows) || []).map(r=>Object.assign({}, r, {t:new Date(r.t)}));
-/* Messlage am See: letzter Wert frisch (< 40 min), die letzten zwei Werte ≥ Schwelle in aktiver Richtung */
+/* Messlage am See: letzter Wert frisch (< 40 min), die letzten (bis zu zwei) frischen Werte ≥ Schwelle in aktiver Richtung */
 function lakeNow(lk, St, now){
   return LAKE.map(L=>{
     const rows = lakeRows(lk, L.id), last = rows[rows.length-1] || null;
     const fr = !!(last && ((now||new Date()) - last.t) < 40*60000);
     const k2 = rows.slice(-2).filter(r=>((now||new Date()) - r.t) < 40*60000);
-    const ok = fr && k2.length>=2 && k2.every(r=>over(r.mean,St) && dirOn(r.dir,St));
+    const ok = fr && k2.length>=1 && k2.every(r=>over(r.mean,St) && dirOn(r.dir,St));   /* ein Wert, wenn nur der Direktabruf vorliegt */
     let since = null;
     if(ok){ let i = rows.length-1; while(i>0 && over(rows[i-1].mean,St) && dirOn(rows[i-1].dir,St) && rows[i].t-rows[i-1].t < 40*60000) i--; since = rows[i].t; }
     return {L, rows, last, fresh:fr, ok, since, err: lk && lk.st && lk.st[L.id] ? lk.st[L.id].err : null};
   });
 }
 
+/* Alle Upwind-Stationen frisch holen (für jeden Refresh) */
+async function fetchStations(){
+  const out = {};
+  await Promise.all(UPWIND.map(s=>fetchStation(s.abk).then(rows=>out[s.abk]={rows, at:new Date()}).catch(e=>out[s.abk]={err:e.message||"blockiert"})));
+  return out;
+}
 async function fetchAll(St, opts){
   opts = opts||{};
   const N = {models:{}, stations:{}, err:{}, ens:null, jura:null, at:new Date()};
   const jobs = [];
   MODELS.forEach(m=>jobs.push(fetchModel(m).then(x=>N.models[m.id]=x).catch(e=>N.err[m.id]=e.message||"Fehler")));
   if(opts.ens!==false) jobs.push(fetchEnsemble().then(x=>N.ens=x).catch(e=>N.err.ens=e.message||"Fehler"));
-  UPWIND.forEach(s=>jobs.push(fetchStation(s.abk).then(rows=>N.stations[s.abk]={rows}).catch(e=>N.stations[s.abk]={err:e.message||"blockiert"})));
+  if(opts.stations!==false) jobs.push(fetchStations().then(x=>N.stations=x));
   if(opts.jura!==false) jobs.push(fetchJura().then(x=>N.jura=x).catch(()=>{}));
   await Promise.allSettled(jobs);
   return N;
@@ -579,7 +626,7 @@ function describe(s, St){
 
 const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, FRONT, DEF,
   clone, merge, r0, r1, card, dirOf, dirOn, over, kFor, spotName, fmtCH, hhmm, localDay, localHour, dayOfDate, dayLabel,
-  getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, lakeRows, lakeNow, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchAll, parseSMN,
+  getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
   frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, upwindNow, nowcast,
   contingency, calibrate, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
