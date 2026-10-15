@@ -52,12 +52,15 @@ const UPWIND = [
   {abk:"chm", name:"Chaumont",  sys:["joran","w"],  f:1.0,  role:"erster Jurakamm 1136 m, 25 km SW", extra:true},
   {abk:"cdf", name:"La Chaux-de-Fonds", sys:["joran","w"], f:0.7, role:"Jurahochfläche 1018 m, 30 km WNW", extra:true}
 ];
-const LAKE_LEVEL = ["crm","neu","gre","pay"];     /* für die Böenfront-Prüfung */
+const LAKE_LEVEL = ["crm","neu","gre","pay"];     /* für die Sturm-/Böenfront-Prüfung */
+/* Böenfront braucht alle drei Merkmale gleichzeitig (Kaltluftausfluss eines Gewitters):
+   Temperatursturz, sprunghaft zunehmender Mittelwind und kräftige Böen. Böenfaktor allein ist an Landstationen alltäglich. */
+const FRONT = {dT:3, jump:8, gust:30};
 const REGEL_E = {sector:[270,350], min:10, foil:12};
 /* Joran-Zutaten aus dem Modell: Hinweis, nicht kalibriert (siehe Methode) */
 const JORAN_X = {crestSector:[270,360], crest:12, dpRise:0.5, cape:500};
 
-const DEF = {T:14, win:"abend", minH:1, dirs:{n:1,bise:1,so:1,s:1,w:1,joran:1}, spots:{vin:1,ips:1,mit:1},
+const DEF = {T:14, maxMean:30, maxGust:39, win:"abend", minH:1, dirs:{n:1,bise:1,so:1,s:1,w:1,joran:1}, spots:{vin:1,ips:1,mit:1},
   k:1, kDir:{}, cut:2, st:{}, push:false, pushForecast:true, pushLive:true};
 
 /* ================= Helfer ================= */
@@ -367,27 +370,47 @@ function joranCheck(J, day, St, capeMax){
 }
 
 /* ================= Messung auswerten ================= */
-function frontCheck(rows){
+/* Nicht rausfahren nur bei Sturm: Messung über deinen Grenzen oder echte Böenfront (alle Merkmale zugleich) */
+function frontCheck(rows, St){
+  St = St || DEF;
   const fr = [];
   if(!rows || rows.length<3) return fr;
+  const mm = St.maxMean||DEF.maxMean, mg = St.maxGust||DEF.maxGust;
   for(let i=Math.max(2,rows.length-3); i<rows.length; i++){
-    const c=rows[i], p=rows[i-1], pp=rows[i-2];
-    if(c.gust && c.mean && c.mean>2 && c.gust/c.mean>2 && c.gust>=14) fr.push("Böenfaktor über 2");
-    if(c.temp!=null && p && p.temp!=null && p.temp-c.temp>2) fr.push("Temperatursturz über 2 °C in 10 min");
-    else if(c.temp!=null && pp && pp.temp!=null && pp.temp-c.temp>2) fr.push("Temperatursturz über 2 °C in 20 min");
+    const c=rows[i], pp=rows[i-2], p=rows[i-1];
+    if(c.gust!=null && Math.round(c.gust)>mg) fr.push(`Böen ${Math.round(c.gust)} kn über deiner Grenze ${mg} kn`);
+    if(c.mean!=null && Math.round(c.mean)>mm) fr.push(`Mittelwind ${Math.round(c.mean)} kn über deiner Grenze ${mm} kn`);
+    const ref = [p,pp].filter(r=>r && r.temp!=null && r.mean!=null);
+    if(c.temp!=null && ref.length){
+      const warm = Math.max(...ref.map(r=>r.temp)), calm = Math.min(...ref.map(r=>r.mean));
+      if(warm-c.temp>=FRONT.dT && c.mean-calm>=FRONT.jump && c.gust!=null && c.gust>=FRONT.gust)
+        fr.push(`Böenfront: ${r1(warm-c.temp)} °C kälter, Wind +${Math.round(c.mean-calm)} kn in 20 min, Böen ${Math.round(c.gust)} kn`);
+    }
   }
   return [...new Set(fr)];
+}
+/* Seestationen: 10-min-Spitze bzw. -Mittel über den eigenen Grenzen */
+function lakeStorm(lk, St){
+  const out = [];
+  lakeNow(lk, St).forEach(x=>{
+    if(!x.fresh) return;
+    const l = x.last, f = [];
+    if(l.gust!=null && Math.round(l.gust)>St.maxGust) f.push(`Böen ${Math.round(l.gust)} kn über deiner Grenze ${St.maxGust} kn`);
+    if(Math.round(l.mean)>St.maxMean) f.push(`Mittelwind ${Math.round(l.mean)} kn über deiner Grenze ${St.maxMean} kn`);
+    if(f.length) out.push({up:{name:x.L.name}, f});
+  });
+  return out;
 }
 function fresh(rows, now){ return rows && rows.length && ((now||new Date()) - rows[rows.length-1].t) < 50*60000; }
 
 /* Regel E (Joran, Cressier) — retrospektiv an 1030 Abenden geprüft */
 const inSectorE = d => d!=null && d>=REGEL_E.sector[0] && d<=REGEL_E.sector[1];
-function ruleE(rows){
+function ruleE(rows, St){
   const res = {ok:false, front:[], fail:[], last:null, since:null, mean30:null};
   if(!rows || rows.length<3){ res.fail.push("zu wenig Messwerte"); return res; }
   const last3 = rows.slice(-3);
   res.last = rows[rows.length-1];
-  res.front = frontCheck(rows);
+  res.front = frontCheck(rows, St);
   const dirOK = last3.every(r=>inSectorE(r.dir));
   const lvlOK = last3.every(r=>r.mean>=REGEL_E.min);
   const riseOK = last3[2].mean >= last3[0].mean;
@@ -395,7 +418,7 @@ function ruleE(rows){
   if(!dirOK) res.fail.push("Richtung nicht durchgehend 270–350°");
   if(!lvlOK) res.fail.push("Mittelwind nicht durchgehend ≥ 10 kn");
   if(!riseOK) res.fail.push("Mittelwind nicht zunehmend");
-  if(res.front.length) res.fail.push("Böenfront-Merkmale erfüllt");
+  if(res.front.length) res.fail.push("Sturm oder Böenfront gemessen");
   res.ok = dirOK && lvlOK && riseOK && !res.front.length;
   if(dirOK && lvlOK){
     let i = rows.length-1;
@@ -427,17 +450,18 @@ function upwindNow(rows, up, St){
   return res;
 }
 /* Messlage jetzt: alle Upwind-Signale plus Regel E plus Böenfront */
-function nowcast(stations, St, now){
+function nowcast(stations, St, now, lk){
   const sig = [], front = [];
   UPWIND.forEach(up=>{
     const d = stations[up.abk]; if(!d || d.err || !fresh(d.rows, now)) return;
     const u = upwindNow(d.rows, up, St);
     if(u.ok) sig.push({up, u});
-    if(LAKE_LEVEL.includes(up.abk)){ const f = frontCheck(d.rows); if(f.length) front.push({up, f}); }
+    if(LAKE_LEVEL.includes(up.abk)){ const f = frontCheck(d.rows, St); if(f.length) front.push({up, f}); }
   });
   const crm = stations.crm;
-  const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows) : null;
+  const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows, St) : null;
   const trusted = sig.filter(s=>(s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25));
+  if(lk) lakeStorm(lk, St).forEach(x=>front.push(x));
   return {sig, trusted, e, eOk: !!(e && e.ok && St.dirs.joran), front};
 }
 
@@ -520,13 +544,15 @@ function calibrateStation(rows, up, St, days, truth){
 }
 
 /* ================= Push-Einstellungen: nur geprüfte Felder übernehmen ================= */
-const PUSH_FIELDS = ["T","win","minH","dirs","spots","k","kDir","cut","st","push","pushForecast","pushLive"];
+const PUSH_FIELDS = ["T","maxMean","maxGust","win","minH","dirs","spots","k","kDir","cut","st","push","pushForecast","pushLive"];
 function pushCfg(St){ const o = {}; PUSH_FIELDS.forEach(k=>o[k]=clone(St[k])); return o; }
 function sanitizeCfg(x){
   if(!x || typeof x!=="object" || Array.isArray(x)) throw new Error("kein Einstellungs-Objekt");
   const o = clone(DEF);
   const num = (v,a,b) => typeof v==="number" && isFinite(v) && v>=a && v<=b;
   if(x.T!=null){ if(!num(x.T,10,30)) throw new Error("Schwelle muss 10–30 kn sein"); o.T = Math.round(x.T); }
+  if(x.maxMean!=null){ if(!num(x.maxMean,15,60)) throw new Error("Mittelwind-Grenze 15–60 kn"); o.maxMean = Math.round(x.maxMean); }
+  if(x.maxGust!=null){ if(!num(x.maxGust,20,70)) throw new Error("Böen-Grenze 20–70 kn"); o.maxGust = Math.round(x.maxGust); }
   if(x.win!=null){ if(!WINS[x.win]) throw new Error("unbekanntes Zeitfenster"); o.win = x.win; }
   if(x.minH!=null){ if(![1,2].includes(x.minH)) throw new Error("Mindestdauer 1 oder 2"); o.minH = x.minH; }
   if(x.cut!=null){ if(![2,3].includes(x.cut)) throw new Error("Stufe 2 oder 3"); o.cut = x.cut; }
@@ -551,11 +577,11 @@ function describe(s, St){
   return `${r0(s.top.v)} kn ${dn?dn.name:card(s.top.d)}, ${w}, bester Spot ${spotName(s.top.spot)} (${s.hits} von ${s.n} Modellen ≥ ${St.T} kn)`;
 }
 
-const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, DEF,
+const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, FRONT, DEF,
   clone, merge, r0, r1, card, dirOf, dirOn, over, kFor, spotName, fmtCH, hhmm, localDay, localHour, dayOfDate, dayLabel,
   getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, lakeRows, lakeNow, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
-  frontCheck, fresh, ruleE, stTs, stTrust, upwindNow, nowcast,
+  frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, upwindNow, nowcast,
   contingency, calibrate, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
 if(typeof module!=="undefined" && module.exports) module.exports = api; else root.JoranCore = api;
 })(typeof self!=="undefined" ? self : this);

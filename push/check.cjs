@@ -71,7 +71,7 @@ async function checkUser(u, topic, D){
     }
   }
   if(cfg.pushLive && hour>=h0-2 && hour<=h1){
-    const nc = C.nowcast(D.stations, cfg, NOW);
+    const nc = C.nowcast(D.stations, cfg, NOW, LK);
     const lk = LK ? C.lakeNow(LK, cfg, NOW) : [];
     const lakeTxt = lk.filter(x=>x.fresh && cfg.spots[x.L.id]).map(x=>`${x.L.name} ${C.r0(x.last.mean)} kn ${C.card(x.last.dir)}${x.last.gust!=null?" (Böen "+C.r0(x.last.gust)+")":""}`).join(", ");
     const lakeOk = lk.filter(x=>x.ok && cfg.spots[x.L.id]);
@@ -80,7 +80,7 @@ async function checkUser(u, topic, D){
       state.sent[K("lake:"+today)] = {at:NOW.toISOString()};
     }
     if(nc.front.length && (state.sent[K("live:"+today)] || state.sent[K("fc:"+today)]) && !state.sent[K("front:"+today)]){
-      await send(topic, "Böenfront — nicht rausfahren", nc.front.map(x=>`${x.up.name}: ${x.f.join(", ")}`).join("; "), 5, ["warning"]);
+      await send(topic, "Sturm — nicht rausfahren", nc.front.map(x=>`${x.up.name}: ${x.f.join(", ")}`).join("; "), 5, ["warning"]);
       state.sent[K("front:"+today)] = {at:NOW.toISOString()};
     } else if(!state.sent[K("live:"+today)] && !nc.front.length && (nc.eOk || nc.trusted.length)){
       const parts = [];

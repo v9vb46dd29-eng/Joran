@@ -208,6 +208,7 @@ details.sub>summary .dim{font-weight:400;font-size:.8rem}
 <summary>Einstellungen</summary>
 <div class="set">
   <div><div class="lab">Zeitfenster</div><div class="chips" id="setWin"></div></div>
+  <div><div class="lab">Sturmgrenze — erst darüber heisst es «nicht rausfahren»</div><div class="chips" id="setMax"></div></div>
   <div><div class="lab">Mindestdauer über der Schwelle</div><div class="chips" id="setMin"></div></div>
   <div><div class="lab">Windrichtungen, die zählen</div><div class="chips" id="setDir"></div></div>
   <div><div class="lab">Spots — es reicht, wenn einer die Schwelle erreicht</div><div class="chips" id="setSpot"></div></div>
@@ -236,7 +237,7 @@ details.sub>summary .dim{font-weight:400;font-size:.8rem}
 <p><b>Am See jetzt.</b> Vingelz und Ipsach (meteoBase.ch, 10-Minuten-Mittel und -Spitze). Die Seiten erlauben keinen direkten Abruf aus dem Browser; darum liest die GitHub Action sie bei jedem Lauf (etwa alle 10 Minuten, 6–21 Uhr) und legt die letzten 18 Stunden im Branch <code>live</code> ab. Die Kachel ist blau, wenn die letzten zwei Werte deine Schwelle in einer aktiven Richtung erreichen. Dann gibt es auch einen Mess-Push «Am See». Im Tagesdiagramm erscheinen die Seewerte als Punkte — so siehst du direkt, wie gut die Modelle heute liegen.</p>
 <p><b>Joran-Zutaten.</b> Thermischer Joran entsteht, wenn auf Jurahöhe Luft aus Nordwest anliegt und am Abend die Luft auf der Jura-Hochfläche relativ zum See schwerer wird. Joran zeigt dazu aus ICON-CH2: Wind auf dem Chasseral-Kamm aus 270–360° ab 12 kn und den Anstieg des Druckgefälles La Chaux-de-Fonds → See seit Mittag um mindestens 0.5 hPa. Das sind Erfahrungswerte, nicht kalibriert; sie ändern die Stufe nicht, sondern sagen dir, wann sich der Blick auf die Messung lohnt.</p>
 <p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Stationen mit Peirce-Score unter 0.25 lösen keinen Push aus. Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
-<p><b>Böenfront</b> (Temperatursturz &gt; 2 °C in 10–20 min oder Böenfaktor &gt; 2 an einer Station auf Seehöhe) überschreibt jede positive Bewertung.</p>
+<p><b>Sturm</b> überschreibt jede positive Bewertung — aber nur dann: Mittelwind oder Böen über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) am See oder an einer Upwind-Station auf Seehöhe, oder eine echte Böenfront, bei der alle drei Merkmale gleichzeitig auftreten: Temperatursturz ≥ 3 °C, Mittelwind +8 kn und Böen ≥ 30 kn innert 20 Minuten. Der frühere Böenfaktor-Test (Böe doppelt so stark wie Mittel) entfällt: An Landstationen ist das bei mässigem, böigem Wind alltäglich.</p>
 <p><b>Push.</b> Eine GitHub Action prüft alle 10 Minuten zwischen 6 und 21 Uhr dieselben Regeln (Datei <code>core.js</code>) für jeden Nutzer mit dessen eigenen Einstellungen (<code>users/&lt;name&gt;.json</code>) und sendet über ntfy.sh an dessen eigenes Thema. GitHub startet geplante Läufe teils mit Verspätung.</p>
 <p>Einstellungen und Markierungen liegen in diesem Browser; nur was du für Push speicherst, steht öffentlich lesbar in <code>users/&lt;name&gt;.json</code> — ohne ntfy-Thema. Wetterdaten: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD).</p>
 </details>
@@ -337,7 +338,7 @@ function renderLive(){
   days.forEach(x=>{ x.s = summarize(D.models, x.day, S); x.ens = x.k<=1 ? ensShare(D.ens, x.day, S) : null; });
   if(SEL==null) SEL = hour>WINS[S.win][1] ? 1 : 0;
   const cur = days[SEL];
-  const nc = C.nowcast(D.stations, S);
+  const nc = C.nowcast(D.stations, S, undefined, LK);
   nc.lake = C.lakeNow(LK, S).filter(x=>S.spots[x.L.id]);
 
   let h = `<div class="days" role="tablist">`;
@@ -386,8 +387,8 @@ function verdictHTML(cur, hour, nc){
 
   if(live && nc.front.length){
     return `<div class="verdict danger"><span class="word">Nicht rausfahren</span>
-      <div class="why">Böenfront gemessen — ${esc(nc.front.map(x=>x.up.name+": "+x.f.join(", ")).join("; "))}. Das ist kein fahrbarer Wind.</div>
-      <div class="basis">Messung, Sicherheitsregel — überschreibt die Prognose</div></div>`;
+      <div class="why">Sturm gemessen — ${esc(nc.front.map(x=>x.up.name+": "+x.f.join(", ")).join("; "))}.</div>
+      <div class="basis">Messung, über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen) — überschreibt die Prognose</div></div>`;
   }
   if(s.level<0) return `<div class="verdict"><span class="word">Keine Daten</span><div class="why">Kein Modell liefert Werte für diesen Tag und dieses Zeitfenster.</div></div>`;
 
@@ -443,8 +444,9 @@ function modelTable(cur){
 function warnings(cur){
   const w = [], s = cur.s;
   const cape = Math.max(0, ...s.ok.map(x=>x.e.capeMax||0));
-  if(cape>=500) w.push(`CAPE bis ${Math.round(cape)} J/kg — Schauer oder Gewitter möglich, dann Böenfront statt Foilwind.`);
-  if(s.top && s.top.g!=null && s.top.g>=25 && s.top.g>=1.8*(s.top.v/C.kFor(s.top.d,S))) w.push(`Sehr böig: Böen bis ${r0(s.top.g)} kn.`);
+  if(cape>=1000) w.push(`CAPE bis ${Math.round(cape)} J/kg — Gewitter möglich. Eine Böenfront kündigt sich an Upwind-Stationen durch Temperatursturz und Windsprung an.`);
+  const gMax = Math.max(0, ...s.ok.map(x=>x.e.top && x.e.top.g!=null ? x.e.top.g : 0));
+  if(gMax*S.k > S.maxGust) w.push(`Böen bis ${r0(gMax*S.k)} kn möglich (mit Modellfaktor) — über deiner Grenze ${S.maxGust} kn.`);
   const tops = s.ok.filter(x=>x.e.top).map(x=>x.e.top.v);
   if(tops.length>1 && Math.max(...tops)-Math.min(...tops)>=6) w.push(`Modelle uneinig: ${r0(Math.max(...tops)-Math.min(...tops))} kn Spannweite.`);
   return w;
@@ -564,6 +566,8 @@ function chipGroup(el, items, isOn, onClick){
 }
 function renderSettings(){
   chipGroup($("#setWin"), Object.keys(WINS).map(k=>({v:k,t:WINS[k][2]})), it=>S.win===it.v, v=>{ S.win=v; });
+  chipGroup($("#setMax"), [{v:"25|33",t:"25 / Böen 33"},{v:"30|39",t:"30 / Böen 39"},{v:"35|45",t:"35 / Böen 45"}],
+    it=>it.v===S.maxMean+"|"+S.maxGust, v=>{ const [a,b] = v.split("|").map(Number); S.maxMean = a; S.maxGust = b; });
   chipGroup($("#setMin"), [{v:"1",t:"1 Stunde"},{v:"2",t:"2 Stunden"}], it=>String(S.minH)===it.v, v=>{ S.minH=+v; });
   chipGroup($("#setDir"), DIRS.map(d=>({v:d.id,t:`${d.name} ${d.a}–${d.b}°`})), it=>!!S.dirs[it.v], v=>{
     S.dirs[v] = S.dirs[v]?0:1; if(!Object.values(S.dirs).some(Boolean)) S.dirs[v] = 1; });
