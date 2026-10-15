@@ -3,246 +3,292 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e6a7e">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Joran — Wingfoil Bielersee</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#e9edee; --ink:#14262c; --water:#0e6a7e; --water-d:#0a4e5d; --water-l:#cfe3e7;
-  --jura:#4a6b57; --warn:#b4531f; --muted:#6c7e83; --line:#c8d4d6; --card:#fff;
-  color-scheme:light;
+  --bg:#f2f2f7; --card:#fff; --card2:#f2f2f7; --ink:#000; --ink2:#3c3c4399; --muted:#8a8a8e; --line:#c6c6c8;
+  --sep:#3c3c4329; --accent:#007aff; --water:#0a84c7; --water-d:#06659a; --water-l:#d6ecf7;
+  --jura:#34a853; --warn:#ff3b30; --orange:#ff9500; --fill:#7878801f; --fill2:#78788033;
+  --r:14px; color-scheme:light dark;
 }
-*{box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#000; --card:#1c1c1e; --card2:#2c2c2e; --ink:#fff; --ink2:#ebebf599; --muted:#8d8d93; --line:#38383a;
+  --sep:#54545899; --accent:#0a84ff; --water:#32a0e0; --water-d:#1d7fb8; --water-l:#0d2c3d;
+  --jura:#30d158; --warn:#ff453a; --orange:#ff9f0a; --fill:#7676803d; --fill2:#7676805c;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
-:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{
-  background:var(--paper); color:var(--ink);
-  font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  font-variant-numeric:tabular-nums; line-height:1.45; -webkit-text-size-adjust:100%;
-}
-.wrap{max-width:660px;margin:0 auto;padding:0 16px 64px}
-h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;margin:0}
-h2{font-size:.95rem;font-weight:600;margin:30px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-p{margin:.4em 0}
+body{background:var(--bg);color:var(--ink);font:17px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom)}
+a{color:var(--accent)}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 small{color:var(--muted)}
-button{font-family:inherit}
-:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+p{margin:.4em 0}
+.wrap{max-width:680px;margin:0 auto;padding:0 16px 48px}
 
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:20px 0 12px}
-header .sub{font-size:.8rem;color:var(--muted)}
+/* Navigationsleiste */
+.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;border-bottom:.5px solid transparent}
+.nav.scrolled{border-bottom-color:var(--sep)}
+.nav-in{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nav .ttl{font-weight:600;font-size:17px;opacity:0;transition:opacity .2s}
+.nav.scrolled .ttl{opacity:1}
+.navbtns{display:flex;gap:10px;align-items:center}
+.ibtn{width:38px;height:38px;border-radius:50%;border:0;background:var(--fill);display:grid;place-items:center;cursor:pointer;color:var(--accent)}
+.ibtn svg{width:21px;height:21px}
+.reload{display:flex;align-items:center;gap:7px;border:0;border-radius:19px;height:38px;padding:0 16px 0 12px;background:var(--accent);color:#fff;
+  font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px #007aff40}
+.reload svg{width:18px;height:18px}
+.reload.busy svg{animation:spin .9s linear infinite}
+.reload:disabled{opacity:.85;cursor:progress}
+.reload.stale{background:var(--orange);box-shadow:0 2px 8px #ff950040}
+@keyframes spin{to{transform:rotate(360deg)}}
+.large{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:2px 0 14px}
+h1{font-size:34px;font-weight:700;letter-spacing:.01em;margin:0;line-height:1.1}
+.large .sub{font-size:13px;color:var(--muted);margin-top:2px}
+#stamp{font-size:13px;color:var(--muted);text-align:right}
 
-.trigger{display:block;width:100%;padding:13px;margin:4px 0 16px;background:var(--ink);color:#fff;border:0;border-radius:3px;font-size:1rem;font-weight:600;cursor:pointer}
-.trigger:hover{background:var(--water-d)}
-.trigger:disabled{background:var(--muted);cursor:progress}
-.btn2{font-size:.85rem;padding:7px 11px;border:1px solid var(--line);background:var(--card);border-radius:2px;cursor:pointer;color:var(--ink)}
+/* Abschnitte */
+h2,.sech{font-size:13px;font-weight:400;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);margin:26px 16px 7px;border:0;padding:0}
+.sech{display:flex;justify-content:space-between}
+.card{background:var(--card);border-radius:var(--r);padding:14px 16px}
 
-/* Schwelle — das eine prägnante Element */
-.thr{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:3px;padding:12px 14px;margin-bottom:14px}
-.thr .num{font-size:1.6rem;font-weight:800;letter-spacing:-.04em;line-height:1;min-width:3.6ch;color:var(--water)}
-.thr .num span{font-size:.9rem;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:2px}
-.thr .lab{font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px}
-.thr .sl{flex:1;min-width:0}
-input[type=range]{width:100%;accent-color:var(--water);height:28px;margin:0}
-.scale{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)}
+/* See live */
+.lake{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lk{display:block;background:var(--card);border-radius:var(--r);padding:12px 14px 10px;color:var(--ink);text-decoration:none;min-width:0;position:relative}
+.lk.on{background:linear-gradient(160deg,#1aa3e8,#0a6fb0);color:#fff}
+.lk.on .dim,.lk.on small{color:#e0f2ff}
+.lk.old .lv{color:var(--muted)}
+.lk .lh{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:15px}
+.lk .lh b{font-weight:600}
+.lk .lh small{font-size:12px}
+.lk .lv{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:4px;white-space:nowrap}
+.lk .lv small{font-size:16px;font-weight:600;letter-spacing:0;color:inherit}
+.lk .ld{font-size:14px;font-weight:600;margin-top:1px}
+.lk .ls{font-size:12px;line-height:1.35;margin-top:3px}
+.lk svg.sp{display:block;width:100%;height:34px;margin-top:8px}
 
-/* Tage */
-.days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
-.dbtn{border:1px solid var(--line);background:var(--card);border-radius:3px;padding:8px 6px 9px;text-align:left;cursor:pointer;color:var(--ink);border-top-width:5px}
-.dbtn b{display:block;font-size:.8rem;font-weight:600}
-.dbtn .kn{font-size:1.15rem;font-weight:800;letter-spacing:-.02em;display:block;margin-top:2px}
-.dbtn .lv{font-size:.68rem;color:var(--muted);display:block;line-height:1.2}
-.dbtn.sel{outline:2px solid var(--ink);outline-offset:-1px}
-.dbtn.c4,.dbtn.c3{border-top-color:var(--water)}
-.dbtn.c2{border-top-color:#6fa7b3}
-.dbtn.c1{border-top-color:var(--jura)}
-.dbtn.c0{border-top-color:var(--line)}
+/* Tage: Segmente */
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 12px}
+.dbtn{border:0;background:var(--card);border-radius:12px;padding:9px 8px 9px;text-align:left;cursor:pointer;position:relative;overflow:hidden}
+.dbtn::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--fill2)}
+.dbtn b{display:block;font-size:13px;font-weight:600}
+.dbtn .kn{font-size:22px;font-weight:700;display:block;margin-top:2px;letter-spacing:-.01em}
+.dbtn .kn small{font-size:12px;font-weight:500}
+.dbtn .lv{font-size:11px;color:var(--muted);display:block;line-height:1.2}
+.dbtn .tm{font-size:11px;display:block;font-weight:500}
+.dbtn.sel{box-shadow:0 0 0 2.5px var(--accent) inset}
+.dbtn.c4::before,.dbtn.c3::before{background:var(--water)}
+.dbtn.c2::before{background:#6fb7dc}
+.dbtn.c1::before{background:var(--jura)}
 
 /* Verdict */
-.verdict{padding:18px 20px;border-radius:3px;color:#fff;background:#41565d}
-.verdict.c4{background:var(--water-d)}
-.verdict.c3{background:var(--water)}
-.verdict.c2{background:#3f7f8c}
-.verdict.c1{background:var(--jura)}
-.verdict.danger{background:var(--warn)}
-.verdict .word{font-size:1.9rem;font-weight:800;letter-spacing:-.03em;line-height:1.05;display:block}
-.verdict .why{font-size:.9rem;opacity:.94;margin-top:8px}
-.verdict .basis{font-size:.75rem;opacity:.78;margin-top:10px}
+.verdict{padding:18px 18px 16px;border-radius:var(--r);color:#fff;background:#636366}
+.verdict.c4{background:linear-gradient(160deg,#0a84c7,#055a8c)}
+.verdict.c3{background:linear-gradient(160deg,#1a9ad6,#0a6fa8)}
+.verdict.c2{background:linear-gradient(160deg,#4aa3c9,#2c7a9e)}
+.verdict.c1{background:linear-gradient(160deg,#3dbb6a,#24864a)}
+.verdict.danger{background:linear-gradient(160deg,#ff453a,#c4271e)}
+.verdict .word{font-size:30px;font-weight:700;letter-spacing:-.01em;line-height:1.05;display:block}
+.verdict .why{font-size:15px;opacity:.95;margin-top:8px}
+.verdict .basis{font-size:12px;opacity:.8;margin-top:10px}
+.thrchip{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;font-size:13px;padding:6px 12px;border-radius:16px;border:0;background:#ffffff2e;color:#fff;cursor:pointer}
 
-.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+/* Listen, Notizen, Tabellen */
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:.5px solid var(--sep)}
 .row:last-child{border-bottom:0}
 .row .nm{flex:1;min-width:0}
 .row .nm b{font-weight:600}
-.row .nm em{font-style:normal;color:var(--muted);font-size:.75rem;display:block}
-.val{font-weight:600;white-space:nowrap}
+.row .nm em{font-style:normal;color:var(--muted);font-size:12px;display:block}
+.val{font-weight:600;white-space:nowrap;font-size:15px}
 .val.off{color:var(--muted);font-weight:400}
 .val.on{color:var(--water)}
 .arrow{display:inline-block;width:14px;height:14px;vertical-align:-2px}
 .arrow path{fill:currentColor}
 .dim{color:var(--muted)}
-
-.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--water);padding:11px 14px;border-radius:0 3px 3px 0;font-size:.85rem;margin-top:10px}
-.note.bad{border-left-color:var(--warn)}
+.note{background:var(--card);border-radius:var(--r);padding:12px 16px;font-size:15px;margin-top:10px}
+.note.bad{box-shadow:inset 4px 0 0 var(--warn)}
 .note ul{margin:4px 0 0;padding-left:18px}
-
 .tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.85rem}
-th{text-align:left;font-weight:500;color:var(--muted);font-size:.72rem;padding:0 6px 6px 0}
-td{padding:7px 6px 7px 0;border-top:1px solid var(--line);vertical-align:top}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:0 6px 6px 0}
+td{padding:8px 6px 8px 0;border-top:.5px solid var(--sep);vertical-align:top}
 td.n,th.n{text-align:right;white-space:nowrap}
-
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{font-size:.78rem;padding:5px 10px;border:1px solid var(--line);border-radius:2px;background:var(--card);text-decoration:none;color:var(--ink)}
-.chip.ok{border-color:var(--water);color:var(--water)}
-.chip.fail{border-color:var(--warn);color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{font-size:14px;padding:7px 13px;border:0;border-radius:18px;background:var(--fill);text-decoration:none;color:var(--ink)}
+.chip.ok{color:var(--jura)}
+.chip.fail{color:var(--warn)}
 button.chip{cursor:pointer}
-button.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
-
-.set{display:grid;gap:14px;margin-top:10px}
-.set .lab{font-size:.8rem;color:var(--muted);margin-bottom:2px}
-.kval{font-weight:600}
-
-svg.chart{width:100%;height:190px;display:block;background:var(--card);border:1px solid var(--line);border-radius:3px}
-details{margin-top:12px;font-size:.88rem}
-details>summary{cursor:pointer;font-weight:600;padding:6px 0}
-details.sec{border-top:1px solid var(--line);margin-top:26px;padding-top:4px}
-details.sec>summary{font-size:.95rem}
-.skel{color:var(--muted);font-size:.9rem;padding:18px 0}
-
-/* Rückblick */
-.hrow{display:grid;grid-template-columns:5.2em 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.83rem}
-.hrow .fc b{font-weight:600}
-.mk{display:flex;gap:4px}
-.mk button{font-size:.75rem;padding:5px 7px;border:1px solid var(--line);background:var(--card);border-radius:2px;cursor:pointer;color:var(--ink)}
-.mk button[aria-pressed=true].y{background:var(--water);border-color:var(--water);color:#fff}
-.mk button[aria-pressed=true].k{background:var(--jura);border-color:var(--jura);color:#fff}
-.mk button[aria-pressed=true].n{background:#41565d;border-color:#41565d;color:#fff}
-.out{font-size:.72rem;display:block;margin-top:2px}
-.out.tp{color:var(--water)} .out.fn,.out.fp{color:var(--warn)} .out.tn{color:var(--muted)}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
-@media (max-width:420px){ .days .kn{font-size:1rem} .verdict .word{font-size:1.6rem} }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-
-/* v3 */
-.dbtn .tm{font-size:.68rem;display:block;color:var(--ink);font-weight:500}
-.sw{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:3px;padding:12px 14px}
-.sw input{appearance:none;-webkit-appearance:none;width:46px;height:26px;border-radius:13px;background:#b3c2c5;position:relative;cursor:pointer;flex:none;transition:background .15s}
-.sw input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
-.sw input:checked{background:var(--water)}
-.sw input:checked::after{left:23px}
-.sw .t b{display:block}
-.sw .t small{display:block}
-.fld{display:grid;gap:6px;margin-top:8px}
-.fld input[type=text],.fld input[type=password]{font:inherit;font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:2px;width:100%;background:#fff;color:var(--ink)}
-.sig{font-size:.7rem;padding:2px 6px;border-radius:2px;border:1px solid currentColor;margin-left:6px;white-space:nowrap}
-.sig.on{color:var(--water);background:#0e6a7e14}
-.sig.near{color:var(--jura)}
-.sig.off{color:var(--muted)}
-ol.steps{padding-left:20px;margin:6px 0}
-ol.steps li{margin:3px 0}
-code{font-size:.85em;background:#dde6e8;padding:1px 4px;border-radius:2px}
-
-/* v5: See live */
-.hd-r{display:flex;align-items:center;gap:8px}
-.reload{border:1px solid var(--line);background:var(--card);border-radius:3px;padding:6px 10px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--ink)}
-.reload:disabled{color:var(--muted);cursor:progress}
-.lake{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.lk{display:block;background:var(--card);border:1px solid var(--line);border-radius:3px;padding:10px 12px 8px;color:var(--ink);text-decoration:none;min-width:0}
-.lk.on{background:var(--water);border-color:var(--water);color:#fff}
-.lk.on .dim,.lk.on small{color:#d7ecf0}
-.lk.old{opacity:.72}
-.lk .lh{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:.8rem}
-.lk .lh b{font-weight:600}
-.lk .lv{font-size:2.1rem;font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-top:2px;white-space:nowrap}
-.lk .lv small{font-size:.85rem;font-weight:600;letter-spacing:0}
-.lk .ls{font-size:.74rem;line-height:1.3}
-.lk svg{display:block;width:100%;height:34px;margin-top:6px}
-.lakehead{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);margin:2px 0 6px}
-details.sub{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:2px 12px;margin-top:10px}
-details.sub[open]{padding-bottom:10px}
-details.sub>summary{font-size:.9rem}
-details.sub>summary .dim{font-weight:400;font-size:.8rem}
+button.chip[aria-pressed=true]{background:var(--accent);color:#fff}
+.btn2{font-size:15px;padding:9px 14px;border:0;background:var(--fill);border-radius:10px;cursor:pointer;color:var(--accent);font-weight:500}
+.trigger{display:block;width:100%;padding:13px;margin:10px 0;background:var(--accent);color:#fff;border:0;border-radius:12px;font-size:17px;font-weight:600;cursor:pointer}
+.trigger:disabled{opacity:.6;cursor:progress}
+svg.chart{width:100%;height:190px;display:block;background:var(--card);border-radius:var(--r)}
+.cap{font-size:12px;color:var(--muted);margin:6px 4px 0;display:block}
+details{font-size:15px}
+details>summary{cursor:pointer;font-weight:600;padding:12px 0;list-style:none;display:flex;align-items:center;gap:8px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .2s;flex:none}
+details[open]>summary::after{transform:rotate(45deg)}
+details.sub{background:var(--card);border-radius:var(--r);padding:0 16px;margin-top:10px}
+details.sub[open]{padding-bottom:12px}
+details.sub>summary .dim{font-weight:400;font-size:13px}
+.skel{color:var(--muted);font-size:15px;padding:30px 0;text-align:center}
 .ing{list-style:none;padding:0;margin:6px 0 0}
-.ing li{padding:3px 0 3px 22px;position:relative}
-.ing li::before{content:"";position:absolute;left:4px;top:.6em;width:9px;height:9px;border-radius:50%;background:var(--line)}
+.ing li{padding:3px 0 3px 20px;position:relative}
+.ing li::before{content:"";position:absolute;left:3px;top:.55em;width:9px;height:9px;border-radius:50%;background:var(--fill2)}
 .ing li.y::before{background:var(--water)}
 .ing li.w::before{background:var(--warn)}
+.sig{font-size:11px;padding:2px 7px;border-radius:9px;margin-left:6px;white-space:nowrap;background:var(--fill)}
+.sig.on{color:#fff;background:var(--water)}
+.sig.near{color:var(--jura)}
+.sig.off{color:var(--muted)}
+code{font-size:.85em;background:var(--fill);padding:1px 5px;border-radius:5px}
+
+/* Einstellungen: Sheet */
+dialog.sheet{border:0;padding:0;margin:0;max-width:none;max-height:none;width:100%;height:100%;background:transparent;color:var(--ink)}
+dialog.sheet::backdrop{background:#0006}
+.sh{position:absolute;left:0;right:0;bottom:0;top:max(env(safe-area-inset-top),24px);background:var(--bg);border-radius:12px 12px 0 0;
+  display:flex;flex-direction:column;max-width:680px;margin:0 auto;animation:up .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(100%)}}
+.shh{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:8px 16px 8px;border-bottom:.5px solid var(--sep);position:relative}
+.shh::before{content:"";position:absolute;top:5px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--fill2)}
+.shh b{font-size:17px;font-weight:600;padding-top:10px}
+.shh button{justify-self:end;border:0;background:none;color:var(--accent);font-size:17px;font-weight:600;cursor:pointer;padding:10px 0 0}
+.shb{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(30px + env(safe-area-inset-bottom));flex:1}
+.grp{background:var(--card);border-radius:var(--r);padding:4px 16px}
+.grp>.it{padding:12px 0;border-bottom:.5px solid var(--sep)}
+.grp>.it:last-child{border-bottom:0}
+.it .lab{font-size:15px;margin-bottom:6px}
+.it .lab small{display:block;font-size:13px}
+.grp>details{border-bottom:.5px solid var(--sep)}
+.grp>details:last-child{border-bottom:0}
+.grp>details>summary{font-weight:400;font-size:17px}
+.grp>details[open]{padding-bottom:12px}
+.ftr{font-size:13px;color:var(--muted);margin:7px 16px 0}
+
+/* Schwelle */
+.thr{display:flex;align-items:center;gap:14px}
+.thr .num{font-size:34px;font-weight:700;line-height:1;min-width:3.4ch;color:var(--accent)}
+.thr .num span{font-size:15px;font-weight:600;color:var(--muted);margin-left:2px}
+.thr .sl{flex:1;min-width:0}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px;margin:0}
+.scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.kval{font-weight:600}
+
+/* Rückblick */
+.hrow{display:grid;grid-template-columns:5.2em 1fr auto;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--sep);font-size:14px}
+.hrow .fc b{font-weight:600}
+.mk{display:flex;gap:4px}
+.mk button{font-size:13px;padding:6px 9px;border:0;background:var(--fill);border-radius:8px;cursor:pointer}
+.mk button[aria-pressed=true].y{background:var(--water);color:#fff}
+.mk button[aria-pressed=true].k{background:var(--jura);color:#fff}
+.mk button[aria-pressed=true].n{background:#636366;color:#fff}
+.out{font-size:12px;display:block;margin-top:2px}
+.out.tp{color:var(--water)} .out.fn,.out.fp{color:var(--warn)} .out.tn{color:var(--muted)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
+
+/* Push */
+.sw{display:flex;align-items:center;gap:12px;padding:6px 0}
+.sw input{appearance:none;-webkit-appearance:none;width:51px;height:31px;border-radius:16px;background:var(--fill2);position:relative;cursor:pointer;flex:none;transition:background .2s;margin:0}
+.sw input::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 6px #0003;transition:left .2s}
+.sw input:checked{background:#34c759}
+.sw input:checked::after{left:22px}
+.sw .t b{display:block;font-weight:500}
+.sw .t small{display:block}
+.fld{display:grid;gap:8px;margin-top:8px}
+.fld input[type=text],.fld input[type=password]{font:inherit;font-size:16px;padding:10px 12px;border:0;border-radius:10px;width:100%;background:var(--card2);color:var(--ink)}
+ol.steps{padding-left:20px;margin:6px 0}
+ol.steps li{margin:3px 0}
+@media (max-width:420px){ .days .kn{font-size:19px} .lk .lv{font-size:34px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
+
+<div class="nav" id="nav"><div class="nav-in">
+  <button class="ibtn" id="menu" aria-label="Einstellungen öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <span class="ttl">Joran</span>
+  <button class="reload" id="go" aria-label="Aktualisieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span id="goTxt">Aktualisieren</span></button>
+</div></div>
+
 <div class="wrap">
+<div class="large">
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee</div></div>
+  <div id="stamp">noch nicht geladen</div>
+</div>
 
-<header>
-  <div>
-    <h1>Joran</h1>
-    <div class="sub">Wingfoil Bielersee — Vingelz, Ipsach, Seemitte</div>
-  </div>
-  <div class="hd-r"><span class="sub" id="stamp">noch nicht geladen</span><button class="reload" id="go" aria-label="Neu laden">↻ Laden</button></div>
-</header>
-
-<div class="lakehead"><span>Am See jetzt — Messung meteoBase</span><span id="lakeStamp"></span></div>
+<div class="sech" style="margin-top:4px"><span>Am See jetzt</span><span id="lakeStamp"></span></div>
 <div id="lake" class="lake"><div class="lk old"><div class="lh"><b>Vingelz</b></div><div class="lv">–</div></div><div class="lk old"><div class="lh"><b>Ipsach</b></div><div class="lv">–</div></div></div>
 
-<div class="thr" style="padding:8px 14px">
-  <div class="num" id="thrNum">14<span>kn</span></div>
-  <div class="sl">
-    <label class="lab" for="thr">Ab dieser Windstärke auf dem Wasser gehe ich foilen</label>
-    <input type="range" id="thr" min="10" max="30" step="1" value="14">
-    <div class="scale"><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span></div>
-  </div>
-</div>
-
-
+<div class="sech"><span>Prognose</span></div>
 <div id="out"><div class="skel">Modelle und Messwerte werden geholt …</div></div>
-
-<details class="sec" id="pushBox">
-<summary>Push-Benachrichtigung</summary>
-<div id="pushOut"></div>
-</details>
-
-<details class="sec" id="setBox">
-<summary>Einstellungen</summary>
-<div class="set">
-  <div><div class="lab">Zeitfenster</div><div class="chips" id="setWin"></div></div>
-  <div><div class="lab">Sturmgrenze — erst darüber heisst es «nicht rausfahren»</div><div class="chips" id="setMax"></div></div>
-  <div><div class="lab">Mindestdauer über der Schwelle</div><div class="chips" id="setMin"></div></div>
-  <div><div class="lab">Windrichtungen, die zählen</div><div class="chips" id="setDir"></div></div>
-  <div><div class="lab">Spots — es reicht, wenn einer die Schwelle erreicht</div><div class="chips" id="setSpot"></div></div>
-  <div>
-    <div class="lab">Modellfaktor: <span class="kval" id="kVal">1.00</span> — gleicht aus, dass die Modelle den Wind auf dem See unterschätzen. Am besten über den Rückblick kalibrieren.</div>
-    <input type="range" id="kSl" min="0.8" max="2" step="0.05" value="1">
-    <div id="kDirOut" class="lab"></div>
-  </div>
-  <div><div class="lab">Ein Tag gilt als «lohnt sich» ab</div><div class="chips" id="setCut"></div></div>
-  <div><button class="btn2" id="reset">Einstellungen zurücksetzen</button></div>
 </div>
-</details>
 
-<details class="sec" id="histBox">
-<summary>Rückblick und Kalibrierung</summary>
-<p style="font-size:.85rem">Markiere die Tage der letzten 45 Tage, an denen du weisst, ob es foilbar war. Joran kalibriert daraus zwei Dinge: den Modellfaktor (Prognose) und die Schwellen der Upwind-Stationen (Messung).</p>
-<button class="trigger" id="hgo" style="margin-top:10px">Rückblick laden</button>
-<div id="hout"></div>
-</details>
+<dialog class="sheet" id="sheet" aria-label="Einstellungen">
+<div class="sh">
+  <div class="shh"><span></span><b>Einstellungen</b><button id="done">Fertig</button></div>
+  <div class="shb">
+    <h2>Wind</h2>
+    <div class="grp">
+      <div class="it">
+        <div class="lab">Ab dieser Windstärke gehe ich foilen</div>
+        <div class="thr"><div class="num" id="thrNum">14<span>kn</span></div>
+          <div class="sl"><input type="range" id="thr" min="10" max="30" step="1" value="14" aria-label="Schwelle in Knoten">
+          <div class="scale"><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span></div></div></div>
+      </div>
+      <div class="it"><div class="lab">Sturmgrenze<small>Erst darüber heisst es «nicht rausfahren» (Mittelwind / Böen)</small></div><div class="chips" id="setMax"></div></div>
+      <div class="it"><div class="lab">Windrichtungen, die zählen</div><div class="chips" id="setDir"></div></div>
+      <div class="it"><div class="lab">Spots<small>Es reicht, wenn einer die Schwelle erreicht</small></div><div class="chips" id="setSpot"></div></div>
+    </div>
 
-<details class="sec">
-<summary>Methode und Quellen</summary>
+    <h2>Prognose</h2>
+    <div class="grp">
+      <div class="it"><div class="lab">Zeitfenster</div><div class="chips" id="setWin"></div></div>
+      <div class="it"><div class="lab">Mindestdauer über der Schwelle</div><div class="chips" id="setMin"></div></div>
+      <div class="it"><div class="lab">Ein Tag gilt als «lohnt sich» ab</div><div class="chips" id="setCut"></div></div>
+      <div class="it">
+        <div class="lab">Modellfaktor <span class="kval" id="kVal">1.00</span><small>Gleicht aus, dass die Modelle den Wind auf dem See unterschätzen. Am besten über den Rückblick kalibrieren.</small></div>
+        <input type="range" id="kSl" min="0.8" max="2" step="0.05" value="1" aria-label="Modellfaktor">
+        <div id="kDirOut" class="lab"></div>
+      </div>
+    </div>
+
+    <h2>Mehr</h2>
+    <div class="grp">
+      <details id="pushBox"><summary>Push-Benachrichtigung</summary><div id="pushOut"></div></details>
+      <details id="histBox"><summary>Rückblick und Kalibrierung</summary>
+        <p style="font-size:15px">Markiere die Tage der letzten 45 Tage, an denen du weisst, ob es foilbar war. Joran kalibriert daraus den Modellfaktor (Prognose) und die Schwellen der Upwind-Stationen (Messung).</p>
+        <button class="trigger" id="hgo">Rückblick laden</button>
+        <div id="hout"></div></details>
+      <details id="lakeBox"><summary>Seestationen-Abruf</summary>
+        <p style="font-size:15px">Vingelz und Ipsach erlauben keinen direkten Abruf aus dem Browser. Joran nutzt darum öffentliche CORS-Proxys. Wenn das nicht zuverlässig klappt: eigene Proxy-Adresse eintragen (z. B. ein Cloudflare Worker), die Seiten-URL wird als <code>?url=</code> angehängt.</p>
+        <div class="fld"><input type="text" id="proxy" placeholder="https://mein-proxy.workers.dev/" autocomplete="off" aria-label="Eigener Proxy"><div><button class="btn2" id="proxyS">Speichern</button></div></div>
+        <div id="lakeDiag" class="ftr" style="margin:8px 0 0"></div></details>
+      <details><summary>Methode und Quellen</summary><div style="font-size:15px">
 <p><b>Prognose.</b> Vier hochauflösende Modelle über Open-Meteo: ICON-CH1 (MeteoSchweiz, 1 km, 33 h), ICON-CH2 (MeteoSchweiz, 2 km, 5 Tage), ICON-D2 (DWD, 2 km, 2 Tage), AROME HD (Météo-France, 1.3 km, ca. 2 Tage). Abgefragt wird die nächste Wasserzelle. Pro Stunde zählt der stärkste aktive Spot in einer gewählten Richtung.</p>
 <p><b>Ob.</b> Ein Modell trifft, wenn es die Schwelle im Zeitfenster so lange hält wie die Mindestdauer. Sehr wahrscheinlich: drei Viertel der Modelle (mindestens zwei). Wahrscheinlich: die Hälfte. Möglich: eines. Knapp: bestes Modell höchstens 3 kn darunter. Ab Übermorgen rechnet nur noch ICON-CH2.</p>
 <p><b>Wann.</b> Das Zeitfenster umfasst die Stunden, in denen mindestens die Hälfte der Modelle die Schwelle erreicht. Gibt es solche Stunden nicht, zählen Stunden mit mindestens einem Modell (Anzeige «einzelne Modelle»).</p>
-<p><b>Am See jetzt.</b> Vingelz und Ipsach (meteoBase.ch, 10-Minuten-Mittel und -Spitze). Die Seiten erlauben keinen direkten Abruf aus dem Browser; darum liest die GitHub Action sie bei jedem Lauf (etwa alle 10 Minuten, 6–21 Uhr) und legt die letzten 18 Stunden im Branch <code>live</code> ab. Die Kachel ist blau, wenn die letzten zwei Werte deine Schwelle in einer aktiven Richtung erreichen. Dann gibt es auch einen Mess-Push «Am See». Im Tagesdiagramm erscheinen die Seewerte als Punkte — so siehst du direkt, wie gut die Modelle heute liegen.</p>
+<p><b>Am See jetzt.</b> Vingelz und Ipsach (meteoBase.ch, 10-Minuten-Mittel und -Spitze). Die Seiten erlauben keinen direkten Abruf aus dem Browser (CORS). Die App holt sie darum über einen öffentlichen CORS-Proxy (allorigins, codetabs, corsproxy — der erste, der antwortet) oder über einen eigenen Proxy, und ergänzt die Verlaufskurve aus dem Branch <code>live</code>, den die GitHub Action füllt. Werte, die die App selbst holt, merkt sie sich bis 18 Stunden in diesem Browser. Die Kachel ist blau, wenn die letzten zwei Werte deine Schwelle in einer aktiven Richtung erreichen. Dann gibt es auch einen Mess-Push «Am See». Im Tagesdiagramm erscheinen die Seewerte als Punkte — so siehst du direkt, wie gut die Modelle heute liegen.</p>
 <p><b>Joran-Zutaten.</b> Thermischer Joran entsteht, wenn auf Jurahöhe Luft aus Nordwest anliegt und am Abend die Luft auf der Jura-Hochfläche relativ zum See schwerer wird. Joran zeigt dazu aus ICON-CH2: Wind auf dem Chasseral-Kamm aus 270–360° ab 12 kn und den Anstieg des Druckgefälles La Chaux-de-Fonds → See seit Mittag um mindestens 0.5 hPa. Das sind Erfahrungswerte, nicht kalibriert; sie ändern die Stufe nicht, sondern sagen dir, wann sich der Blick auf die Messung lohnt.</p>
 <p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Stationen mit Peirce-Score unter 0.25 lösen keinen Push aus. Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
 <p><b>Sturm</b> überschreibt jede positive Bewertung — aber nur dann: Mittelwind oder Böen über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) am See oder an einer Upwind-Station auf Seehöhe, oder eine echte Böenfront, bei der alle drei Merkmale gleichzeitig auftreten: Temperatursturz ≥ 3 °C, Mittelwind +8 kn und Böen ≥ 30 kn innert 20 Minuten. Der frühere Böenfaktor-Test (Böe doppelt so stark wie Mittel) entfällt: An Landstationen ist das bei mässigem, böigem Wind alltäglich.</p>
-<p><b>Push.</b> Eine GitHub Action prüft alle 10 Minuten zwischen 6 und 21 Uhr dieselben Regeln (Datei <code>core.js</code>) für jeden Nutzer mit dessen eigenen Einstellungen (<code>users/&lt;name&gt;.json</code>) und sendet über ntfy.sh an dessen eigenes Thema. GitHub startet geplante Läufe teils mit Verspätung.</p>
+<p><b>Push.</b> Eine GitHub Action soll alle 10 Minuten zwischen 6 und 21 Uhr prüfen dieselben Regeln (Datei <code>core.js</code>) für jeden Nutzer mit dessen eigenen Einstellungen (<code>users/&lt;name&gt;.json</code>) und sendet über ntfy.sh an dessen eigenes Thema. GitHub startet geplante Läufe in der Praxis aber oft nur alle paar Stunden — für Mess-Push ist das zu träge.</p>
 <p>Einstellungen und Markierungen liegen in diesem Browser; nur was du für Push speicherst, steht öffentlich lesbar in <code>users/&lt;name&gt;.json</code> — ohne ntfy-Thema. Wetterdaten: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD).</p>
-</details>
-
+</div></details>
+    </div>
+    <div style="margin-top:22px"><button class="btn2" id="reset" style="width:100%;color:var(--warn);background:var(--card);padding:13px">Einstellungen zurücksetzen</button></div>
+  </div>
 </div>
+</dialog>
 
 <script src="core.js"></script>
 <script>
@@ -302,7 +348,7 @@ function spark(rows){
   const W = 200, Hh = 34, t0 = Date.now()-3*3600e3, maxV = Math.max(S.T+3, ...r.map(x=>x.gust||x.mean))*1.05;
   const X = t => ((t-t0)/(3*3600e3))*W, Y = v => Hh-2-(v/maxV)*(Hh-4);
   const line = k => r.filter(x=>x[k]!=null).map((x,i)=>(i?"L":"M")+X(x.t).toFixed(1)+" "+Y(x[k]).toFixed(1)).join(" ");
-  return `<svg viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" aria-hidden="true">
+  return `<svg class="sp" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" aria-hidden="true">
     <line x1="0" x2="${W}" y1="${Y(S.T)}" y2="${Y(S.T)}" stroke="currentColor" stroke-dasharray="3 3" opacity=".5"/>
     <path d="${line("gust")}" fill="none" stroke="currentColor" stroke-width="1" opacity=".4"/>
     <path d="${line("mean")}" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
@@ -313,20 +359,39 @@ function renderLake(){
   el.innerHTML = lk.map(x=>{
     const l = x.last;
     if(!l) return `<a class="lk old" href="${x.L.url}" target="_blank" rel="noopener"><div class="lh"><b>${x.L.name}</b><small>Station öffnen ↗</small></div>
-      <div class="lv">–</div><div class="ls dim">${LK?"keine Messwerte":LKERR?"Messreihe nicht erreichbar":"lädt …"}</div></a>`;
+      <div class="lv">–</div><div class="ls dim">${LKBUSY?"lädt …":"Messung nicht abrufbar — tippen öffnet die Station"}</div></a>`;
     const dn = dirOf(l.dir), on = x.fresh && over(l.mean,S) && dirOn(l.dir,S);
     return `<a class="lk${on?" on":""}${x.fresh?"":" old"}" href="${x.L.url}" target="_blank" rel="noopener" title="Station ${x.L.name} öffnen">
       <div class="lh"><b>${x.L.name}</b><small>${hhmm(l.t)}${x.fresh?"":" · veraltet"}</small></div>
-      <div class="lv">${r0(l.mean)}<small> kn</small> <small>${arrow(l.dir)} ${dn?dn.name:card(l.dir)}</small></div>
+      <div class="lv">${r0(l.mean)}<small> kn</small></div>
+      <div class="ld">${arrow(l.dir)} ${card(l.dir)}${dn?` <span class="dim" style="font-weight:400">${dn.name}</span>`:""}</div>
       <div class="ls">Böen ${r0(l.gust)} kn${l.steady!=null?` · Richtung ${l.steady}% stabil`:""}${l.water!=null?` · Wasser ${l.water}°`:""}</div>
       <div class="ls dim">${x.ok?`≥ ${S.T} kn seit ${hhmm(x.since)}`:ago(l.t)}</div>
       ${spark(x.rows)}</a>`;
   }).join("");
-  $("#lakeStamp").textContent = LK && LK.updated ? "geholt " + hhmm(new Date(LK.updated)) : "";
+  $("#lakeStamp").textContent = LKBUSY ? "lädt …" : LK && LK.updated ? "geholt " + hhmm(new Date(LK.updated)) : "";
+  const dg = $("#lakeDiag");
+  if(dg) dg.textContent = C.LAKE.map(L=>{ const d = LKNOW && LKNOW.st[L.id];
+    const names = (S_PROXY() ? ["eigenen Proxy"] : []).concat(["direkt","allorigins","codetabs","corsproxy"]);
+    return `${L.name}: ${!d ? "–" : d.err ? "nicht erreichbar ("+d.err+")" : "ok über " + names[LKNOW.via[L.id]]}`; }).join(" · ")
+    + (LKERR ? ` · Verlauf (Branch live): ${LKERR}` : "");
 }
+/* Seemessung: aktueller Wert direkt über CORS-Proxy, Verlauf aus dem Branch «live» und aus dem eigenen Browser-Speicher */
+const L_KEY = "joran.lake.v1", P_KEY = "joran.proxy.v1";
+const S_PROXY = () => { try{ return localStorage.getItem(P_KEY) || ""; }catch(e){ return ""; } };
+let LKBUSY = false, LKNOW = null;
 async function loadLake(){
   const g = loadG();
-  try{ LK = await C.fetchLake(g.owner, g.repo); LKERR = ""; }catch(e){ LKERR = e.message || "Fehler"; }
+  LKBUSY = true; renderLake();
+  let cache = null; try{ cache = JSON.parse(localStorage.getItem(L_KEY)); }catch(e){}
+  const [hist, now] = await Promise.all([
+    C.fetchLake(g.owner, g.repo).then(x=>{ LKERR = ""; return x; }).catch(e=>{ LKERR = /404/.test(e.message) ? "noch keine Daten" : e.message; return null; }),
+    C.fetchLakeNow(S_PROXY()).catch(()=>null)
+  ]);
+  LKNOW = now;
+  LK = C.mergeLake(cache, hist, now);
+  try{ localStorage.setItem(L_KEY, JSON.stringify(LK)); }catch(e){}
+  LKBUSY = false;
   renderLake();
   if(D) renderLive();
 }
@@ -346,7 +411,7 @@ function renderLive(){
     const c = clsOf(x.s.level, S);
     h += `<button class="dbtn c${c}${x.k===SEL?" sel":""}" role="tab" aria-selected="${x.k===SEL}" data-k="${x.k}">
       <b>${esc(shortDay(x.k,x.day))}</b><span class="kn">${x.s.top?r0(x.s.top.v):"–"}<small> kn</small></span>
-      <span class="lv">${x.s.level<0?"keine Daten":esc(LEVELS[x.s.level])}</span>
+      <span class="lv">${x.s.level<0?"keine Daten":["unwahrsch.","knapp","möglich","wahrsch.","sehr wahrsch."][x.s.level]}</span>
       <span class="tm">${x.s.win?esc(winTxt(x.s.win)):"&nbsp;"}</span></button>`;
   });
   h += `</div>`;
@@ -357,18 +422,18 @@ function renderLive(){
 
   h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
   h += chartHTML(cur.day);
-  h += `<small>Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich = Spannweite der Modelle. Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. ${cur.k===0?"Punkte = gemessen am See (bester von Vingelz/Ipsach, Stundenmittel). ":""}Hinterlegt: dein Zeitfenster.</small>`;
+  h += `<small class="cap">Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich = Spannweite der Modelle. Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. ${cur.k===0?"Punkte = gemessen am See (bester von Vingelz/Ipsach, Stundenmittel). ":""}Hinterlegt: dein Zeitfenster.</small>`;
   if(jc) h += joranHTML(jc, cur, nc);
 
-  h += `<details class="sub"><summary>Modelle im Detail <span class="dim">— ${cur.s.hits} von ${cur.s.n} treffen</span></summary>${modelTable(cur)}</details>`;
+  h += `<details class="sub"><summary>Modelle im Detail <span class="dim">${cur.s.hits} von ${cur.s.n} treffen</span></summary>${modelTable(cur)}</details>`;
   const nSig = nc.sig.length;
-  h += `<details class="sub"><summary>Upwind-Stationen <span class="dim">— Modell-Input, ${nSig?nSig+" mit Signal":"kein Signal"}</span></summary>
+  h += `<details class="sub"><summary>Upwind-Stationen <span class="dim">${nSig?nSig+" Signal"+(nSig>1?"e":""):"kein Signal"}</span></summary>
     <p style="font-size:.82rem;margin-top:6px">Diese Stationen liegen in Anströmrichtung und zeigen Wind oft 30–90 Minuten bevor er am See ankommt. Für die Entscheidung zählt am Ende, was oben am See gemessen wird.</p>${stationsHTML(nc)}</details>`;
 
   h += `<details class="sub"><summary>Quellen und Diagnose</summary><div class="chips">`;
   MODELS.forEach(m=>{ const d = D.err[m.id]; h += `<span class="chip ${d?"fail":"ok"}">${m.name}${d?" — "+esc(d):""}</span>`; });
   h += `<span class="chip ${D.ens?"ok":"fail"}">Ensemble${D.ens?" ("+D.ens.members.length+" Läufe)":" — "+esc(D.err.ens||"")}</span>`;
-  h += `<span class="chip ${LK?"ok":"fail"}">See Vingelz/Ipsach${LK?"":" — "+esc(LKERR||"keine Messreihe")}</span>`;
+  C.LAKE.forEach(L=>{ const ok = LK && LK.st[L.id] && LK.st[L.id].rows.length; h += `<span class="chip ${ok?"ok":"fail"}">${L.name}${ok?"":" — nicht abrufbar"}</span>`; });
   UPWIND.forEach(s=>{ const d = D.stations[s.abk]; h += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?" — "+esc(d.err):""}</span>`; });
   h += `<span class="chip ${D.jura?"ok":"fail"}">Joran-Zutaten</span></div>`;
   h += `<div class="chips" style="margin-top:10px">
@@ -380,6 +445,7 @@ function renderLive(){
   document.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",()=>{ SEL = +b.dataset.k; renderLive(); }));
 }
 
+const thrChip = () => `<button class="thrchip" data-open="sheet">Schwelle ${S.T} kn · ${esc(WINS[S.win][2])} ›</button>`;
 function verdictHTML(cur, hour, nc){
   const s = cur.s, today = cur.k===0;
   const [h0,h1] = WINS[S.win];
@@ -388,7 +454,7 @@ function verdictHTML(cur, hour, nc){
   if(live && nc.front.length){
     return `<div class="verdict danger"><span class="word">Nicht rausfahren</span>
       <div class="why">Sturm gemessen — ${esc(nc.front.map(x=>x.up.name+": "+x.f.join(", ")).join("; "))}.</div>
-      <div class="basis">Messung, über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen) — überschreibt die Prognose</div></div>`;
+      <div class="basis">Messung, über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen) — überschreibt die Prognose</div>${thrChip()}</div>`;
   }
   if(s.level<0) return `<div class="verdict"><span class="word">Keine Daten</span><div class="why">Kein Modell liefert Werte für diesen Tag und dieses Zeitfenster.</div></div>`;
 
@@ -406,7 +472,7 @@ function verdictHTML(cur, hour, nc){
   if(lakeOk.length){
     return `<div class="verdict c4"><span class="word">Jetzt foilbar</span>
       <div class="why">${esc("Gemessen am See: " + lakeOk.map(x=>`${x.L.name} ${r0(x.last.mean)} kn ${dirOf(x.last.dir)?dirOf(x.last.dir).name:card(x.last.dir)}, Böen ${r0(x.last.gust)} kn, seit ${hhmm(x.since)}`).join("; ") + ". " + why)}</div>
-      <div class="basis">Messung am See plus Prognose</div></div>`;
+      <div class="basis">Messung am See plus Prognose</div>${thrChip()}</div>`;
   }
   if(live && (nc.eOk || nc.trusted.length)){
     const parts = [];
@@ -421,7 +487,7 @@ function verdictHTML(cur, hour, nc){
   }
   if(today && hour>h1) why += " Dein Zeitfenster heute ist vorbei.";
   return `<div class="verdict ${cls}"><span class="word">${esc(word)}</span>
-    <div class="why">${esc(why)}</div><div class="basis">${esc(basis)}</div></div>`;
+    <div class="why">${esc(why)}</div><div class="basis">${esc(basis)}</div>${thrChip()}</div>`;
 }
 
 function modelTable(cur){
@@ -498,16 +564,16 @@ function chartHTML(day){
   const y = v => Hh-PB-(v/maxV)*(Hh-PT-PB);
   let s = `<svg class="chart" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Windverlauf ${esc(day)}">`;
   const xw0 = PL+(w0-h0)*bw, xw1 = PL+(w1-h0+1)*bw;
-  s += `<rect x="${xw0}" y="${PT-4}" width="${xw1-xw0}" height="${Hh-PB-PT+4}" fill="#0e6a7e" opacity=".06"/>`;
+  s += `<rect x="${xw0}" y="${PT-4}" width="${xw1-xw0}" height="${Hh-PB-PT+4}" fill="#0a84c7" opacity=".06"/>`;
   [S.T-3, S.T].forEach((v,j)=>{
-    s += `<line x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}" stroke="${j?"#0e6a7e":"#4a6b57"}" stroke-width="1" stroke-dasharray="${j?"":"3 3"}"/>`;
-    s += `<text x="2" y="${y(v)+4}" font-size="10" fill="${j?"#0e6a7e":"#6c7e83"}">${v}</text>`;
+    s += `<line x1="${PL}" x2="${W-PR}" y1="${y(v)}" y2="${y(v)}" stroke="${j?"#0a84c7":"#34a853"}" stroke-width="1" stroke-dasharray="${j?"":"3 3"}"/>`;
+    s += `<text x="2" y="${y(v)+4}" font-size="10" fill="${j?"#0a84c7":"#6c7e83"}">${v}</text>`;
   });
   cols.forEach((c,i)=>{
     const x = PL+i*bw+2, w = Math.max(3,bw-5);
     if(c.vals.length){
       const m = med(c.vals), lo = Math.min(...c.vals), hi = Math.max(...c.vals);
-      const col = over(m,S) ? "#0e6a7e" : Math.round(m)>=S.T-3 ? "#4a6b57" : "#9fb0b4";
+      const col = over(m,S) ? "#0a84c7" : Math.round(m)>=S.T-3 ? "#34a853" : "#9fb0b4";
       s += `<rect x="${x}" y="${y(m)}" width="${w}" height="${Hh-PB-y(m)}" fill="${col}"/>`;
       if(hi>lo) s += `<line x1="${x+w/2}" x2="${x+w/2}" y1="${y(hi)}" y2="${y(lo)}" stroke="#14262c" stroke-width="1.5" opacity=".45"/>`;
       const d = c.dirs[0];
@@ -775,7 +841,7 @@ function renderHist(){
   h += `<h2>Tage markieren</h2><div>`;
   days.forEach(d=>{
     const s = summarize(H.models, d, S), t = truth[d], lv = s.level, c = clsOf(lv,S);
-    const col = ["#c8d4d6","#4a6b57","#6fa7b3","#0e6a7e","#0a4e5d"][c];
+    const col = ["#c8d4d6","#34a853","#6fa7b3","#0a84c7","#0a4e5d"][c];
     let out = "";
     if((t==="y"||t==="n") && s.n){
       const alarm = lv>=S.cut;
@@ -820,13 +886,14 @@ function renderHist(){
 
 /* ================= Abläufe ================= */
 async function run(){
-  const b = $("#go"); b.disabled = true; b.textContent = "Lade …";
+  const b = $("#go"); b.disabled = true; b.classList.add("busy"); b.classList.remove("stale"); $("#goTxt").textContent = "Lädt …";
+  lastRun = lastLake = Date.now();
   loadLake();
   if(!D) $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`;
   D = await C.fetchAll(S);
   try{ renderLive(); } catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
-  $("#stamp").textContent = "Stand " + hhmm(new Date());
-  b.disabled = false; b.textContent = "↻ Laden";
+  $("#stamp").innerHTML = "Stand<br>" + hhmm(new Date());
+  b.disabled = false; b.classList.remove("busy"); $("#goTxt").textContent = "Aktualisieren";
 }
 async function runHist(){
   const b = $("#hgo"); b.disabled = true; b.textContent = "Lade Archiv …";
@@ -853,13 +920,26 @@ $("#thr").addEventListener("input", debounce(()=>{ saveS(); if(D) renderLive(); 
 $("#kSl").addEventListener("input", e=>{ S.k = +e.target.value; $("#kVal").textContent = S.k.toFixed(2); });
 $("#kSl").addEventListener("change", ()=>{ saveS(); renderAll(); });
 $("#reset").addEventListener("click", ()=>{ const p = S.push; S = C.merge(null); S.push = p; saveS(); renderAll(); });
-try{ if(!localStorage.getItem(S_KEY)) $("#setBox").open = true; }catch(e){}
+/* Menü (Sheet) */
+const sheet = $("#sheet");
+function openSheet(){ if(sheet.showModal) sheet.showModal(); else sheet.setAttribute("open",""); document.body.style.overflow = "hidden"; }
+function closeSheet(){ if(sheet.close) sheet.close(); else sheet.removeAttribute("open"); }
+sheet.addEventListener("close", ()=>{ document.body.style.overflow = ""; });
+sheet.addEventListener("click", e=>{ if(e.target===sheet) closeSheet(); });
+$("#menu").addEventListener("click", openSheet);
+$("#done").addEventListener("click", closeSheet);
+document.addEventListener("click", e=>{ if(e.target.closest("[data-open=sheet]")) openSheet(); });
+$("#proxy").value = S_PROXY();
+$("#proxyS").addEventListener("click", ()=>{ try{ localStorage.setItem(P_KEY, $("#proxy").value.trim()); }catch(e){} loadLake(); });
+window.addEventListener("scroll", ()=>$("#nav").classList.toggle("scrolled", scrollY>30), {passive:true});
+
+let lastRun = Date.now(), lastLake = Date.now();
 renderAll();
 readMine();
 run();
 /* Auto-Aktualisierung: Seemessung alle 5 min, Modelle alle 30 min — nur wenn die Seite sichtbar ist */
-let lastRun = Date.now(), lastLake = Date.now();
 function tick(){
+  $("#go").classList.toggle("stale", !$("#go").disabled && Date.now()-lastRun > 20*60000);
   if(document.hidden) return;
   if(Date.now()-lastRun > 30*60000){ lastRun = lastLake = Date.now(); run(); }
   else if(Date.now()-lastLake > 5*60000){ lastLake = Date.now(); loadLake(); }
