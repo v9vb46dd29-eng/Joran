@@ -31,12 +31,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Messreihe Seestationen holen
+        run: git fetch -q origin live && git show origin/live:lake.json > "$RUNNER_TEMP/lake.json" || echo "noch keine Messreihe"
       - name: Wind prüfen
         run: node push/check.cjs
         env:
           NTFY_TOPICS: ${{ secrets.NTFY_TOPICS }}
           JORAN_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.test && '1' || '0' }}
           JORAN_USER: ${{ inputs.user }}
+          JORAN_LAKE: ${{ runner.temp }}/lake.json
           JORAN_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
       - name: Zustand sichern
         if: always()
@@ -48,3 +51,13 @@ jobs:
             git commit -m "Joran: Push-Zustand"
             for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
           fi
+      - name: Messreihe Seestationen veröffentlichen
+        # Ein einzelner Commit im Branch «live», jedes Mal ersetzt — keine Commit-Flut in main.
+        if: always() && github.event_name == 'schedule'
+        run: |
+          f="$RUNNER_TEMP/lake.json"
+          [ -s "$f" ] || exit 0
+          blob=$(git hash-object -w "$f")
+          tree=$(printf "100644 blob %s\tlake.json\n" "$blob" | git mktree)
+          commit=$(git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit-tree "$tree" -m "Joran: Messreihe Seestationen")
+          git push -q -f origin "$commit:refs/heads/live"

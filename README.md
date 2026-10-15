@@ -1,6 +1,8 @@
 # Joran
 
-Wingfoil-Prognose für den Bielersee (Vingelz, Ipsach, Seemitte): Modellprognosen, Upwind-Messungen und Push-Benachrichtigung.
+Wingfoil-Prognose für den Bielersee (Vingelz, Ipsach, Seemitte): Live-Messung am See, Modellprognosen, Upwind-Messungen und Push-Benachrichtigung.
+
+Die Seemessung (Vingelz, Ipsach, meteoBase.ch) holt die GitHub Action «Joran Push» bei jedem Lauf und legt sie im Branch `live` ab (`lake.json`, ein einzelner, jeweils ersetzter Commit).
 
 **App:** https://v9vb46dd29-eng.github.io/Joran/
 
@@ -11,4 +13,4 @@ Wingfoil-Prognose für den Bielersee (Vingelz, Ipsach, Seemitte): Modellprognose
 
 Deine Einstellungen stehen öffentlich lesbar in `users/<name>.json`, dein ntfy-Thema nicht.
 
-Wetterdaten: Open-Meteo.com (CC BY 4.0), MeteoSchweiz (OGD).
+Wetterdaten: Open-Meteo.com (CC BY 4.0), MeteoSchweiz (OGD), meteoBase.ch (Seestationen).
