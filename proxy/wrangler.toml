@@ -1,3 +1,8 @@
 name = "joran"
 main = "worker.js"
 compatibility_date = "2025-01-01"
+
+# Zeitgeber für den Push: alle 10 Minuten (UTC). Deckt 06–21 Uhr Schweizer Zeit im Sommer und Winter ab;
+# die Ruhezeit prüft push/check.cjs selbst.
+[triggers]
+crons = ["*/10 4-20 * * *"]
