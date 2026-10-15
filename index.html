@@ -222,7 +222,7 @@ ol.steps li{margin:3px 0}
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v8</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v9</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -291,7 +291,7 @@ ol.steps li{margin:3px 0}
 </div>
 </dialog>
 
-<script src="core.js?v=8"></script>
+<script src="core.js?v=9"></script>
 <script>
 "use strict";
 const C = window.JoranCore;
@@ -915,23 +915,39 @@ function liveStatus(){
   const lk = C.lakeNow(LK, S).filter(x=>x.fresh).length;
   return `${lk+up}/${UPWIND.length+C.LAKE.length} Stationen live`;
 }
-function stamp(){ $("#stamp").innerHTML = D ? `Stand ${hhmm(D.at)}<br>${liveStatus()}` : "noch nicht geladen"; }
+function stamp(){ $("#stamp").innerHTML = D ? `Messung ${hhmm(D.at)} · Modelle ${D.mt>0?hhmm(D.mt):"–"}<br>${liveStatus()}` : "noch nicht geladen"; }
 let BUSY = false;
+/* Modelldaten ändern sich nur mit jedem Modelllauf (alle 1–3 h). Darum bis 20 min wiederverwenden —
+   die Messungen (Stationen, See) werden bei jedem Refresh immer frisch geholt. */
+const M_KEY = "joran.models.v1", M_MAX = 20*60000;
+function loadMCache(){ try{ const c = JSON.parse(localStorage.getItem(M_KEY)); if(c && c.models){ c.mt = new Date(c.mt); return c; } }catch(e){} return null; }
+function saveMCache(){ try{ localStorage.setItem(M_KEY, JSON.stringify({models:D.models, err:D.err, ens:D.ens, jura:D.jura, mt:D.mt})); }catch(e){} }
+let rT = null;
+function renderSoon(){ clearTimeout(rT); rT = setTimeout(()=>{ if(!Object.keys(D.models).length){ stamp(); return; } try{ renderLive(); }catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; } stamp(); }, 60); }
 async function run(full){
   if(BUSY) return; BUSY = true;
   const b = $("#go"); b.disabled = true; b.classList.add("busy"); b.classList.remove("stale"); $("#goTxt").textContent = "Lädt …";
-  lastLake = Date.now(); if(full!==false) lastRun = Date.now();
-  if(!D) $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`;
-  try{
-    if(full===false && D){
-      const [st] = await Promise.all([C.fetchStations(), loadLake(true)]);
-      D.stations = st; D.at = new Date();
-    } else {
-      const [N] = await Promise.all([C.fetchAll(S), loadLake(true)]);
-      D = N;
-    }
-    try{ renderLive(); } catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
-  } finally {
+  lastLake = lastRun = Date.now();
+  if(!D){ const c = loadMCache(); D = c ? Object.assign(c, {stations:{}, at:new Date()}) : null; }
+  const needModels = full!==false && (!D || Date.now()-D.mt > M_MAX);
+  if(!D){ D = {models:{}, err:{}, ens:null, jura:null, stations:{}, mt:new Date(0), at:new Date()}; $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`; }
+  else renderSoon();                                   /* sofort anzeigen, was schon da ist */
+  const jobs = [
+    C.fetchStations().then(st=>{ D.stations = st; D.at = new Date(); renderSoon(); }),
+    loadLake(true).then(renderSoon)
+  ];
+  if(needModels){
+    const N = {models:{}, err:{}};
+    jobs.push(...MODELS.map(m=>C.fetchModel(m).then(x=>{ N.models[m.id] = x; }).catch(e=>{ N.err[m.id] = e.message||"Fehler"; })
+      .then(()=>{ if(Object.keys(N.models).length+Object.keys(N.err).length===MODELS.length){ D.models = N.models; D.err = Object.assign({}, N.err, D.err.ens?{ens:D.err.ens}:{}); D.mt = new Date(); renderSoon(); } })));
+    jobs.push(C.fetchEnsemble().then(x=>{ D.ens = x; delete D.err.ens; renderSoon(); }).catch(e=>{ D.err.ens = e.message||"Fehler"; }));
+    jobs.push(C.fetchJura().then(x=>{ D.jura = x; renderSoon(); }).catch(()=>{}));
+  }
+  try{ await Promise.allSettled(jobs); if(needModels) saveMCache(); }
+  finally {
+    clearTimeout(rT);
+    if(!Object.keys(D.models).length && !Object.keys(D.err).length) D.err.all = "keine Antwort";
+    try{ renderLive(); }catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
     stamp();
     b.disabled = false; b.classList.remove("busy"); $("#goTxt").textContent = "Aktualisieren";
     BUSY = false;
@@ -993,8 +1009,7 @@ run();
 function tick(){
   $("#go").classList.toggle("stale", !$("#go").disabled && Date.now()-lastRun > 20*60000);
   if(document.hidden) return;
-  if(Date.now()-lastRun > 30*60000) run();
-  else if(Date.now()-lastLake > 5*60000) run(false);      /* alle 5 min: alle Messstationen neu */
+  if(Date.now()-lastLake > 5*60000) run();          /* Messungen frisch, Modelle nur wenn älter als 20 min */      /* alle 5 min: alle Messstationen neu */
 }
 setInterval(tick, 60000);
 document.addEventListener("visibilitychange", tick);
