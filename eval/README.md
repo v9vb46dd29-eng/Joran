@@ -8,6 +8,7 @@ node eval/measure.cjs --vorher git:baseline-2026-10-16   # «vorher» mit dem co
 node eval/selftest.cjs           # prüft das Messskript mit synthetischen Daten
 ```
 
+Vorher `git fetch origin live`: Das Skript liest das Archiv aus der lokalen Kopie von `origin/live` (und aus `archive/`).
 Stationsdaten (SwissMetNet, 10-min, `t_recent` + `t_now`) holt das Skript selbst und speichert sie in `eval/cache/`
 (nicht im Repo). `--offline` nutzt nur den Cache, `--stations DIR` eigene Dateien.
 
@@ -32,8 +33,10 @@ Stationsdaten (SwissMetNet, 10-min, `t_recent` + `t_now`) holt das Skript selbst
 Frühere 60 % der Tage legen die Schwellen fest, die späteren 40 % messen. Ein Signal wird wie in der App nachgespielt
 (`core.upwindNow` auf 10-min-Werten, Fenster 2 h vor Beginn bis Ende). Je Station und Windsystem: Recall, FPR (Signal an
 ruhigen Tagen, dem System des Signals zugeordnet), Precision, mittlere Vorlaufzeit (erstes Signal bis erster 10-min-Wert
-≥ T am See; negativ = Signal kam zu spät). «Alle Stationen» summiert die Zählungen der Stationen. «Push» zählt einen Tag
-als erkannt, wenn eine Push-fähige Station oder Regel E meldet.
+≥ T am See; negativ = Signal kam zu spät). «Push» zählt einen Tag
+als erkannt, wenn eine Push-fähige Station oder Regel E meldet. «ALLE» und «Push» zählen nur Stationen, die nach der
+jeweiligen Regel Push auslösen dürfen, und einen Treffer nur, wenn das Signal spätestens beim Beginn am See kam; diese
+Zeile ist die Grundlage der Akzeptanzregeln. Rundung wie in der App: 13.5 kn gilt als 14 kn (bewusst grosszügig).
 
 ## Akzeptanzregeln
 

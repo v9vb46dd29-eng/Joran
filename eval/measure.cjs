@@ -247,11 +247,11 @@ function measure({lk, S, marks, St, split, cores}){
         row.ts = b && b.ts ? b.ts : start;
         row.tsSrc = b && b.ts ? "kalibriert" : b && b.rel===0 ? "Startwert, nicht verlässlich" : "Startwert";
         /* wie nach «Stationsschwellen übernehmen» in der App: pss immer, rel nur nach Recall-Regel */
-        row.trusted = trusted({u:{trust: b ? b.pss : null, rel: cal.rule==="recall" && b ? b.rel : undefined}, up});
+        row.trusted = trusted({u:{trust: b ? b.pss : null, rel: cal.rule==="recall" && b ? b.rel : undefined}, up}, cfg.rule);
       }
       /* Zählung je System und gesamt */
       const cells = {}; row.systems.forEach(x=>cells[x] = {ev:0, evAll:0, tp:0, nev:0, fp:0, leads:[], nodata:0});
-      const tot = {ev:0, tp:0, nev:0, fp:0, leads:[], nodata:0};
+      const tot = {ev:0, tp:0, nev:0, fp:0, leads:[], nodata:0, tpIn:0};   /* tpIn: Signal spätestens beim Beginn am See */
       tdays.forEach(d=>{ if(truth[d]==="y" && cells[sysOf[d]]) cells[sysOf[d]].evAll++; });
       test.forEach(d=>{
         const e = K.evOf ? K.evOf(up, tmap, d) : C.evOf(up, tmap, d);
@@ -265,6 +265,7 @@ function measure({lk, S, marks, St, split, cores}){
           tot.ev++; if(cell) cell.ev++;
           if(s){ tot.tp++; if(cell) cell.tp++;
             const on = info[d] && info[d].onset;
+            if(!on || s.t<=on) tot.tpIn++;
             if(on){ const L = (on - s.t)/60000; tot.leads.push(L); if(cell) cell.leads.push(L); } }
         } else {
           tot.nev++; Object.values(cells).forEach(c=>c.nev++);
@@ -287,14 +288,16 @@ function measure({lk, S, marks, St, split, cores}){
       });
       res.regelE = Object.assign(c, {rec:rate(c.tp,c.ev), fpr:rate(c.fp,c.nev), prec:rate(c.tp,c.tp+c.fp), lead:mean(c.leads)});
     }
-    /* über alle Stationen zusammen (Summe der Stationszählungen) */
+    /* über alle Stationen zusammen: Summe der Stationen, die nach der Regel Push auslösen dürfen; Treffer nur, wenn das
+       Signal spätestens beim Beginn am See kam (ein späteres Signal kündigt nichts mehr an). Fehlalarme und Vorlauf wie gezählt. */
     const P = {ev:0, tp:0, nev:0, fp:0, leads:[]};
-    res.stations.filter(r=>r.data).forEach(r=>{ P.ev+=r.total.ev; P.tp+=r.total.tp; P.nev+=r.total.nev; P.fp+=r.total.fp; P.leads.push(...r.total.leads); });
+    res.stations.forEach(r=>{ P.ev+=r.total.ev; P.nev+=r.total.nev;
+      if(r.data && r.trusted){ P.tp+=r.total.tpIn; P.fp+=r.total.fp; P.leads.push(...r.total.leads); } });
     res.pooled = Object.assign(P, {rec:rate(P.tp,P.ev), fpr:rate(P.fp,P.nev), prec:rate(P.tp,P.tp+P.fp), lead:mean(P.leads), leadMed:median(P.leads)});
     /* Push-Sicht: Tag erkannt, wenn eine Push-fähige Station oder Regel E meldet */
     const Q = {ev:0, tp:0, nev:0, fp:0, leads:[]};
-    test.forEach(d=>{ const s = pushSig[d];
-      if(truth[d]==="y"){ Q.ev++; if(s){ Q.tp++; const on = info[d] && info[d].onset; if(on) Q.leads.push((on-s.t)/60000); } }
+    test.forEach(d=>{ const s = pushSig[d], on = info[d] && info[d].onset;
+      if(truth[d]==="y"){ Q.ev++; if(s && (!on || s.t<=on)){ Q.tp++; const on = info[d] && info[d].onset; if(on) Q.leads.push((on-s.t)/60000); } }
       else { Q.nev++; if(s) Q.fp++; } });
     res.push = Object.assign(Q, {rec:rate(Q.tp,Q.ev), fpr:rate(Q.fp,Q.nev), prec:rate(Q.tp,Q.tp+Q.fp), lead:mean(Q.leads)});
     return res;
@@ -315,8 +318,8 @@ function measure({lk, S, marks, St, split, cores}){
     train.length && test.length ? train[train.length-1] < test[0] : null);
   chk("Je Station und Windsystem ≥ 10 Ereignistage", `${cellsN.length-few.length} von ${cellsN.length} Zellen`, few.length===0);
   const core4 = A.slice(0,4).map(a=>a.ok);
-  const verdict = !A[4].ok ? "VORLÄUFIG (zu wenige Ereignistage: Regel nur committen, nicht aktiv setzen)"
-    : core4.some(x=>x===null) ? "NICHT AUSWERTBAR" : core4.every(Boolean) ? "ERFÜLLT" : "NICHT ERFÜLLT";
+  const base = core4.some(x=>x===false) ? "NICHT ERFÜLLT" : core4.some(x=>x===null) ? "NICHT AUSWERTBAR" : "ERFÜLLT";
+  const verdict = A[4].ok ? base : `${base} — VORLÄUFIG (zu wenige Ereignistage: Regel nur committen, nicht aktiv setzen)`;
   return {settings:{T:St.T, win:St.win, minH:St.minH, spots:C.LAKE.filter(L=>St.spots[L.id]).map(L=>L.id)},
     truth:{days:days.length, known:tdays.length, auto:nAuto, marked:nMarked, deviations:dev, y:tdays.filter(d=>truth[d]==="y").length,
       n:tdays.filter(d=>truth[d]==="n").length, sys:countBy(Object.values(sysOf))},
@@ -353,12 +356,13 @@ function report(R, meta){
       p(pad("",18), pad(x,8), lp("",14), lp(pair(a.rec,b.rec,fmtR),14), lp(pair(a.fpr,b.fpr,fmtR),14), lp(pair(a.prec,b.prec,fmtR),15), lp(pair(a.lead,b.lead,fmtM),17), lp(`${b.ev}/${b.nev} | ${b.evAll}`,33)); });
   });
   const pv = R.vorher.pooled, pn = R.nachher.pooled;
-  p(pad("ALLE STATIONEN",26), lp("",14), lp(pair(pv.rec,pn.rec,fmtR),14), lp(pair(pv.fpr,pn.fpr,fmtR),14), lp(pair(pv.prec,pn.prec,fmtR),15), lp(pair(pv.lead,pn.lead,fmtM),17), lp(`${pn.ev}/${pn.nev}`,33));
+  p(pad("ALLE (Push-fähig)",26), lp("",14), lp(pair(pv.rec,pn.rec,fmtR),14), lp(pair(pv.fpr,pn.fpr,fmtR),14), lp(pair(pv.prec,pn.prec,fmtR),15), lp(pair(pv.lead,pn.lead,fmtM),17), lp(`${pn.ev}/${pn.nev}`,33));
   const qv = R.vorher.push, qn = R.nachher.push;
   p(pad("Push (Tag erkannt)",26), lp("",14), lp(pair(qv.rec,qn.rec,fmtR),14), lp(pair(qv.fpr,qn.fpr,fmtR),14), lp(pair(qv.prec,qn.prec,fmtR),15), lp(pair(qv.lead,qn.lead,fmtM),17), lp(`${qn.ev}/${qn.nev}`,33));
   if(R.nachher.regelE){ const e = R.nachher.regelE;
     p(pad("Regel E Cressier",18), pad("joran",8), lp("fest",14), lp(fmtR(e.rec),14), lp(fmtR(e.fpr),14), lp(fmtR(e.prec),15), lp(fmtM(e.lead),17), lp(`${e.ev}/${e.nev}`,33)); }
   p("Schwelle: * = Startwert (nicht kalibriert), ! = Startwert, Station nach Recall-Regel nicht verlässlich. Vorlauf = Mittel, negativ = Signal nach Seebeginn.");
+  p("ALLE / Push: nur Stationen, die nach der Regel Push auslösen; Treffer nur mit Signal spätestens beim Beginn am See (Grundlage der Akzeptanz).");
   p("");
   p("Akzeptanzregeln:");
   R.accept.forEach(a=>p(`  [${a.ok===null?"?":a.ok?"x":" "}] ${a.name}: ${a.val}`));

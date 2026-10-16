@@ -551,8 +551,10 @@ function upwindNow(rows, up, St, cha){
   }
   return res;
 }
-/* Signal zählt für Push: nach Recall-Regel kalibriert → nur wenn verlässlich; sonst wie bisher Peirce ≥ 0.25 oder ungeprüft (nicht extra) */
-const isTrusted = s => s.u.rel!==undefined ? s.u.rel===1 : (s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25);
+/* Signal zählt für Push. Recall-Regel aktiv und Station so kalibriert → nur wenn verlässlich;
+   sonst wie bisher Peirce ≥ 0.25 oder ungeprüft (nicht extra). rule: zum Messen einer nicht aktiven Regel. */
+const isTrusted = (s, rule) => (rule||CAL.rule)==="recall" && s.u.rel!==undefined ? s.u.rel===1
+  : (s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25);
 /* Messlage jetzt: alle Upwind-Signale plus Regel E plus Böenfront */
 function nowcast(stations, St, now, lk){
   const sig = [], front = [];
@@ -565,7 +567,7 @@ function nowcast(stations, St, now, lk){
   });
   const crm = stations.crm;
   const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows, St) : null;
-  const trusted = sig.filter(isTrusted);
+  const trusted = sig.filter(s=>isTrusted(s));
   if(lk) lakeStorm(lk, St).forEach(x=>front.push(x));
   const eOk = !!(e && e.ok && St.dirs.joran);
   /* Windsystem nach den Upwind-Stationen: Joran, wenn Regel E oder eine verlässliche Joran-Station ihn gerade meldet */

@@ -68,7 +68,8 @@ function main(){
   }
   if(!changed){ console.log(`Archiv: unverändert (${Object.keys(old).length} Tage).`); return; }
   if(Object.keys(lines).length < Object.keys(old).length) throw new Error("Archiv würde schrumpfen");
-  const tree = git(["mktree"], Object.keys(lines).sort().map(k=>lines[k]).join("\n")+"\n").trim();
+  /* --missing: alte Tagesdateien liegen nach dem Teilabruf (blob:none) nicht lokal vor, der Server hat sie */
+  const tree = git(["mktree","--missing"], Object.keys(lines).sort().map(k=>lines[k]).join("\n")+"\n").trim();
   fs.writeFileSync(OUT, tree+"\n");
   console.log(`Archiv: ${changed} Tag(e) nachgeführt, ${Object.keys(lines).length} Tage im Archiv.`);
 }

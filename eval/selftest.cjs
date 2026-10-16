@@ -43,7 +43,11 @@ assert.strictEqual(n.cells.joran.fp, 2); assert.strictEqual(n.cells.w.fp, 0);
 assert.strictEqual(v.total.lead, 40); assert.strictEqual(n.total.lead, 47.5);
 assert.strictEqual(R.nachher.regelE.tp, 4); assert.strictEqual(R.nachher.regelE.fp, 2);
 assert.deepStrictEqual(R.accept.map(a=>a.ok), [true, false, true, true, false]);
-assert.ok(R.verdict.startsWith("VORLÄUFIG"));
+assert.ok(R.verdict.startsWith("NICHT ERFÜLLT — VORLÄUFIG"));
+assert.strictEqual(R.vorher.pooled.tp, 3); assert.strictEqual(R.nachher.pooled.tp, 4);   /* alle Signale vor 18:00 */
+/* nicht verlässliche Station zählt in ALLE nicht: Recall-Ziel unerreichbar machen */
+assert.strictEqual(C.isTrusted({u:{rel:0, trust:0.9}, up:C.UPWIND[0]}), true);            /* Recall-Regel nicht aktiv: rel wirkt nicht */
+assert.strictEqual(C.isTrusted({u:{rel:0, trust:0.9}, up:C.UPWIND[0]}, "recall"), false);
 /* Markierung überstimmt: Tag 2026-06-28 (i=27, automatisch foilbar) als «Nein» markiert → Abweichung ausgewiesen */
 const R2 = M.measure({lk, S, marks:{"2026-06-28":"n", "2026-06-02":"n"}, St, split:0.6,
   cores:{vorher:{core:C, rule:"pss"}, nachher:{core:C, rule:"recall"}}});
