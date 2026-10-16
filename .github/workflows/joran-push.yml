@@ -52,13 +52,32 @@ jobs:
             git commit -m "Joran: Push-Zustand"
             for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
           fi
+      - name: Seemessung archivieren
+        # Zusätzlich eine Datei pro Tag (archive/JJJJ-MM-TT.json im Branch «live») als Wahrheit für die Kalibrierung.
+        # Läuft nach der Push-Prüfung; Fehler werden abgefangen und halten den Lauf nicht auf.
+        if: always() && (github.event_name == 'schedule' || format('{0}', inputs.test) != 'true')
+        continue-on-error: true
+        timeout-minutes: 1
+        run: node push/archive.cjs
+        env:
+          JORAN_LAKE: ${{ runner.temp }}/lake.json
+          ARCHIVE_TREE: ${{ runner.temp }}/archive.tree
       - name: Messreihe Seestationen veröffentlichen
         # Ein einzelner Commit im Branch «live», jedes Mal ersetzt — keine Commit-Flut in main.
+        # Der Commit enthält lake.json und den Ordner archive (neu nachgeführt oder unverändert übernommen).
         if: always() && (github.event_name == 'schedule' || format('{0}', inputs.test) != 'true')
         run: |
           f="$RUNNER_TEMP/lake.json"
           [ -s "$f" ] || exit 0
+          base=$(git rev-parse -q --verify "origin/live^{commit}" 2>/dev/null || true)
+          if [ -z "$base" ] && [ -n "$(git ls-remote origin refs/heads/live 2>/dev/null)" ]; then
+            echo "::warning::Branch live nicht geholt — Messreihe und Archiv bleiben unverändert."; exit 0
+          fi
+          arch=""
+          [ -n "$base" ] && arch=$(git rev-parse -q --verify "$base:archive" 2>/dev/null || true)
+          t="$RUNNER_TEMP/archive.tree"
+          if [ -s "$t" ] && git cat-file -e "$(cat "$t")^{tree}" 2>/dev/null; then arch=$(cat "$t"); fi
           blob=$(git hash-object -w "$f")
-          tree=$(printf "100644 blob %s\tlake.json\n" "$blob" | git mktree)
+          tree=$( { [ -n "$arch" ] && printf "040000 tree %s\tarchive\n" "$arch"; printf "100644 blob %s\tlake.json\n" "$blob"; } | git mktree)
           commit=$(git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit-tree "$tree" -m "Joran: Messreihe Seestationen")
-          git push -q -f origin "$commit:refs/heads/live"
+          git push -q --force-with-lease="refs/heads/live:$base" origin "$commit:refs/heads/live"
