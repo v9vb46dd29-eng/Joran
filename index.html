@@ -244,7 +244,7 @@ ol.steps li{margin:3px 0}
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v14</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v15</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -305,6 +305,7 @@ ol.steps li{margin:3px 0}
 <p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
 <p><b>Kalibrierung der Stationen.</b> Ziel: kein foilbarer Abend soll verpasst werden; ein Fehlalarm wiegt weniger. Neue Regel: Je Station gilt die höchste Schwelle, die mindestens 85 % der Windtage ihres Windsystems erkennt (Recall ≥ 0.85). Unter gleichwertigen Schwellen zählt die mit der tieferen Fehlalarmrate. Erreicht keine Schwelle 85 %, gilt die Station als nicht verlässlich und löst keinen Push aus. Joran, Taubenlöchler (nur Courtelary) und die übrigen Windsysteme werden getrennt gezählt. <i>Stand: vorbereitet, noch nicht aktiv.</i> Bis je Station und Windsystem mindestens zehn Windtage vorliegen, gilt weiter die bisherige Regel: beste Schwelle nach Peirce-Score, Stationen unter 0.25 lösen keinen Push aus.</p>
 <p><b>Wahrheit für die Kalibrierung.</b> Die GitHub Action legt die Seemessung Vingelz/Ipsach zusätzlich als eine Datei pro Tag ab (Branch <code>live</code>, Ordner <code>archive</code>). meteoBase bietet keine älteren Werte an; das Archiv beginnt darum mit dieser Version. Ein Tag gilt als foilbar, wenn im Zeitfenster deiner Einstellungen an einer Seestation jeder 10-Minuten-Mittelwert während deiner Mindestdauer (gerundet) deine Schwelle erreichte. Deine Markierungen «Ja»/«Nein» gehen vor. Das Skript <code>eval/measure.cjs</code> misst je Station Recall, Fehlalarmrate, Precision und Vorlaufzeit.</p>
+<p><b>Zwei Arten Joran.</b> Der <i>Joran dynamique</i> kommt mit einer Kaltfront: Westlich des Juras staut sich kalte Luft und fällt über den Kamm. Er tritt ganzjährig auf, oft schon tagsüber, und zieht mit der Front von West nach Ost. Joran zeigt dafür den Druckunterschied Besançon − Neuchâtel aus ICON-CH2 (wie MeteoSchweiz; Hinweis ab +2 hPa) und misst ihn früh an den westlichen Stationen Bullet/La Frétaz, La Brévine und Neuchâtel. Der <i>Joran statique</i> entsteht abends nach ruhigen, warmen Tagen (Mai–August) oder als Gewitter-Fallwind lokal an den Jurahöhen; ihn zeigen die beiden Zutaten oben sowie Chasseral und Chaumont. Die neuen Stationen und Joran in Neuchâtel lösen erst Push aus, wenn der Rückblick sie als verlässlich ausweist. Die Messung (<code>eval/measure.cjs</code>) ordnet jeden Joran-Tag einem Typ zu, um später zu prüfen, ob sich getrennte Schwellen lohnen. Grenzwerte sind Erfahrungswerte, nicht kalibriert.</p>
 <p><b>Joran am See.</b> Die Fallböen teilen sich oft zwischen Vingelz und Alfermée: Ein Ast zieht in die Bucht Richtung Nidau, einer Richtung Sutz. Am See misst man dann Südwest oder Nordost statt Nordwest, und Vingelz liegt oft im Windschatten, während Ipsach mehr Wind hat. Darum bestimmen die Upwind-Stationen das Windsystem: Melden Regel E oder eine verlässliche Joran-Station Joran, zählt am See jede Richtung als Joran, und Joran zeigt einen Hinweis zur Joran-Lage. Die Modelle lösen diese Teilung nicht auf (Gitter 1–2 km).</p>
 <p><b>Taubenlöchler.</b> Abends fliesst kühle Luft das Vallon de St-Imier hinunter und durch die Taubenlochschlucht in die Bielerbucht (dort aus Nord/Nordost). Die Station Courtelary misst diesen Talwind entlang der Talachse (220–280°), Signal nur ab 15 Uhr und nicht bei Westwind auf dem Chasseral (ab 15 kn aus 200–290°), weil dann grossräumiger Westwind im Tal ebenfalls talabwärts weht. Courtelary zählt erst, wenn der Rückblick an Tagen mit Markierung «TL» einen Peirce-Score ab 0.25 ergibt (nach der neuen Regel: wenn eine Schwelle mindestens 85 % dieser Tage erkennt). Grenzwerte sind Erfahrungswerte, nicht kalibriert.</p>
 <p><b>Sturm</b> überschreibt jede positive Bewertung — aber nur dann: Mittelwind oder Böen über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) am See oder an einer Upwind-Station auf Seehöhe, oder eine echte Böenfront, bei der alle drei Merkmale gleichzeitig auftreten: Temperatursturz ≥ 3 °C, Mittelwind +8 kn und Böen ≥ 30 kn innert 20 Minuten. Der frühere Böenfaktor-Test (Böe doppelt so stark wie Mittel) entfällt: An Landstationen ist das bei mässigem, böigem Wind alltäglich.</p>
@@ -581,8 +582,10 @@ function joranHTML(jc, cur, nc){
     if(a && b && a.qff!=null && b.qff!=null && C.fresh(cdf.rows) && C.fresh(neu.rows))
       li.push(`<li>Gemessen: Druck La Chaux-de-Fonds − Neuchâtel ${a.qff-b.qff>=0?"+":""}${r1(a.qff-b.qff)} hPa (${hhmm(a.t)})</li>`);
   }
+  if(jc.bn!=null) li.push(`<li class="${jc.bnOk?"y":""}">Front-Joran (dynamique): Druck Besançon − Neuchâtel höchstens ${jc.bn>0?"+":""}${r1(jc.bn)} hPa um ${jc.bnHr} Uhr${jc.bnOk?"":` <span class="dim">— ab +${C.JORAN_X.bn} hPa</span>`}</li>`);
   if(jc.storm) li.push(`<li class="w">Gewitterneigung (CAPE) — Joran kann als Böenfront kommen</li>`);
-  const hint = jc.n===2 && cur.s.level<S.cut ? `<br><b>Die Modelle zeigen am See wenig, aber beide Zutaten sind da.</b> Thermischer Joran wird oft unterschätzt — ab 16 Uhr Messung oben beobachten.`
+  const hint = jc.bnOk ? `<br><b>Kaltluft staut sich westlich des Juras.</b> Front-Joran (dynamique) möglich: Er kommt mit der Front von Westen, Bullet, La Brévine und Neuchâtel melden ihn zuerst.`
+    : jc.n===2 && cur.s.level<S.cut ? `<br><b>Die Modelle zeigen am See wenig, aber beide Zutaten sind da.</b> Thermischer Joran (statique) wird oft unterschätzt — ab 16 Uhr Messung oben beobachten.`
     : jc.n===0 && cur.s.top && dirOf(cur.s.top.d) && dirOf(cur.s.top.d).id==="joran" ? `<br>Modelle zeigen Joran, aber ohne Zutaten — eher vorsichtig sein.` : "";
   return `<div class="note"><b>Joran-Zutaten</b> <span class="dim">(ICON-CH2, Hinweis, nicht kalibriert)</span><ul class="ing">${li.join("")}</ul>${hint}</div>`;
 }
@@ -650,7 +653,7 @@ function stationsHTML(nc){
     const cha = D.stations.cha && !D.stations.cha.err ? D.stations.cha.rows : null;
     const u = C.upwindNow(d.rows, up, S, cha), l = d.rows[d.rows.length-1], dn = dirOf(l.dir);
     const old = !C.fresh(d.rows);
-    const sysTxt = up.tl ? `Taubenlöchler (Nord/Nordost in der Bucht), Signal bei Talwind ${up.sec[0]}–${up.sec[1]}° ab ${up.hrs[0]} Uhr` : up.sys.map(id=>(DIRS.find(x=>x.id===id)||{}).name).join(", ");
+    const sysTxt = up.tl ? `Taubenlöchler (Nord/Nordost in der Bucht), Signal bei Talwind ${up.sec[0]}–${up.sec[1]}° ab ${up.hrs[0]} Uhr` : up.sys.map(id=>(DIRS.find(x=>x.id===id)||{}).name + ((up.extraSys||[]).includes(id) ? " (erst nach Prüfung)" : "")).join(", ");
     const trust = u.rel!==undefined ? (u.rel ? "verlässlich (Recall-Regel)" : "nicht verlässlich (Recall unter 0.85)")
       : u.trust==null ? "ungeprüft" : `geprüft, Peirce ${u.trust.toFixed(2)}`;
     const tag = u.off ? `<span class="sig off">Richtung abgewählt</span>` : old ? `<span class="sig off">veraltet</span>`

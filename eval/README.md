@@ -27,6 +27,11 @@ Stationsdaten (SwissMetNet, 10-min, `t_recent` + `t_now`) holt das Skript selbst
   den 2 h davor mehrheitlich im Talsektor (ohne Westwind auf dem Chasseral); Joran, wenn Cressier um den Beginn drei Werte in
   Folge im Sektor von Regel E und ≥ 10 kn misst; sonst Richtung am See. Für Cressier ist die Joran-Zuordnung damit nicht
   unabhängig von der eigenen Messung.
+- **Joran-Typ** eines Joran-Tages (`core.joranType`, Erfahrungswerte, nicht kalibriert): «dynamique», wenn in den 6 h davor
+  West/Südwest ≥ 8 kn in Neuchâtel und dazu Druckanstieg ≥ 1.5 hPa in Neuchâtel oder Temperatursturz ≥ 3 °C in
+  Cressier/Neuchâtel um den Beginn; sonst «statique» von Mai bis August; sonst unbestimmt. Markierung
+  `"jtyp:JJJJ-MM-TT":"dyn"|"stat"` geht vor. Die Messung zeigt Recall und Vorlauf der Joran-Zelle je Typ; die Typen sind
+  (noch) keine eigenen Zellen der Akzeptanzregeln, damit die Ereignistage nicht halbiert werden.
 
 ## Kennzahlen
 

@@ -11,6 +11,8 @@ const SPOTS = [
 ];
 const JURA = {lat:47.083, lon:6.792};            /* Jura-Hochfläche bei La Chaux-de-Fonds */
 const CREST = {lat:47.132, lon:7.054};           /* Chasseral, Kammhöhe */
+/* Druckunterschied über den Jura wie bei MeteoSchweiz: Besançon − Neuchâtel. Positiv = Kaltluft staut sich westlich (Front-Joran) */
+const BES = {lat:47.24, lon:6.02}, NEUP = {lat:47.00, lon:6.95};
 /* Messstationen direkt am See (meteoBase). Kein CORS: Die GitHub Action liest sie und legt sie im Branch «live» ab. */
 const LAKE = [
   {id:"vin", name:"Vingelz", url:"https://vingelz.meteobase.ch/"},
@@ -43,7 +45,8 @@ const LEVELS = ["unwahrscheinlich","knapp","möglich","wahrscheinlich","sehr wah
 const UPWIND = [
   {abk:"crm", name:"Cressier",  sys:["joran","w"],  f:0.85, role:"Jurasüdfuss, 10 km westlich"},
   {abk:"cha", name:"Chasseral", sys:["joran","n"],  f:1.15, role:"Jurakamm 1594 m, Höhenwind"},
-  {abk:"neu", name:"Neuchâtel", sys:["w","s"],      f:0.85, role:"Neuenburgersee, 25 km SW"},
+  /* Joran zählt in Neuchâtel erst, wenn der Rückblick die Station als verlässlich ausweist (extraSys) */
+  {abk:"neu", name:"Neuchâtel", sys:["w","s","joran"], f:0.85, role:"Neuenburgersee, 25 km SW", extraSys:["joran"]},
   {abk:"pay", name:"Payerne",   sys:["w","s","so"], f:0.8,  role:"Broyetal, 35 km SW"},
   {abk:"gre", name:"Grenchen",  sys:["bise","n"],   f:0.8,  role:"Jurasüdfuss, 15 km NO"},
   {abk:"wyn", name:"Wynau",     sys:["bise"],       f:0.75, role:"Aaretal, 40 km NO"},
@@ -51,6 +54,9 @@ const UPWIND = [
   /* Erweiterung für Joran. extra = zählt erst, wenn der Rückblick sie als verlässlich ausweist. */
   {abk:"chm", name:"Chaumont",  sys:["joran","w"],  f:1.0,  role:"erster Jurakamm 1136 m, 25 km SW", extra:true},
   {abk:"cdf", name:"La Chaux-de-Fonds", sys:["joran","w"], f:0.7, role:"Jurahochfläche 1018 m, 30 km WNW", extra:true},
+  /* Weiter westlich: Ein Front-Joran (dynamique) zieht mit der Kaltfront von West nach Ost und erreicht sie früher. Startwerte geschätzt. */
+  {abk:"fre", name:"Bullet/La Frétaz", sys:["joran","w"], f:1.0, role:"Jurakamm 1205 m über Grandson, 55 km WSW", extra:true},
+  {abk:"brl", name:"La Brévine", sys:["joran","w"], f:0.7, role:"Jurahochtal 1042 m, 50 km W", extra:true},
   /* Taubenlöchler: abends fliesst Luft talabwärts durchs Vallon de St-Imier und die Taubenlochschlucht und kommt in der
      Bielerbucht aus Nord/Nordost an. In Courtelary weht sie entlang der Talachse aus WSW (eigener Stationssektor sec).
      Kalibriert nur an Tagen, die im Rückblick als «Taubenlöchler» markiert sind. */
@@ -66,7 +72,9 @@ const LAKE_LEVEL = ["crm","neu","gre","pay"];     /* für die Sturm-/Böenfront-
 const FRONT = {dT:3, jump:8, gust:30};
 const REGEL_E = {sector:[270,350], min:10, foil:12};
 /* Joran-Zutaten aus dem Modell: Hinweis, nicht kalibriert (siehe Methode) */
-const JORAN_X = {crestSector:[270,360], crest:12, dpRise:0.5, cape:500};
+const JORAN_X = {crestSector:[270,360], crest:12, dpRise:0.5, cape:500, bn:2};
+/* Joran-Typ eines Tages aus Messwerten (Erfahrungswerte, nicht kalibriert; siehe joranType) */
+const JTYP = {dp:1.5, dT:3, sw:8, swSec:[215,280], months:[5,8]};
 
 const DEF = {T:14, maxMean:30, maxGust:39, win:"abend", minH:1, dirs:{n:1,bise:1,so:1,s:1,w:1,joran:1}, spots:{vin:1,ips:1,mit:1},
   k:1, kDir:{}, cut:2, st:{}, push:false, pushForecast:true, pushLive:true};
@@ -162,18 +170,20 @@ async function fetchEnsemble(){
 }
 /* Joran-Zutaten (ICON-CH2): Druck Jurahochfläche minus See, Wind auf dem Chasseral-Kamm, je Stunde */
 async function fetchJura(){
-  const P = [JURA, CREST, SPOTS[2]];
+  const P = [JURA, CREST, SPOTS[2], BES, NEUP];
   const u = "https://api.open-meteo.com/v1/forecast"
     + `?latitude=${P.map(p=>p.lat).join(",")}&longitude=${P.map(p=>p.lon).join(",")}`
     + "&hourly=pressure_msl,wind_speed_10m,wind_direction_10m&models=meteoswiss_icon_ch2&wind_speed_unit=kn&timezone=Europe%2FZurich&forecast_days=4";
   const j = await getJSON(u);
   const arr = Array.isArray(j) ? j : [j];
   if(arr.length<3) throw new Error("zu wenige Punkte");
-  const [jj, cr, lk] = arr.map(x=>x.hourly);
+  const [jj, cr, lk, be, ne] = arr.map(x=>x.hourly);
   const out = {};
   jj.time.forEach((t,i)=>{
     const a = jj.pressure_msl[i], b = lk.pressure_msl[i];
-    out[t] = {dp: a!=null && b!=null ? a-b : null, cv: cr.wind_speed_10m[i], cd: cr.wind_direction_10m[i]};
+    const pb = be ? be.pressure_msl[i] : null, pn = ne ? ne.pressure_msl[i] : null;
+    out[t] = {dp: a!=null && b!=null ? a-b : null, cv: cr.wind_speed_10m[i], cd: cr.wind_direction_10m[i],
+      bn: pb!=null && pn!=null ? pb-pn : null};
   });
   return out;
 }
@@ -443,17 +453,22 @@ function joranCheck(J, day, St, capeMax){
   if(!J) return null;
   const h1 = WINS[St.win][1], h0 = Math.max(14, WINS[St.win][0]);
   const at = hr => J[day+"T"+String(hr).padStart(2,"0")+":00"];
-  let crest = null, dpMax = null, dpHr = null;
+  let crest = null, dpMax = null, dpHr = null, bn = null, bnHr = null;
+  /* Front-Joran kann schon tagsüber kommen: Besançon − Neuchâtel ab 2 h vor dem Zeitfenster */
+  for(let hr=Math.max(0, WINS[St.win][0]-2); hr<=h1; hr++){
+    const x = at(hr); if(x && x.bn!=null && (bn==null || x.bn>bn)){ bn = x.bn; bnHr = hr; }
+  }
   for(let hr=h0; hr<=h1; hr++){
     const x = at(hr); if(!x) continue;
     if(x.cv!=null && x.cd!=null && x.cd>=JORAN_X.crestSector[0] && x.cd<=JORAN_X.crestSector[1] && (!crest || x.cv>crest.v)) crest = {v:x.cv, d:x.cd, hr};
     if(x.dp!=null && (dpMax==null || x.dp>dpMax)){ dpMax = x.dp; dpHr = hr; }
   }
   const noon = at(12), dp12 = noon && noon.dp!=null ? noon.dp : null;
-  if(dpMax==null && !crest) return null;
+  if(dpMax==null && !crest && bn==null) return null;
   const rise = dpMax!=null && dp12!=null ? dpMax-dp12 : null;
-  const c = {crest, dpMax, dpHr, rise,
-    crestOk: !!(crest && crest.v>=JORAN_X.crest), dpOk: rise!=null && rise>=JORAN_X.dpRise, storm: (capeMax||0)>=JORAN_X.cape};
+  const c = {crest, dpMax, dpHr, rise, bn, bnHr,
+    crestOk: !!(crest && crest.v>=JORAN_X.crest), dpOk: rise!=null && rise>=JORAN_X.dpRise, storm: (capeMax||0)>=JORAN_X.cape,
+    bnOk: bn!=null && bn>=JORAN_X.bn};
   c.n = (c.crestOk?1:0) + (c.dpOk?1:0);
   return c;
 }
@@ -552,10 +567,12 @@ function upwindNow(rows, up, St, cha){
   }
   return res;
 }
+/* Station oder ihr gemeldetes Windsystem gilt als Erweiterung: zählt ungeprüft nicht */
+const isExtra = s => !!(s.up.extra || (s.up.extraSys && s.u.sys && s.up.extraSys.includes(s.u.sys.id)));
 /* Signal zählt für Push. Recall-Regel aktiv und Station so kalibriert → nur wenn verlässlich;
    sonst wie bisher Peirce ≥ 0.25 oder ungeprüft (nicht extra). rule: zum Messen einer nicht aktiven Regel. */
 const isTrusted = (s, rule) => (rule||CAL.rule)==="recall" && s.u.rel!==undefined ? s.u.rel===1
-  : (s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25);
+  : (s.u.trust==null && !isExtra(s)) || (s.u.trust!=null && s.u.trust>=0.25);
 /* Messlage jetzt: alle Upwind-Signale plus Regel E plus Böenfront */
 function nowcast(stations, St, now, lk){
   const sig = [], front = [];
@@ -581,10 +598,32 @@ function lageHint(nc, lake){
   const f = (lake||[]).filter(x=>x.fresh);
   const v = f.find(x=>x.L.id==="vin"), i = f.find(x=>x.L.id==="ips");
   const diff = v && i ? i.last.mean - v.last.mean : null;
-  if(!(nc && nc.upSys==="joran") && !(diff!=null && diff>=4 && nc && nc.sig.some(s=>s.up.sys.includes("joran")))) return "";
+  if(!(nc && nc.upSys==="joran") && !(diff!=null && diff>=4 && nc && nc.sig.some(s=>s.up.sys.includes("joran") && !(s.up.extraSys||[]).includes("joran")))) return "";
   let t = "Joran-Lage: Die Fallböen teilen sich oft zwischen Vingelz und Alfermée, Vingelz liegt dann im Windschatten. Draussen und Richtung Ipsach weht es meist stärker — vom Hafen Vingelz lohnt sich das Rausfahren auch, wenn Vingelz wenig zeigt.";
   if(diff!=null && diff>=4) t += ` Ipsach misst jetzt ${Math.round(diff)} kn mehr als Vingelz.`;
   return t;
+}
+
+/* Typ eines Joran-Tages aus Messwerten (Hinweis, nicht kalibriert). onset = Beginn am See, S = {abk: Zeilen mit t als Date}.
+   «dyn» (Joran dynamique, Kaltfront): in den 6 h davor West/Südwest in Neuchâtel (≥ JTYP.sw kn, mind. 3 Werte) und dazu
+     Druckanstieg in Neuchâtel ≥ JTYP.dp hPa oder Temperatursturz ≥ JTYP.dT °C in Cressier/Neuchâtel um den Beginn.
+   «stat» (Joran statique, thermisch oder Gewitter): sonst, wenn der Tag zwischen Mai und August liegt.
+   null: unbestimmt. */
+function joranType(onset, S){
+  if(!onset) return null;
+  const t0 = +onset, H = 3600e3;
+  const win = (a,b,rows) => (rows||[]).filter(r=>r.t>=t0+a && r.t<=t0+b);
+  const neu = S.neu && S.neu.t, crm = S.crm && S.crm.t;
+  const sw = win(-6*H, -H, neu).filter(r=>r.dir!=null && inArc(r.dir, JTYP.swSec[0], JTYP.swSec[1]) && r.mean>=JTYP.sw).length>=3;
+  const val = (rows, k) => rows.map(r=>r[k]).filter(v=>v!=null);
+  const qa = val(win(-3*H, -H, neu), "qff"), qb = val(win(-H, H, neu), "qff");
+  const pRise = qa.length && qb.length ? Math.max(...qb) - Math.min(...qa) : null;
+  const drop = rows => { const a = val(win(-2*H, -H/2, rows), "temp"), b = val(win(0, 1.5*H, rows), "temp");
+    return a.length && b.length ? Math.max(...a) - Math.min(...b) : null; };
+  const dT = Math.max(drop(crm) ?? -99, drop(neu) ?? -99);
+  if(sw && ((pRise!=null && pRise>=JTYP.dp) || dT>=JTYP.dT)) return "dyn";
+  const m = +dayOfDate(onset).slice(5,7);
+  return m>=JTYP.months[0] && m<=JTYP.months[1] ? "stat" : null;
 }
 
 /* ================= Kalibrierung ================= */
@@ -732,7 +771,7 @@ function describe(s, St){
   return `${r0(s.top.v)} kn ${dn?dn.name:card(s.top.d)}, ${w}, bester Spot ${spotName(s.top.spot)} (${s.hits} von ${s.n} Modellen ≥ ${St.T} kn)`;
 }
 
-const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, FRONT, TL, DEF,
+const api = {SPOTS, JURA, CREST, BES, NEUP, JTYP, joranType, isExtra, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, FRONT, TL, DEF,
   clone, merge, r0, r1, card, dirOf, dirOn, over, kFor, spotName, fmtCH, hhmm, localDay, localHour, dayOfDate, dayLabel,
   getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, lakeDay, LAKE_COVER, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
