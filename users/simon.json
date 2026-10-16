@@ -1,5 +1,5 @@
 {
- "T": 14,
+ "T": 12,
  "maxMean": 30,
  "maxGust": 39,
  "win": "abend",
@@ -21,7 +21,7 @@
  "kDir": {},
  "cut": 2,
  "st": {},
- "push": false,
+ "push": true,
  "pushForecast": true,
  "pushLive": true
 }
