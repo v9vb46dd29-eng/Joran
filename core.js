@@ -50,8 +50,16 @@ const UPWIND = [
   {abk:"mub", name:"Mühleberg", sys:["s","so"],     f:0.75, role:"Mittelland, 25 km S"},
   /* Erweiterung für Joran. extra = zählt erst, wenn der Rückblick sie als verlässlich ausweist. */
   {abk:"chm", name:"Chaumont",  sys:["joran","w"],  f:1.0,  role:"erster Jurakamm 1136 m, 25 km SW", extra:true},
-  {abk:"cdf", name:"La Chaux-de-Fonds", sys:["joran","w"], f:0.7, role:"Jurahochfläche 1018 m, 30 km WNW", extra:true}
+  {abk:"cdf", name:"La Chaux-de-Fonds", sys:["joran","w"], f:0.7, role:"Jurahochfläche 1018 m, 30 km WNW", extra:true},
+  /* Taubenlöchler: abends fliesst Luft talabwärts durchs Vallon de St-Imier und die Taubenlochschlucht und kommt in der
+     Bielerbucht aus Nord/Nordost an. In Courtelary weht sie entlang der Talachse aus WSW (eigener Stationssektor sec).
+     Kalibriert nur an Tagen, die im Rückblick als «Taubenlöchler» markiert sind. */
+  {abk:"coy", name:"Courtelary", sys:["n","bise"], f:0.6, role:"Vallon de St-Imier 695 m, Talwind Richtung Taubenloch",
+   extra:true, tl:true, sec:[220,280], hrs:[15,22]}
 ];
+/* Taubenlöchler-Signal sperren, solange auf dem Chasseral grossräumiger West/Südwest weht (dann bläst es im Tal ohnehin talabwärts).
+   Erfahrungswert, nicht kalibriert. */
+const TL = {chaSec:[200,290], chaMax:15};
 const LAKE_LEVEL = ["crm","neu","gre","pay"];     /* für die Sturm-/Böenfront-Prüfung */
 /* Böenfront braucht alle drei Merkmale gleichzeitig (Kaltluftausfluss eines Gewitters):
    Temperatursturz, sprunghaft zunehmender Mittelwind und kräftige Böen. Böenfaktor allein ist an Landstationen alltäglich. */
@@ -296,15 +304,19 @@ async function fetchLake(owner, repo){
 }
 const lakeRows = (lk, id) => ((lk && lk.st && lk.st[id] && lk.st[id].rows) || []).map(r=>Object.assign({}, r, {t:new Date(r.t)}));
 /* Messlage am See: letzter Wert frisch (< 40 min), die letzten (bis zu zwei) frischen Werte ≥ Schwelle in aktiver Richtung */
-function lakeNow(lk, St, now){
+/* upSys: Windsystem, das die Upwind-Stationen gerade melden (nowcast().upSys). Am See wird der Joran umgelenkt
+   (Teilung zwischen Vingelz und Alfermée), darum zählt dann jede Richtung am See als dieses System. */
+function lakeNow(lk, St, now, upSys){
+  const dOk = d => dirOn(d,St) || !!(upSys && St.dirs[upSys]);
   return LAKE.map(L=>{
     const rows = lakeRows(lk, L.id), last = rows[rows.length-1] || null;
     const fr = !!(last && ((now||new Date()) - last.t) < 40*60000);
     const k2 = rows.slice(-2).filter(r=>((now||new Date()) - r.t) < 40*60000);
-    const ok = fr && k2.length>=1 && k2.every(r=>over(r.mean,St) && dirOn(r.dir,St));   /* ein Wert, wenn nur der Direktabruf vorliegt */
+    const ok = fr && k2.length>=1 && k2.every(r=>over(r.mean,St) && dOk(r.dir));   /* ein Wert, wenn nur der Direktabruf vorliegt */
     let since = null;
-    if(ok){ let i = rows.length-1; while(i>0 && over(rows[i-1].mean,St) && dirOn(rows[i-1].dir,St) && rows[i].t-rows[i-1].t < 40*60000) i--; since = rows[i].t; }
-    return {L, rows, last, fresh:fr, ok, since, err: lk && lk.st && lk.st[L.id] ? lk.st[L.id].err : null};
+    if(ok){ let i = rows.length-1; while(i>0 && over(rows[i-1].mean,St) && dOk(rows[i-1].dir) && rows[i].t-rows[i-1].t < 40*60000) i--; since = rows[i].t; }
+    const viaUp = ok && !k2.every(r=>dirOn(r.dir,St));
+    return {L, rows, last, fresh:fr, ok, since, viaUp, err: lk && lk.st && lk.st[L.id] ? lk.st[L.id].err : null};
   });
 }
 
@@ -478,18 +490,30 @@ function ruleE(rows, St){
 /* Upwind-Regel je Station: 30 min im Sektor, Mittel ≥ Stationsschwelle, nicht abnehmend */
 function stTs(up, St){ const c = St.st && St.st[up.abk]; return c && c.ts ? c.ts : Math.round(St.T*up.f); }
 function stTrust(up, St){ const c = St.st && St.st[up.abk]; return c && c.pss!=null ? c.pss : null; }
-function upwindNow(rows, up, St){
+/* Richtung an der Station: eigener Sektor (z. B. Talachse) oder die Windsysteme, die sie ankündigt */
+function stSecFn(up, St){
   const sys = up.sys.filter(id=>St.dirs[id]);
-  const res = {ok:false, off:!sys.length, ts:stTs(up,St), trust:stTrust(up,St), last:null, mean30:null, since:null, sys:null};
+  if(!sys.length) return null;
+  if(up.sec) return r => r.dir!=null && inArc(r.dir, up.sec[0], up.sec[1]);
+  return r => { const x = dirOf(r.dir); return !!(x && sys.includes(x.id)); };
+}
+const inHrs = (up, t) => { if(!up.hrs) return true; const h = localHour(t); return h>=up.hrs[0] && h<=up.hrs[1]; };
+/* Grossräumiger West/Südwest auf dem Chasseral (letzte 30 min bzw. diese Stunde) */
+const chaWest = rows => !!(rows && rows.length && rows.every(r=>r.dir!=null && inArc(r.dir, TL.chaSec[0], TL.chaSec[1]))
+  && rows.reduce((a,r)=>a+r.mean,0)/rows.length>=TL.chaMax);
+function upwindNow(rows, up, St, cha){
+  const inSec = stSecFn(up, St);
+  const res = {ok:false, off:!inSec, ts:stTs(up,St), trust:stTrust(up,St), last:null, mean30:null, since:null, sys:null, block:null};
   if(res.off || !rows || rows.length<3) return res;
-  const inSec = r => { const x = dirOf(r.dir); return !!(x && sys.includes(x.id)); };
   const last3 = rows.slice(-3);
   res.last = rows[rows.length-1];
   res.mean30 = last3.reduce((a,r)=>a+r.mean,0)/3;
-  res.sys = dirOf(res.last.dir);
+  res.sys = up.tl ? {id:"tl", name:"Talwind → Taubenlöchler"} : dirOf(res.last.dir);
   const dirOK = last3.every(inSec), lvlOK = Math.round(res.mean30)>=res.ts, riseOK = last3[2].mean >= last3[0].mean-0.5;
-  res.ok = dirOK && lvlOK && riseOK;
-  res.near = dirOK && !res.ok && Math.round(res.mean30)>=res.ts-2;
+  if(!inHrs(up, res.last.t)) res.block = `nur ${up.hrs[0]}–${up.hrs[1]} Uhr`;
+  else if(up.tl && cha && chaWest(cha.slice(-3))) res.block = "Westwind auf dem Chasseral";
+  res.ok = dirOK && lvlOK && riseOK && !res.block;
+  res.near = dirOK && !res.ok && !res.block && Math.round(res.mean30)>=res.ts-2;
   if(dirOK){
     let i = rows.length-1;
     while(i>0 && inSec(rows[i-1]) && rows[i-1].mean>=res.ts*0.85) i--;
@@ -500,9 +524,10 @@ function upwindNow(rows, up, St){
 /* Messlage jetzt: alle Upwind-Signale plus Regel E plus Böenfront */
 function nowcast(stations, St, now, lk){
   const sig = [], front = [];
+  const ch = stations.cha && !stations.cha.err && fresh(stations.cha.rows, now) ? stations.cha.rows : null;
   UPWIND.forEach(up=>{
     const d = stations[up.abk]; if(!d || d.err || !fresh(d.rows, now)) return;
-    const u = upwindNow(d.rows, up, St);
+    const u = upwindNow(d.rows, up, St, ch);
     if(u.ok) sig.push({up, u});
     if(LAKE_LEVEL.includes(up.abk)){ const f = frontCheck(d.rows, St); if(f.length) front.push({up, f}); }
   });
@@ -510,7 +535,21 @@ function nowcast(stations, St, now, lk){
   const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows, St) : null;
   const trusted = sig.filter(s=>(s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25));
   if(lk) lakeStorm(lk, St).forEach(x=>front.push(x));
-  return {sig, trusted, e, eOk: !!(e && e.ok && St.dirs.joran), front};
+  const eOk = !!(e && e.ok && St.dirs.joran);
+  /* Windsystem nach den Upwind-Stationen: Joran, wenn Regel E oder eine verlässliche Joran-Station ihn gerade meldet */
+  const joran = !!St.dirs.joran && (eOk || trusted.some(s=>s.u.sys && s.u.sys.id==="joran"));
+  return {sig, trusted, e, eOk, front, upSys: joran ? "joran" : null};
+}
+/* Hinweis bei Joran-Lage: Fallböen teilen sich zwischen Vingelz und Alfermée, Vingelz liegt oft im Windschatten
+   (Beobachtung Simon, Oktober 2026). lake = Ergebnis von lakeNow. */
+function lageHint(nc, lake){
+  const f = (lake||[]).filter(x=>x.fresh);
+  const v = f.find(x=>x.L.id==="vin"), i = f.find(x=>x.L.id==="ips");
+  const diff = v && i ? i.last.mean - v.last.mean : null;
+  if(!(nc && nc.upSys==="joran") && !(diff!=null && diff>=4 && nc && nc.sig.some(s=>s.up.sys.includes("joran")))) return "";
+  let t = "Joran-Lage: Die Fallböen teilen sich oft zwischen Vingelz und Alfermée, Vingelz liegt dann im Windschatten. Draussen und Richtung Ipsach weht es meist stärker — vom Hafen Vingelz lohnt sich das Rausfahren auch, wenn Vingelz wenig zeigt.";
+  if(diff!=null && diff>=4) t += ` Ipsach misst jetzt ${Math.round(diff)} kn mehr als Vingelz.`;
+  return t;
 }
 
 /* ================= Kalibrierung ================= */
@@ -562,33 +601,38 @@ function calibrate(days, St, models, truth){
   return {base, best, perDir};
 }
 /* Stationsschwelle kalibrieren: bester Stunden-Mittelwind im Stationssektor, Fenster −2 h bis Ende */
-function stationDayMax(rows, up, St){
+function stationDayMax(rows, up, St, cha){
   const [h0,h1] = WINS[St.win];
-  const sys = up.sys.filter(id=>St.dirs[id]);
+  const inSec = stSecFn(up, St); if(!inSec) return {};
+  const chaAt = {};
+  if(up.tl && cha) cha.forEach(r=>chaAt[r.t.getTime()] = r);
   const by = {};
   rows.forEach(r=>{
-    const x = dirOf(r.dir); if(!x || !sys.includes(x.id)) return;
-    const hr = localHour(r.t); if(hr<h0-2 || hr>h1) return;
+    if(!inSec(r)) return;
+    const hr = localHour(r.t); if(hr<h0-2 || hr>h1 || !inHrs(up, r.t)) return;
+    if(up.tl){ const c = chaAt[r.t.getTime()]; if(c && chaWest([c])) return; }
     const d = dayOfDate(r.t);
     if(!by[d] || r.mean>by[d]) by[d] = r.mean;
   });
   return by;
 }
-function calibrateStation(rows, up, St, days, truth){
-  const mx = stationDayMax(rows, up, St);
-  const marked = days.filter(d=>truth[d]==="y"||truth[d]==="n");
-  const ev = marked.filter(d=>truth[d]==="y").length, nev = marked.length-ev;
-  if(ev<3 || nev<3) return {ev, nev, best:null};
+/* Taubenlöchler-Station: Windtage = «Ja» mit Markierung «TL», ruhige Tage = «Nein». Andere Windtage zählen nicht. */
+const isEv = (up, truth, d) => truth[d]==="y" && (!up.tl || !!truth["tl:"+d]);
+function calibrateStation(rows, up, St, days, truth, cha){
+  const mx = stationDayMax(rows, up, St, cha);
+  const marked = days.filter(d=>isEv(up, truth, d) || truth[d]==="n");
+  const ev = marked.filter(d=>isEv(up, truth, d)).length, nev = marked.length-ev;
+  if(ev<3 || nev<3) return {ev, nev, best:null, tl:!!up.tl};
   const rowsC = [];
   for(let ts=4; ts<=30; ts++){
     const c = {tp:0,fn:0,fp:0,tn:0};
-    marked.forEach(d=>{ const a = (mx[d]||0)>=ts-0.5; truth[d]==="y" ? (a?c.tp++:c.fn++) : (a?c.fp++:c.tn++); });
+    marked.forEach(d=>{ const a = (mx[d]||0)>=ts-0.5; isEv(up, truth, d) ? (a?c.tp++:c.fn++) : (a?c.fp++:c.tn++); });
     c.ev=ev; c.nev=nev; c.pss = c.tp/ev - c.fp/nev;
     rowsC.push({k:ts, c});
   }
   const m = plateauMid(rowsC);
   /* ohne erkennbaren Zusammenhang keine eigene Schwelle — Startwert bleibt, Station gilt als nicht verlässlich */
-  return {ev, nev, best: m ? {ts: m.c.pss>0.05 ? m.k : null, pss:Math.round(m.c.pss*100)/100, c:m.c} : null};
+  return {ev, nev, tl:!!up.tl, best: m ? {ts: m.c.pss>0.05 ? m.k : null, pss:Math.round(m.c.pss*100)/100, c:m.c} : null};
 }
 
 /* ================= Push-Einstellungen: nur geprüfte Felder übernehmen ================= */
@@ -625,11 +669,11 @@ function describe(s, St){
   return `${r0(s.top.v)} kn ${dn?dn.name:card(s.top.d)}, ${w}, bester Spot ${spotName(s.top.spot)} (${s.hits} von ${s.n} Modellen ≥ ${St.T} kn)`;
 }
 
-const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, FRONT, DEF,
+const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, FRONT, TL, DEF,
   clone, merge, r0, r1, card, dirOf, dirOn, over, kFor, spotName, fmtCH, hhmm, localDay, localHour, dayOfDate, dayLabel,
   getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
-  frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, upwindNow, nowcast,
+  frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, upwindNow, nowcast, lageHint,
   contingency, calibrate, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
 if(typeof module!=="undefined" && module.exports) module.exports = api; else root.JoranCore = api;
 })(typeof self!=="undefined" ? self : this);

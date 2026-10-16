@@ -72,11 +72,12 @@ async function checkUser(u, topic, D){
   }
   if(cfg.pushLive && hour>=h0-2 && hour<=h1){
     const nc = C.nowcast(D.stations, cfg, NOW, LK);
-    const lk = LK ? C.lakeNow(LK, cfg, NOW) : [];
+    const lk = LK ? C.lakeNow(LK, cfg, NOW, nc.upSys) : [];
+    const hint = C.lageHint(nc, lk.filter(x=>cfg.spots[x.L.id]));
     const lakeTxt = lk.filter(x=>x.fresh && cfg.spots[x.L.id]).map(x=>`${x.L.name} ${C.r0(x.last.mean)} kn ${C.card(x.last.dir)}${x.last.gust!=null?" (Böen "+C.r0(x.last.gust)+")":""}`).join(", ");
     const lakeOk = lk.filter(x=>x.ok && cfg.spots[x.L.id]);
     if(lakeOk.length && !nc.front.length && hour>=h0 && !state.sent[K("lake:"+today)]){
-      await send(topic, `Am See: ${cfg.T} kn erreicht`, `Gemessen: ${lakeTxt}. ${lakeOk.map(x=>x.L.name+" seit "+C.hhmm(x.since)).join(", ")}.`, 4, ["surfer"]);
+      await send(topic, `Am See: ${cfg.T} kn erreicht`, `Gemessen: ${lakeTxt}. ${lakeOk.map(x=>x.L.name+" seit "+C.hhmm(x.since)).join(", ")}.${hint?" "+hint:""}`, 4, ["surfer"]);
       state.sent[K("lake:"+today)] = {at:NOW.toISOString()};
     }
     if(nc.front.length && (state.sent[K("live:"+today)] || state.sent[K("fc:"+today)]) && !state.sent[K("front:"+today)]){
@@ -87,7 +88,7 @@ async function checkUser(u, topic, D){
       if(nc.eOk) parts.push(`Joran-Regel E in Cressier: ${C.r0(nc.e.mean30)} kn seit ${C.hhmm(nc.e.since)}`);
       nc.trusted.forEach(x=>{ if(nc.eOk && x.up.abk==="crm") return;
         parts.push(`${x.up.name} ${C.r0(x.u.mean30)} kn ${x.u.sys?x.u.sys.name:C.card(x.u.last.dir)}${x.u.since?" seit "+C.hhmm(x.u.since):""}${x.u.trust==null?" (ungeprüft)":""}`); });
-      await send(topic, "Wind kommt — Messung", parts.join("; ") + (lakeTxt ? `. Am See jetzt: ${lakeTxt}` : ""), 4, ["ocean"]);
+      await send(topic, "Wind kommt — Messung", parts.join("; ") + (lakeTxt ? `. Am See jetzt: ${lakeTxt}` : "") + (hint ? `. ${hint}` : ""), 4, ["ocean"]);
       state.sent[K("live:"+today)] = {at:NOW.toISOString()};
     }
   }
