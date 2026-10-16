@@ -1,6 +1,8 @@
 {
- "T": 12,
- "win": "tag",
+ "T": 14,
+ "maxMean": 30,
+ "maxGust": 39,
+ "win": "abend",
  "minH": 1,
  "dirs": {
   "n": 1,
@@ -15,11 +17,11 @@
   "ips": 1,
   "mit": 1
  },
- "k": 1.1,
+ "k": 1,
  "kDir": {},
- "cut": 3,
+ "cut": 2,
  "st": {},
- "push": true,
+ "push": false,
  "pushForecast": true,
  "pushLive": true
 }
