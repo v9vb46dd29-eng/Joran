@@ -320,6 +320,35 @@ function lakeNow(lk, St, now, upSys){
   });
 }
 
+/* Wahrheit aus der Seemessung (Archiv, eine Datei pro Tag): Ein Tag ist foilbar, wenn im Zeitfenster der Einstellungen
+   an einer aktiven Seestation während mindestens minH Stunden jeder 10-min-Mittelwert (gerundet, wie angezeigt) ≥ T kn lag.
+   Zusammenhängend heisst: höchstens ein fehlender Wert in Folge (Lücke ≤ 20 min) und mindestens 80 % der Werte vorhanden.
+   «Ruhig» nur, wenn eine Station das Fenster zu mindestens 80 % abdeckt; sonst unbekannt.
+   onset = erster Wert des ersten foilbaren Zeitraums (frühester über beide Stationen). */
+const LAKE_COVER = 0.8;
+function lakeDay(lk, day, St){
+  St = St || DEF;
+  const [h0,h1] = WINS[St.win], span = St.minH*3600e3, need = St.minH*6*LAKE_COVER;
+  const inWin = t => { const m = localHour(t)*60 + t.getUTCMinutes(); return dayOfDate(t)===day && m>=h0*60 && m<=h1*60; };
+  const out = {day, known:false, ev:false, onset:null, dir:null, st:{}};
+  LAKE.forEach(L=>{
+    if(!St.spots[L.id]) return;
+    const rows = lakeRows(lk, L.id).filter(r=>r.mean!=null && inWin(r.t));
+    const s = out.st[L.id] = {n:rows.length, cover:Math.min(1, rows.length/((h1-h0)*6)), max:null, ev:false, onset:null};
+    if(s.cover>=LAKE_COVER) out.known = true;
+    let a = -1;                                   /* Beginn der laufenden Folge von Werten ≥ T */
+    rows.forEach((r,i)=>{
+      if(s.max==null || r.mean>s.max) s.max = r.mean;
+      if(!over(r.mean, St) || (a>=0 && r.t - rows[i-1].t > 20*60000)) a = over(r.mean, St) ? i : -1;
+      else if(a<0) a = i;
+      /* Dauer: jeder Wert steht für 10 min */
+      if(!s.ev && a>=0 && r.t - rows[a].t + 10*60000 >= span && i-a+1 >= need){ s.ev = true; s.onset = rows[a].t; s.dir = rows[a].dir; }
+    });
+    if(s.ev){ out.ev = out.known = true; if(!out.onset || s.onset<out.onset){ out.onset = s.onset; out.dir = s.dir; } }
+  });
+  return out;
+}
+
 /* Alle Upwind-Stationen frisch holen (für jeden Refresh) */
 async function fetchStations(){
   const out = {};
@@ -490,6 +519,8 @@ function ruleE(rows, St){
 /* Upwind-Regel je Station: 30 min im Sektor, Mittel ≥ Stationsschwelle, nicht abnehmend */
 function stTs(up, St){ const c = St.st && St.st[up.abk]; return c && c.ts ? c.ts : Math.round(St.T*up.f); }
 function stTrust(up, St){ const c = St.st && St.st[up.abk]; return c && c.pss!=null ? c.pss : null; }
+/* Verlässlich nach Recall-Regel: 1 / 0, fehlt (undefined), solange die Station so nicht kalibriert ist */
+function stRel(up, St){ const c = St.st && St.st[up.abk]; return c && (c.rel===0 || c.rel===1) ? c.rel : undefined; }
 /* Richtung an der Station: eigener Sektor (z. B. Talachse) oder die Windsysteme, die sie ankündigt */
 function stSecFn(up, St){
   const sys = up.sys.filter(id=>St.dirs[id]);
@@ -503,7 +534,7 @@ const chaWest = rows => !!(rows && rows.length && rows.every(r=>r.dir!=null && i
   && rows.reduce((a,r)=>a+r.mean,0)/rows.length>=TL.chaMax);
 function upwindNow(rows, up, St, cha){
   const inSec = stSecFn(up, St);
-  const res = {ok:false, off:!inSec, ts:stTs(up,St), trust:stTrust(up,St), last:null, mean30:null, since:null, sys:null, block:null};
+  const res = {ok:false, off:!inSec, ts:stTs(up,St), trust:stTrust(up,St), rel:stRel(up,St), last:null, mean30:null, since:null, sys:null, block:null};
   if(res.off || !rows || rows.length<3) return res;
   const last3 = rows.slice(-3);
   res.last = rows[rows.length-1];
@@ -521,6 +552,10 @@ function upwindNow(rows, up, St, cha){
   }
   return res;
 }
+/* Signal zählt für Push. Recall-Regel aktiv und Station so kalibriert → nur wenn verlässlich;
+   sonst wie bisher Peirce ≥ 0.25 oder ungeprüft (nicht extra). rule: zum Messen einer nicht aktiven Regel. */
+const isTrusted = (s, rule) => (rule||CAL.rule)==="recall" && s.u.rel!==undefined ? s.u.rel===1
+  : (s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25);
 /* Messlage jetzt: alle Upwind-Signale plus Regel E plus Böenfront */
 function nowcast(stations, St, now, lk){
   const sig = [], front = [];
@@ -533,7 +568,7 @@ function nowcast(stations, St, now, lk){
   });
   const crm = stations.crm;
   const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows, St) : null;
-  const trusted = sig.filter(s=>(s.u.trust==null && !s.up.extra) || (s.u.trust!=null && s.u.trust>=0.25));
+  const trusted = sig.filter(s=>isTrusted(s));
   if(lk) lakeStorm(lk, St).forEach(x=>front.push(x));
   const eOk = !!(e && e.ok && St.dirs.joran);
   /* Windsystem nach den Upwind-Stationen: Joran, wenn Regel E oder eine verlässliche Joran-Station ihn gerade meldet */
@@ -618,21 +653,48 @@ function stationDayMax(rows, up, St, cha){
 }
 /* Taubenlöchler-Station: Windtage = «Ja» mit Markierung «TL», ruhige Tage = «Nein». Andere Windtage zählen nicht. */
 const isEv = (up, truth, d) => truth[d]==="y" && (!up.tl || !!truth["tl:"+d]);
-function calibrateStation(rows, up, St, days, truth, cha){
+/* Recall-Regel, getrennt nach Windsystem: Ein «Ja»-Tag zählt für eine Station nur, wenn sein Windsystem zu ihr passt
+   (TL → nur Courtelary; «sys:Tag» aus dem Archiv oder der Markierung → nur Stationen mit diesem System; ohne Angabe → alle).
+   Rückgabe "ev", "nev" oder null (zählt für diese Station nicht). */
+function evOf(up, truth, d){
+  if(truth[d]==="n") return "nev";
+  if(truth[d]!=="y") return null;
+  const sys = truth["tl:"+d] ? "tl" : truth["sys:"+d] || null;
+  if(up.tl) return sys==="tl" ? "ev" : null;
+  if(sys==="tl" || (sys && !up.sys.includes(sys))) return null;
+  return "ev";
+}
+/* Aktive Kalibrierungsregel. "pss": Schwelle mit dem besten Peirce-Score (bisher).
+   "recall": höchste Schwelle mit Recall ≥ minRecall, unter gleichwertigen die mit tieferer Fehlalarmrate; erreicht keine
+   Schwelle minRecall, ist die Station nicht verlässlich. Bleibt "pss", bis je Station und Windsystem genug Ereignistage
+   im Archiv liegen (eval/measure.cjs, Akzeptanzregeln in eval/README.md). */
+const CAL = {rule:"pss", minRecall:0.85};
+function calibrateStation(rows, up, St, days, truth, cha, rule){
+  rule = rule || CAL.rule;
   const mx = stationDayMax(rows, up, St, cha);
-  const marked = days.filter(d=>isEv(up, truth, d) || truth[d]==="n");
-  const ev = marked.filter(d=>isEv(up, truth, d)).length, nev = marked.length-ev;
-  if(ev<3 || nev<3) return {ev, nev, best:null, tl:!!up.tl};
+  const cls = rule==="recall" ? d=>evOf(up, truth, d) : d=>isEv(up, truth, d) ? "ev" : truth[d]==="n" ? "nev" : null;
+  const marked = days.filter(d=>cls(d));
+  const ev = marked.filter(d=>cls(d)==="ev").length, nev = marked.length-ev;
+  if(ev<3 || nev<3) return {ev, nev, best:null, tl:!!up.tl, rule};
   const rowsC = [];
   for(let ts=4; ts<=30; ts++){
     const c = {tp:0,fn:0,fp:0,tn:0};
-    marked.forEach(d=>{ const a = (mx[d]||0)>=ts-0.5; isEv(up, truth, d) ? (a?c.tp++:c.fn++) : (a?c.fp++:c.tn++); });
-    c.ev=ev; c.nev=nev; c.pss = c.tp/ev - c.fp/nev;
+    marked.forEach(d=>{ const a = (mx[d]||0)>=ts-0.5; cls(d)==="ev" ? (a?c.tp++:c.fn++) : (a?c.fp++:c.tn++); });
+    c.ev=ev; c.nev=nev; c.pss = c.tp/ev - c.fp/nev; c.rec = c.tp/ev; c.fpr = c.fp/nev;
     rowsC.push({k:ts, c});
+  }
+  const rd = v => Math.round(v*100)/100;
+  if(rule==="recall"){
+    const ok = rowsC.filter(r=>r.c.rec>=CAL.minRecall-1e-9);
+    if(!ok.length){ const top = rowsC[0];   /* tiefste Schwelle zeigt, wie weit die Station vom Ziel entfernt ist */
+      return {ev, nev, tl:!!up.tl, rule, best:{ts:null, rel:0, rec:rd(top.c.rec), fpr:rd(top.c.fpr), pss:rd(top.c.pss), c:top.c}}; }
+    const hi = ok[ok.length-1];
+    const m = ok.filter(r=>r.c.rec===hi.c.rec).sort((a,b)=>a.c.fpr-b.c.fpr || b.k-a.k)[0];
+    return {ev, nev, tl:!!up.tl, rule, best:{ts:m.k, rel:1, rec:rd(m.c.rec), fpr:rd(m.c.fpr), pss:rd(m.c.pss), c:m.c}};
   }
   const m = plateauMid(rowsC);
   /* ohne erkennbaren Zusammenhang keine eigene Schwelle — Startwert bleibt, Station gilt als nicht verlässlich */
-  return {ev, nev, tl:!!up.tl, best: m ? {ts: m.c.pss>0.05 ? m.k : null, pss:Math.round(m.c.pss*100)/100, c:m.c} : null};
+  return {ev, nev, tl:!!up.tl, rule, best: m ? {ts: m.c.pss>0.05 ? m.k : null, pss:rd(m.c.pss), rec:rd(m.c.rec), fpr:rd(m.c.fpr), c:m.c} : null};
 }
 
 /* ================= Push-Einstellungen: nur geprüfte Felder übernehmen ================= */
@@ -655,7 +717,8 @@ function sanitizeCfg(x){
   if(x.kDir) DIRS.forEach(d=>{ const v = x.kDir[d.id]; if(v!=null){ if(!num(v,0.8,2)) throw new Error("Faktor je Windsystem 0.8–2"); o.kDir[d.id] = Math.round(v*100)/100; } });
   o.st = {};
   if(x.st) UPWIND.forEach(u=>{ const v = x.st[u.abk]; if(!v || typeof v!=="object") return;
-    o.st[u.abk] = {ts: num(v.ts,3,40) ? Math.round(v.ts) : null, pss: num(v.pss,-1,1) ? Math.round(v.pss*100)/100 : null, n: num(v.n,0,1000) ? Math.round(v.n) : 0}; });
+    o.st[u.abk] = {ts: num(v.ts,3,40) ? Math.round(v.ts) : null, pss: num(v.pss,-1,1) ? Math.round(v.pss*100)/100 : null, n: num(v.n,0,1000) ? Math.round(v.n) : 0};
+    if(v.rel===0 || v.rel===1) o.st[u.abk].rel = v.rel; });
   ["push","pushForecast","pushLive"].forEach(k=>{ if(x[k]!=null) o[k] = !!x[k]; });
   return o;
 }
@@ -671,9 +734,9 @@ function describe(s, St){
 
 const api = {SPOTS, JURA, CREST, LAKE, JORAN_X, MODELS, DIRS, WINS, LEVELS, UPWIND, LAKE_LEVEL, REGEL_E, FRONT, TL, DEF,
   clone, merge, r0, r1, card, dirOf, dirOn, over, kFor, spotName, fmtCH, hhmm, localDay, localHour, dayOfDate, dayLabel,
-  getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
+  getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, lakeDay, LAKE_COVER, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
-  frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, upwindNow, nowcast, lageHint,
-  contingency, calibrate, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
+  frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, stRel, isTrusted, stSecFn, upwindNow, nowcast, lageHint, chaWest,
+  contingency, calibrate, CAL, evOf, isEv, stationDayMax, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
 if(typeof module!=="undefined" && module.exports) module.exports = api; else root.JoranCore = api;
 })(typeof self!=="undefined" ? self : this);

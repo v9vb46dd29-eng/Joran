@@ -302,9 +302,11 @@ ol.steps li{margin:3px 0}
 <p><b>Wann.</b> Das Zeitfenster umfasst die Stunden, in denen mindestens die Hälfte der Modelle die Schwelle erreicht. Gibt es solche Stunden nicht, zählen Stunden mit mindestens einem Modell (Anzeige «einzelne Modelle»).</p>
 <p><b>Am See jetzt.</b> Vingelz und Ipsach (meteoBase.ch, 10-Minuten-Mittel und -Spitze). Die Seiten erlauben keinen direkten Abruf aus dem Browser (CORS). Die App holt sie darum über einen öffentlichen CORS-Proxy (allorigins, codetabs, corsproxy — der erste, der antwortet) oder über einen eigenen Proxy, und ergänzt die Verlaufskurve aus dem Branch <code>live</code>, den die GitHub Action füllt. Werte, die die App selbst holt, merkt sie sich bis 18 Stunden in diesem Browser. Die Kachel ist blau, wenn die letzten zwei Werte deine Schwelle in einer aktiven Richtung erreichen. Dann gibt es auch einen Mess-Push «Am See». Im Tagesdiagramm erscheinen die Seewerte als Punkte — so siehst du direkt, wie gut die Modelle heute liegen.</p>
 <p><b>Joran-Zutaten.</b> Thermischer Joran entsteht, wenn auf Jurahöhe Luft aus Nordwest anliegt und am Abend die Luft auf der Jura-Hochfläche relativ zum See schwerer wird. Joran zeigt dazu aus ICON-CH2: Wind auf dem Chasseral-Kamm aus 270–360° ab 12 kn und den Anstieg des Druckgefälles La Chaux-de-Fonds → See seit Mittag um mindestens 0.5 hPa. Das sind Erfahrungswerte, nicht kalibriert; sie ändern die Stufe nicht, sondern sagen dir, wann sich der Blick auf die Messung lohnt.</p>
-<p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Stationen mit Peirce-Score unter 0.25 lösen keinen Push aus. Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
+<p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
+<p><b>Kalibrierung der Stationen.</b> Ziel: kein foilbarer Abend soll verpasst werden; ein Fehlalarm wiegt weniger. Neue Regel: Je Station gilt die höchste Schwelle, die mindestens 85 % der Windtage ihres Windsystems erkennt (Recall ≥ 0.85). Unter gleichwertigen Schwellen zählt die mit der tieferen Fehlalarmrate. Erreicht keine Schwelle 85 %, gilt die Station als nicht verlässlich und löst keinen Push aus. Joran, Taubenlöchler (nur Courtelary) und die übrigen Windsysteme werden getrennt gezählt. <i>Stand: vorbereitet, noch nicht aktiv.</i> Bis je Station und Windsystem mindestens zehn Windtage vorliegen, gilt weiter die bisherige Regel: beste Schwelle nach Peirce-Score, Stationen unter 0.25 lösen keinen Push aus.</p>
+<p><b>Wahrheit für die Kalibrierung.</b> Die GitHub Action legt die Seemessung Vingelz/Ipsach zusätzlich als eine Datei pro Tag ab (Branch <code>live</code>, Ordner <code>archive</code>). meteoBase bietet keine älteren Werte an; das Archiv beginnt darum mit dieser Version. Ein Tag gilt als foilbar, wenn im Zeitfenster deiner Einstellungen an einer Seestation jeder 10-Minuten-Mittelwert während deiner Mindestdauer (gerundet) deine Schwelle erreichte. Deine Markierungen «Ja»/«Nein» gehen vor. Das Skript <code>eval/measure.cjs</code> misst je Station Recall, Fehlalarmrate, Precision und Vorlaufzeit.</p>
 <p><b>Joran am See.</b> Die Fallböen teilen sich oft zwischen Vingelz und Alfermée: Ein Ast zieht in die Bucht Richtung Nidau, einer Richtung Sutz. Am See misst man dann Südwest oder Nordost statt Nordwest, und Vingelz liegt oft im Windschatten, während Ipsach mehr Wind hat. Darum bestimmen die Upwind-Stationen das Windsystem: Melden Regel E oder eine verlässliche Joran-Station Joran, zählt am See jede Richtung als Joran, und Joran zeigt einen Hinweis zur Joran-Lage. Die Modelle lösen diese Teilung nicht auf (Gitter 1–2 km).</p>
-<p><b>Taubenlöchler.</b> Abends fliesst kühle Luft das Vallon de St-Imier hinunter und durch die Taubenlochschlucht in die Bielerbucht (dort aus Nord/Nordost). Die Station Courtelary misst diesen Talwind entlang der Talachse (220–280°), Signal nur ab 15 Uhr und nicht bei Westwind auf dem Chasseral (ab 15 kn aus 200–290°), weil dann grossräumiger Westwind im Tal ebenfalls talabwärts weht. Courtelary zählt erst, wenn der Rückblick an Tagen mit Markierung «TL» einen Peirce-Score ab 0.25 ergibt. Grenzwerte sind Erfahrungswerte, nicht kalibriert.</p>
+<p><b>Taubenlöchler.</b> Abends fliesst kühle Luft das Vallon de St-Imier hinunter und durch die Taubenlochschlucht in die Bielerbucht (dort aus Nord/Nordost). Die Station Courtelary misst diesen Talwind entlang der Talachse (220–280°), Signal nur ab 15 Uhr und nicht bei Westwind auf dem Chasseral (ab 15 kn aus 200–290°), weil dann grossräumiger Westwind im Tal ebenfalls talabwärts weht. Courtelary zählt erst, wenn der Rückblick an Tagen mit Markierung «TL» einen Peirce-Score ab 0.25 ergibt (nach der neuen Regel: wenn eine Schwelle mindestens 85 % dieser Tage erkennt). Grenzwerte sind Erfahrungswerte, nicht kalibriert.</p>
 <p><b>Sturm</b> überschreibt jede positive Bewertung — aber nur dann: Mittelwind oder Böen über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) am See oder an einer Upwind-Station auf Seehöhe, oder eine echte Böenfront, bei der alle drei Merkmale gleichzeitig auftreten: Temperatursturz ≥ 3 °C, Mittelwind +8 kn und Böen ≥ 30 kn innert 20 Minuten. Der frühere Böenfaktor-Test (Böe doppelt so stark wie Mittel) entfällt: An Landstationen ist das bei mässigem, böigem Wind alltäglich.</p>
 <p><b>Push.</b> Der Cloudflare Worker (Ordner <code>proxy</code>) stösst alle 10 Minuten zwischen 6 und 21 Uhr eine GitHub Action an; sie prüft dieselben Regeln (Datei <code>core.js</code>) für jeden Nutzer mit dessen eigenen Einstellungen (<code>users/&lt;name&gt;.json</code>) und sendet über ntfy.sh an dessen eigenes Thema. GitHubs eigener Zeitplan läuft nur noch als Rückfall, weil er in der Praxis oft nur alle paar Stunden startet.</p>
 <p>Einstellungen und Markierungen liegen in diesem Browser; nur was du für Push speicherst, steht öffentlich lesbar in <code>users/&lt;name&gt;.json</code> — ohne ntfy-Thema. Wetterdaten: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD).</p>
@@ -506,8 +508,8 @@ function verdictHTML(cur, hour, nc){
     const parts = [];
     if(nc.eOk) parts.push(`Joran-Regel E in Cressier: ${r1(nc.e.mean30)} kn seit ${nc.e.since?hhmm(nc.e.since):"–"}`);
     nc.trusted.forEach(x=>{ if(nc.eOk && x.up.abk==="crm") return;
-      parts.push(`${x.up.name} ${r0(x.u.mean30)} kn ${x.u.sys?x.u.sys.name:""}${x.u.since?" seit "+hhmm(x.u.since):""}${x.u.trust==null?" (ungeprüft)":""}`); });
-    const strong = nc.eOk || nc.trusted.some(x=>x.u.trust!=null);
+      parts.push(`${x.up.name} ${r0(x.u.mean30)} kn ${x.u.sys?x.u.sys.name:""}${x.u.since?" seit "+hhmm(x.u.since):""}${x.u.trust==null&&x.u.rel===undefined?" (ungeprüft)":""}`); });
+    const strong = nc.eOk || nc.trusted.some(x=>x.u.trust!=null || x.u.rel===1);
     cls = strong ? "c4" : "c3";
     word = s.level>=S.cut ? "Wind kommt" : "Upwind-Signal";
     why = `Messung: ${parts.join("; ")}. ` + why;
@@ -649,9 +651,10 @@ function stationsHTML(nc){
     const u = C.upwindNow(d.rows, up, S, cha), l = d.rows[d.rows.length-1], dn = dirOf(l.dir);
     const old = !C.fresh(d.rows);
     const sysTxt = up.tl ? `Taubenlöchler (Nord/Nordost in der Bucht), Signal bei Talwind ${up.sec[0]}–${up.sec[1]}° ab ${up.hrs[0]} Uhr` : up.sys.map(id=>(DIRS.find(x=>x.id===id)||{}).name).join(", ");
-    const trust = u.trust==null ? "ungeprüft" : `geprüft, Peirce ${u.trust.toFixed(2)}`;
+    const trust = u.rel!==undefined ? (u.rel ? "verlässlich (Recall-Regel)" : "nicht verlässlich (Recall unter 0.85)")
+      : u.trust==null ? "ungeprüft" : `geprüft, Peirce ${u.trust.toFixed(2)}`;
     const tag = u.off ? `<span class="sig off">Richtung abgewählt</span>` : old ? `<span class="sig off">veraltet</span>`
-      : u.ok ? ((u.trust!=null && u.trust<0.25) || (u.trust==null && up.extra) ? `<span class="sig near">Signal, ${u.trust==null?"ungeprüft":"unzuverlässig"}</span>` : `<span class="sig on">Signal</span>`)
+      : u.ok ? (!C.isTrusted({u, up}) ? `<span class="sig near">Signal, ${u.trust==null&&u.rel===undefined?"ungeprüft":"unzuverlässig"}</span>` : `<span class="sig on">Signal</span>`)
       : u.block && u.last && Math.round(u.mean30)>=u.ts ? `<span class="sig off">gesperrt: ${esc(u.block)}</span>` : u.near ? `<span class="sig near">fast</span>` : "";
     h += `<div class="row"><div class="nm"><b>${up.name}</b>${tag}<em>${esc(up.role)} — zeigt ${esc(sysTxt)}. Schwelle ${u.ts} kn, ${trust}. ${hhmm(l.t)}</em></div>
       <div class="val ${u.ok?"on":"off"}">${arrow(l.dir)} ${dn?dn.name:card(l.dir)} ${r0(l.mean)}<span class="dim"> / ${r0(l.gust)} kn</span></div></div>`;
@@ -877,15 +880,16 @@ function renderHist(){
   h += `<h2>Upwind-Stationen</h2>`;
   if(!HS) h += `<p style="font-size:.85rem">Lädt die Stundenwerte aller Stationen seit Januar (einige Megabyte, am besten im WLAN) und sucht je Station die Schwelle, die deine markierten Tage am besten trennt.</p><button class="btn2" id="sgo">Stationen kalibrieren</button>`;
   else {
+    const RC = C.CAL.rule==="recall";
     const res = UPWIND.map(up=>({up, r: HS.rows[up.abk] ? C.calibrateStation(HS.rows[up.abk], up, S, days, truth, HS.rows.cha) : null}));
-    h += `<div class="tw"><table><tr><th>Station</th><th class="n">Schwelle</th><th class="n">erkannt</th><th class="n">Fehlalarm</th><th class="n">Peirce</th></tr>`;
+    h += `<div class="tw"><table><tr><th>Station</th><th class="n">Schwelle</th><th class="n">erkannt</th><th class="n">Fehlalarm</th><th class="n">${RC?"Recall":"Peirce"}</th></tr>`;
     res.forEach(x=>{
       if(!x.r){ h += `<tr><td>${x.up.name}</td><td class="n dim" colspan="4">${esc(HS.err[x.up.abk]||"keine Daten")}</td></tr>`; return; }
       if(!x.r.best){ h += `<tr><td>${x.up.name}</td><td class="n dim" colspan="4">${x.r.tl?`zu wenige Tage: ${x.r.ev} TL (3 nötig), ${x.r.nev} Nein`:"zu wenige markierte Tage"}</td></tr>`; return; }
       const c = x.r.best.c;
-      h += `<tr><td>${x.up.name}</td><td class="n">${x.r.best.ts!=null?x.r.best.ts+" kn":"kein Bezug"}</td><td class="n">${c.tp}/${c.ev}</td><td class="n">${c.fp}/${c.nev}</td><td class="n"><b>${x.r.best.pss.toFixed(2)}</b></td></tr>`;
+      h += `<tr><td>${x.up.name}</td><td class="n">${x.r.best.ts!=null?x.r.best.ts+" kn":RC?"nicht verlässlich":"kein Bezug"}</td><td class="n">${c.tp}/${c.ev}</td><td class="n">${c.fp}/${c.nev}</td><td class="n"><b>${(RC?x.r.best.rec:x.r.best.pss).toFixed(2)}</b></td></tr>`;
     });
-    h += `</table></div><small>Peirce unter 0.25: Station löst keinen Push aus, wird aber angezeigt. Werte als Stunden-Mittelwind, Fenster ab 2 h vor deinem Zeitfenster. Courtelary zählt nur «Ja»-Tage mit TL gegen «Nein»-Tage, ab 15 Uhr und ohne Westwind auf dem Chasseral.</small>`;
+    h += `</table></div><small>${RC?`Je Station gilt die höchste Schwelle, die mindestens ${Math.round(C.CAL.minRecall*100)} % der passenden Windtage erkennt; unter gleichwertigen die mit weniger Fehlalarmen. Erreicht keine Schwelle das, ist die Station nicht verlässlich und löst keinen Push aus. Windtage zählen nur für Stationen ihres Windsystems.`:"Peirce unter 0.25: Station löst keinen Push aus, wird aber angezeigt."} Werte als Stunden-Mittelwind, Fenster ab 2 h vor deinem Zeitfenster. Courtelary zählt nur «Ja»-Tage mit TL gegen «Nein»-Tage, ab 15 Uhr und ohne Westwind auf dem Chasseral.</small>`;
     if(res.some(x=>x.r && x.r.best)) h += `<div><button class="btn2" id="sapply" style="margin-top:8px">Stationsschwellen übernehmen</button></div>`;
     HS.res = res;
   }
@@ -923,7 +927,7 @@ function renderHist(){
   if(ap) ap.addEventListener("click",()=>{ S.k = cal.best.k; S.cut = cal.best.cut; S.kDir = Object.fromEntries(Object.keys(cal.perDir).map(id=>[id,cal.perDir[id].k])); saveS(); renderAll(); });
   const sg = $("#sgo"); if(sg) sg.addEventListener("click", runStations);
   const sa = $("#sapply");
-  if(sa) sa.addEventListener("click",()=>{ const st = {}; HS.res.forEach(x=>{ if(x.r && x.r.best) st[x.up.abk] = {ts:x.r.best.ts, pss:x.r.best.pss, n:x.r.ev};  /* ts null = Startwert behalten */ }); S.st = st; saveS(); renderAll(); });
+  if(sa) sa.addEventListener("click",()=>{ const st = {}; HS.res.forEach(x=>{ if(x.r && x.r.best) st[x.up.abk] = Object.assign({ts:x.r.best.ts, pss:x.r.best.pss, n:x.r.ev}, x.r.best.rel!=null ? {rel:x.r.best.rel} : {});  /* ts null = Startwert behalten */ }); S.st = st; saveS(); renderAll(); });
   $("#exp").addEventListener("click", async ()=>{
     const txt = JSON.stringify(loadT());
     try{ await navigator.clipboard.writeText(txt); $("#exp").textContent = "Kopiert"; } catch(e){ window.prompt("Markierungen kopieren:", txt); }
