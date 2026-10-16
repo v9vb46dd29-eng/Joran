@@ -30,6 +30,7 @@ const R = M.measure({lk, S, marks:null, St, split:0.6,
 
 assert.strictEqual(R.truth.known, 30); assert.strictEqual(R.truth.y, 10); assert.strictEqual(R.truth.n, 20);
 assert.deepStrictEqual(R.truth.sys, {joran:10});
+assert.deepStrictEqual(R.truth.jtyp, {stat:10});                      /* Juni, kein Südwest vorher → statique */
 assert.strictEqual(R.split.train, 18); assert.strictEqual(R.split.trainRange[1], "2026-06-18"); assert.strictEqual(R.split.testRange[0], "2026-06-19");
 const v = R.vorher.stations.find(s=>s.abk==="crm"), n = R.nachher.stations.find(s=>s.abk==="crm");
 /* Kalibrierung auf 18 Tagen: Peirce-Plateau 11–15 → Mitte 13; Recall-Regel: höchste Schwelle mit Recall ≥ 0.85 = 10 */
@@ -64,4 +65,16 @@ const gap = {st:{vin:{rows:[0,10,30,40,50].map(m=>({t:Z(1,17,m).toISOString(), m
 assert.strictEqual(C.lakeDay(gap, "2026-06-01", St).ev, true);                                       /* ein fehlender Wert */
 const gap2 = {st:{vin:{rows:[0,10,40,50,60,70].map(m=>({t:Z(1,17,m).toISOString(), mean:15, dir:300}))}, ips:{rows:[]}}};
 assert.strictEqual(C.lakeDay(gap2, "2026-06-01", St).ev, false);                                     /* Lücke 30 min trennt */
+/* Joran-Typ: Südwest 12 kn in Neuchâtel vorher + Druckanstieg 2 hPa → dynamique; ohne Südwest im Oktober → unbestimmt */
+const on = Z(10, 18, 0), neuRows = [];
+for(let m=-7*60; m<=2*60; m+=10) neuRows.push({t:new Date(+on+m*60e3), mean:m<-60?12:8, dir:m<-60?240:300, temp:15, qff: m<-60 ? 1010 : 1012});
+assert.strictEqual(C.joranType(on, {neu:{t:neuRows}}), "dyn");
+assert.strictEqual(C.joranType(on, {neu:{t:neuRows.map(r=>Object.assign({}, r, {qff:1010}))}}), "stat");      /* Juni ohne Front */
+assert.strictEqual(C.joranType(new Date(Date.UTC(2026,9,10,16)), {}), null);                                  /* Oktober ohne Front */
+const marksT = {"2026-06-04":"y", "jtyp:2026-06-04":"dyn"};
+assert.strictEqual(M.measure({lk, S, marks:marksT, St, split:0.6, cores:{vorher:{core:C, rule:"pss"}, nachher:{core:C, rule:"recall"}}}).truth.jtyp.dyn, 1);
+/* Neuchâtel: Joran-Signal zählt ungeprüft nicht, West-Signal schon */
+const neuUp = C.UPWIND.find(u=>u.abk==="neu");
+assert.strictEqual(C.isTrusted({up:neuUp, u:{trust:null, sys:{id:"joran"}}}), false);
+assert.strictEqual(C.isTrusted({up:neuUp, u:{trust:null, sys:{id:"w"}}}), true);
 console.log("Selbsttest bestanden (synthetische Daten).");

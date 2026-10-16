@@ -217,12 +217,15 @@ function measure({lk, S, marks, St, split, cores}){
     truth[d] = m; info[d] = {src:"markiert", onset: m==="y" && auto[d] && auto[d].ev ? auto[d].onset : null};
   });
   /* Windsystem der foilbaren Tage */
-  const tmap = {}, sysOf = {};
+  const tmap = {}, sysOf = {}, jtyp = {};
   Object.keys(truth).forEach(d=>{
     tmap[d] = truth[d];
     if(truth[d]!=="y") return;
     const s = marks && marks["tl:"+d] ? "tl" : (marks && marks["sys:"+d]) || (auto[d] ? classify(auto[d], S) : null);
     sysOf[d] = s; if(s==="tl") tmap["tl:"+d] = 1; else if(s) tmap["sys:"+d] = s;
+    /* Joran-Typ: Markierung «jtyp:Tag» = "dyn"|"stat", sonst core.joranType aus den Messwerten */
+    if(s==="joran") jtyp[d] = (marks && ["dyn","stat"].includes(marks["jtyp:"+d]) && marks["jtyp:"+d])
+      || (auto[d] && auto[d].onset && C.joranType ? C.joranType(auto[d].onset, S) : null) || "?";
   });
   const tdays = Object.keys(truth).sort();
   /* 2. Aufteilung: frühere Tage kalibrieren, spätere messen */
@@ -251,6 +254,8 @@ function measure({lk, S, marks, St, split, cores}){
       }
       /* Zählung je System und gesamt */
       const cells = {}; row.systems.forEach(x=>cells[x] = {ev:0, evAll:0, tp:0, nev:0, fp:0, leads:[], nodata:0});
+      /* Joran-Tage getrennt nach Typ (nur zur Auswertung, nicht Teil der Akzeptanzregeln) */
+      const jt = {}; if(cells.joran) ["dyn","stat","?"].forEach(k=>jt[k] = {ev:0, tp:0, leads:[]});
       const tot = {ev:0, tp:0, nev:0, fp:0, leads:[], nodata:0, tpIn:0};   /* tpIn: Signal spätestens beim Beginn am See */
       tdays.forEach(d=>{ if(truth[d]==="y" && cells[sysOf[d]]) cells[sysOf[d]].evAll++; });
       test.forEach(d=>{
@@ -263,10 +268,13 @@ function measure({lk, S, marks, St, split, cores}){
         if(s && row.trusted) note(d, s);
         if(e==="ev"){
           tot.ev++; if(cell) cell.ev++;
+          const J = sysOf[d]==="joran" && jt[jtyp[d]] ? jt[jtyp[d]] : null;
+          if(J) J.ev++;
           if(s){ tot.tp++; if(cell) cell.tp++;
             const on = info[d] && info[d].onset;
             if(!on || s.t<=on) tot.tpIn++;
-            if(on){ const L = (on - s.t)/60000; tot.leads.push(L); if(cell) cell.leads.push(L); } }
+            if(J) J.tp++;
+            if(on){ const L = (on - s.t)/60000; tot.leads.push(L); if(cell) cell.leads.push(L); if(J) J.leads.push(L); } }
         } else {
           tot.nev++; Object.values(cells).forEach(c=>c.nev++);
           if(s){ tot.fp++; if(cells[s.sys]) cells[s.sys].fp++; }
@@ -274,6 +282,7 @@ function measure({lk, S, marks, St, split, cores}){
       });
       const fin = c => Object.assign(c, {rec:rate(c.tp,c.ev), fpr:rate(c.fp,c.nev), prec:rate(c.tp,c.tp+c.fp), lead:mean(c.leads), leadMed:median(c.leads)});
       row.total = fin(tot); row.cells = Object.fromEntries(Object.entries(cells).map(([k,c])=>[k, fin(c)]));
+      if(cells.joran) row.jtyp = Object.fromEntries(Object.entries(jt).map(([k,c])=>[k, Object.assign(c, {rec:rate(c.tp,c.ev), lead:mean(c.leads)})]));
       res.stations.push(row);
     });
     /* Regel E (fest, nicht kalibriert) */
@@ -323,7 +332,7 @@ function measure({lk, S, marks, St, split, cores}){
   const verdict = A[4].ok ? base : `${base} — VORLÄUFIG (zu wenige Ereignistage: Regel nur committen, nicht aktiv setzen)`;
   return {settings:{T:St.T, win:St.win, minH:St.minH, spots:C.LAKE.filter(L=>St.spots[L.id]).map(L=>L.id)},
     truth:{days:days.length, known:tdays.length, auto:nAuto, marked:nMarked, deviations:dev, y:tdays.filter(d=>truth[d]==="y").length,
-      n:tdays.filter(d=>truth[d]==="n").length, sys:countBy(Object.values(sysOf))},
+      n:tdays.filter(d=>truth[d]==="n").length, sys:countBy(Object.values(sysOf)), jtyp:countBy(Object.values(jtyp))},
     split:{train:train.length, test:test.length, trainRange:[train[0]||null, train[train.length-1]||null], testRange:[test[0]||null, test[test.length-1]||null]},
     vorher:V, nachher:N, accept:A, fewCells:few, verdict};
 }
@@ -341,6 +350,7 @@ function report(R, meta){
   p(`Wahrheit: ${t.known} Tage (${t.y} foilbar, ${t.n} ruhig) aus ${t.days} Archivtagen — automatisch ${t.auto.y+t.auto.n} (${t.auto.y} foilbar, ${t.auto.n} ruhig), markiert ${t.marked}, Abweichungen ${t.deviations.length}`);
   t.deviations.forEach(d=>p(`  Abweichung ${d.day}: automatisch ${d.auto}, markiert ${d.marked}`));
   if(t.y) p(`Windsysteme der foilbaren Tage: ${Object.entries(t.sys).map(([k,v])=>k+" "+v).join(", ")}`);
+  if(t.jtyp && Object.keys(t.jtyp).length) p(`Joran-Typ: ${Object.entries(t.jtyp).map(([k,v])=>({dyn:"dynamique",stat:"statique","?":"unbestimmt"}[k]||k)+" "+v).join(", ")}`);
   p(`Aufteilung: Kalibrierung ${R.split.train} Tage (${R.split.trainRange.join(" – ")}), Messung ${R.split.test} Tage (${R.split.testRange.join(" – ")})`);
   if(meta.err && Object.keys(meta.err).length) p(`Stationsdaten fehlen/teilweise: ${Object.entries(meta.err).map(([k,v])=>k+" ("+v+")").join("; ")}`);
   p("");
@@ -354,7 +364,9 @@ function report(R, meta){
       lp(pair(v.total.prec,n.total.prec,fmtR),15), lp(pair(v.total.lead,n.total.lead,fmtM),17), lp(`${n.total.ev}/${n.total.nev} | ${n.systems.reduce((a,x)=>a+n.cells[x].evAll,0)}`,33),
       n.data ? (n.trusted ? "" : "  (löst nach Regel keinen Push aus)") : "  keine Stationsdaten");
     n.systems.forEach(x=>{ const a = v.cells[x], b = n.cells[x];
-      p(pad("",18), pad(x,8), lp("",14), lp(pair(a.rec,b.rec,fmtR),14), lp(pair(a.fpr,b.fpr,fmtR),14), lp(pair(a.prec,b.prec,fmtR),15), lp(pair(a.lead,b.lead,fmtM),17), lp(`${b.ev}/${b.nev} | ${b.evAll}`,33)); });
+      p(pad("",18), pad(x,8), lp("",14), lp(pair(a.rec,b.rec,fmtR),14), lp(pair(a.fpr,b.fpr,fmtR),14), lp(pair(a.prec,b.prec,fmtR),15), lp(pair(a.lead,b.lead,fmtM),17), lp(`${b.ev}/${b.nev} | ${b.evAll}`,33));
+      if(x==="joran" && n.jtyp) ["dyn","stat"].forEach(k=>{ const a2 = v.jtyp[k], b2 = n.jtyp[k]; if(!b2.ev) return;
+        p(pad("",18), pad("  "+k,8), lp("",14), lp(pair(a2.rec,b2.rec,fmtR),14), lp("",14), lp("",15), lp(pair(a2.lead,b2.lead,fmtM),17), lp(`${b2.ev} Test`,33)); }); });
   });
   const pv = R.vorher.pooled, pn = R.nachher.pooled;
   p(pad("ALLE (Push-fähig)",26), lp("",14), lp(pair(pv.rec,pn.rec,fmtR),14), lp(pair(pv.fpr,pn.fpr,fmtR),14), lp(pair(pv.prec,pn.prec,fmtR),15), lp(pair(pv.lead,pn.lead,fmtM),17), lp(`${pn.ev}/${pn.nev}`,33));
