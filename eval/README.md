@@ -18,9 +18,9 @@ Stationsdaten (SwissMetNet, 10-min, `t_recent` + `t_now`) holt das Skript selbst
   (Schritt «Seemessung archivieren», `push/archive.cjs`). meteoBase bietet keine älteren Werte an (geprüft 16.10.2026:
   `?date=` wird ignoriert, Diagrammdaten nur 24 h und schlüsselgeschützt). Das Archiv beginnt deshalb mit dem Merge;
   `archive/` im Repo enthält den Stand von `live/lake.json` vom 16.10.2026 als Startbestand.
-- **Automatisch** (`core.lakeDay`): foilbar, wenn im Zeitfenster der Einstellungen an einer aktiven Seestation das gleitende
-  Mittel über `minH` Stunden gerundet ≥ `T` lag (mind. 80 % der 10-min-Werte). Ruhig nur, wenn eine Station das Fenster
-  zu mind. 80 % abdeckt, sonst unbekannt (zählt nicht).
+- **Automatisch** (`core.lakeDay`): foilbar, wenn im Zeitfenster der Einstellungen an einer aktiven Seestation während
+  mindestens `minH` Stunden jeder 10-min-Mittelwert gerundet ≥ `T` lag (Lücke höchstens 20 min, mind. 80 % der Werte).
+  Ruhig nur, wenn eine Station das Fenster zu mind. 80 % abdeckt, sonst unbekannt (zählt nicht).
 - **Markiert:** `eval/truth.json` im Format von «Markierungen kopieren» (`"JJJJ-MM-TT":"y"|"n"|"k"`, `"tl:JJJJ-MM-TT":1`,
   optional `"sys:JJJJ-MM-TT":"joran"|"w"|…`). Markierungen überstimmen die automatische Wahrheit; jede Abweichung wird ausgewiesen.
 - **Windsystem** eines foilbaren Tages: Markierung, sonst automatisch: Taubenlöchler, wenn am See Nord/Bise und Courtelary in
@@ -36,7 +36,8 @@ ruhigen Tagen, dem System des Signals zugeordnet), Precision, mittlere Vorlaufze
 ≥ T am See; negativ = Signal kam zu spät). «Push» zählt einen Tag
 als erkannt, wenn eine Push-fähige Station oder Regel E meldet. «ALLE» und «Push» zählen nur Stationen, die nach der
 jeweiligen Regel Push auslösen dürfen, und einen Treffer nur, wenn das Signal spätestens beim Beginn am See kam; diese
-Zeile ist die Grundlage der Akzeptanzregeln. Rundung wie in der App: 13.5 kn gilt als 14 kn (bewusst grosszügig).
+Zeile ist die Grundlage der Akzeptanzregeln. Recall zählt die Windtage aller Stationen (eine stillgelegte Station verpasst
+ihre Tage), FPR nur die ruhigen Tage der Push-fähigen Stationen; die Zeile «Push» zeigt dasselbe je Tag. Rundung wie in der App: 13.5 kn gilt als 14 kn (bewusst grosszügig).
 
 ## Akzeptanzregeln
 

@@ -33,10 +33,7 @@ jobs:
         with:
           node-version: 20
       - name: Messreihe Seestationen holen
-        # Teilabruf: Dateiinhalte (Archiv) erst bei Bedarf, damit der wachsende Ordner archive den Lauf nicht verlangsamt
-        run: |
-          { git fetch -q --filter=blob:none origin +refs/heads/live:refs/remotes/origin/live || git fetch -q origin +refs/heads/live:refs/remotes/origin/live; } \
-            && git show origin/live:lake.json > "$RUNNER_TEMP/lake.json" || echo "noch keine Messreihe"
+        run: git fetch -q origin live && git show origin/live:lake.json > "$RUNNER_TEMP/lake.json" || echo "noch keine Messreihe"
       - name: Wind prüfen
         run: node push/check.cjs
         env:

@@ -321,9 +321,10 @@ function lakeNow(lk, St, now, upSys){
 }
 
 /* Wahrheit aus der Seemessung (Archiv, eine Datei pro Tag): Ein Tag ist foilbar, wenn im Zeitfenster der Einstellungen
-   an einer aktiven Seestation das gleitende Mittel über minH Stunden gerundet ≥ T kn lag. Ein Mittel zählt nur mit
-   mindestens 80 % der 10-min-Werte. «Ruhig» nur, wenn eine Station das Fenster zu mindestens 80 % abdeckt; sonst unbekannt.
-   onset = erster 10-min-Wert ≥ T im ersten foilbaren Zeitraum (frühester über beide Stationen). */
+   an einer aktiven Seestation während mindestens minH Stunden jeder 10-min-Mittelwert (gerundet, wie angezeigt) ≥ T kn lag.
+   Zusammenhängend heisst: höchstens ein fehlender Wert in Folge (Lücke ≤ 20 min) und mindestens 80 % der Werte vorhanden.
+   «Ruhig» nur, wenn eine Station das Fenster zu mindestens 80 % abdeckt; sonst unbekannt.
+   onset = erster Wert des ersten foilbaren Zeitraums (frühester über beide Stationen). */
 const LAKE_COVER = 0.8;
 function lakeDay(lk, day, St){
   St = St || DEF;
@@ -333,16 +334,16 @@ function lakeDay(lk, day, St){
   LAKE.forEach(L=>{
     if(!St.spots[L.id]) return;
     const rows = lakeRows(lk, L.id).filter(r=>r.mean!=null && inWin(r.t));
-    const s = out.st[L.id] = {n:rows.length, cover:rows.length/((h1-h0)*6), max:null, ev:false, onset:null};
+    const s = out.st[L.id] = {n:rows.length, cover:Math.min(1, rows.length/((h1-h0)*6)), max:null, ev:false, onset:null};
     if(s.cover>=LAKE_COVER) out.known = true;
-    for(let i=0, j=0; i<rows.length; i++){
-      while(rows[i].t - rows[j].t >= span) j++;
-      const w = rows.slice(j, i+1);
-      if(w.length<need) continue;
-      const m = w.reduce((a,r)=>a+r.mean,0)/w.length;
-      if(s.max==null || m>s.max) s.max = r1(m);
-      if(!s.ev && over(m, St)){ const f = w.find(r=>over(r.mean, St)) || w[0]; s.ev = true; s.onset = f.t; s.dir = f.dir; }
-    }
+    let a = -1;                                   /* Beginn der laufenden Folge von Werten ≥ T */
+    rows.forEach((r,i)=>{
+      if(s.max==null || r.mean>s.max) s.max = r.mean;
+      if(!over(r.mean, St) || (a>=0 && r.t - rows[i-1].t > 20*60000)) a = over(r.mean, St) ? i : -1;
+      else if(a<0) a = i;
+      /* Dauer: jeder Wert steht für 10 min */
+      if(!s.ev && a>=0 && r.t - rows[a].t + 10*60000 >= span && i-a+1 >= need){ s.ev = true; s.onset = rows[a].t; s.dir = rows[a].dir; }
+    });
     if(s.ev){ out.ev = out.known = true; if(!out.onset || s.onset<out.onset){ out.onset = s.onset; out.dir = s.dir; } }
   });
   return out;

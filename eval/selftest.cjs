@@ -53,4 +53,15 @@ const R2 = M.measure({lk, S, marks:{"2026-06-28":"n", "2026-06-02":"n"}, St, spl
   cores:{vorher:{core:C, rule:"pss"}, nachher:{core:C, rule:"recall"}}});
 assert.strictEqual(R2.truth.deviations.length, 1); assert.strictEqual(R2.truth.deviations[0].day, "2026-06-28");
 assert.strictEqual(R2.truth.y, 9); assert.strictEqual(R2.truth.marked, 2);
+/* Wahrheit: «während minH Stunden ≥ T» — 30 min 22 kn + 30 min 7 kn ist kein Ereignis (Mittel 14.5 genügt nicht) */
+const day1 = (vals, step) => ({st:{vin:{rows:vals.map((v,k)=>({t:Z(1, 17, 0+k*(step||10)).toISOString(), mean:v, dir:300}))}, ips:{rows:[]}}});
+assert.strictEqual(C.lakeDay(day1([22,22,22,7,7,7]), "2026-06-01", St).ev, false);
+assert.strictEqual(C.lakeDay(day1([15,15,15,15,15,15]), "2026-06-01", St).ev, true);                /* 6 Werte = 60 min */
+assert.strictEqual(C.lakeDay(day1([15,15,15,15,15]), "2026-06-01", St).ev, false);                  /* 50 min */
+assert.strictEqual(C.lakeDay(day1([15,15,13,15,15,15]), "2026-06-01", St).ev, false);               /* Einbruch unter T */
+assert.strictEqual(C.lakeDay(day1([13.5,14,14,14,14,14]), "2026-06-01", St).ev, true);              /* gerundet wie in der App */
+const gap = {st:{vin:{rows:[0,10,30,40,50].map(m=>({t:Z(1,17,m).toISOString(), mean:15, dir:300}))}, ips:{rows:[]}}};
+assert.strictEqual(C.lakeDay(gap, "2026-06-01", St).ev, true);                                       /* ein fehlender Wert */
+const gap2 = {st:{vin:{rows:[0,10,40,50,60,70].map(m=>({t:Z(1,17,m).toISOString(), mean:15, dir:300}))}, ips:{rows:[]}}};
+assert.strictEqual(C.lakeDay(gap2, "2026-06-01", St).ev, false);                                     /* Lücke 30 min trennt */
 console.log("Selbsttest bestanden (synthetische Daten).");

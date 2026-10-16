@@ -92,14 +92,14 @@ function readRows(dir, abk, kind){
   if(fs.existsSync(c)) return C.parseSMN(fs.readFileSync(c,"latin1"));
   return null;
 }
-/* Stundenwerte aus 10-min-Werten (Uhrzeit-Stunde, Zeitstempel = Stundenbeginn), Richtung als Vektormittel */
+/* Stundenwerte aus 10-min-Werten (Uhrzeit-Stunde, Zeitstempel = Stundenende wie bei SwissMetNet), Richtung als Vektormittel */
 function hourly(rows){
   const by = new Map();
   rows.forEach(r=>{ const k = Math.floor(r.t/3600e3)*3600e3; (by.get(k) || by.set(k, []).get(k)).push(r); });
   return [...by.entries()].filter(([,a])=>a.length>=4).map(([k,a])=>{
     const mean = a.reduce((s,r)=>s+r.mean,0)/a.length;
     const d = a.filter(r=>r.dir!=null), x = d.reduce((s,r)=>s+r.mean*Math.sin(r.dir*Math.PI/180),0), y = d.reduce((s,r)=>s+r.mean*Math.cos(r.dir*Math.PI/180),0);
-    return {t:new Date(k), mean, dir: d.length ? (Math.atan2(x,y)*180/Math.PI+360)%360 : null, gust:Math.max(...a.map(r=>r.gust||0))};
+    return {t:new Date(k+3600e3), mean, dir: d.length ? (Math.atan2(x,y)*180/Math.PI+360)%360 : null, gust:Math.max(...a.map(r=>r.gust||0))};
   }).sort((a,b)=>a.t-b.t);
 }
 async function loadStations(o){
@@ -291,8 +291,9 @@ function measure({lk, S, marks, St, split, cores}){
     /* über alle Stationen zusammen: Summe der Stationen, die nach der Regel Push auslösen dürfen; Treffer nur, wenn das
        Signal spätestens beim Beginn am See kam (ein späteres Signal kündigt nichts mehr an). Fehlalarme und Vorlauf wie gezählt. */
     const P = {ev:0, tp:0, nev:0, fp:0, leads:[]};
-    res.stations.forEach(r=>{ P.ev+=r.total.ev; P.nev+=r.total.nev;
-      if(r.data && r.trusted){ P.tp+=r.total.tpIn; P.fp+=r.total.fp; P.leads.push(...r.total.leads); } });
+    /* Recall: Windtage aller Stationen (eine stillgelegte Station verpasst ihre Tage); FPR: nur Push-fähige Stationen */
+    res.stations.forEach(r=>{ P.ev+=r.total.ev;
+      if(r.data && r.trusted){ P.tp+=r.total.tpIn; P.fp+=r.total.fp; P.nev+=r.total.nev; P.leads.push(...r.total.leads); } });
     res.pooled = Object.assign(P, {rec:rate(P.tp,P.ev), fpr:rate(P.fp,P.nev), prec:rate(P.tp,P.tp+P.fp), lead:mean(P.leads), leadMed:median(P.leads)});
     /* Push-Sicht: Tag erkannt, wenn eine Push-fähige Station oder Regel E meldet */
     const Q = {ev:0, tp:0, nev:0, fp:0, leads:[]};
