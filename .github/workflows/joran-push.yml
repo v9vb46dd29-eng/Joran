@@ -28,8 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Messreihe Seestationen holen
@@ -80,4 +80,9 @@ jobs:
           blob=$(git hash-object -w "$f")
           tree=$( { [ -n "$arch" ] && printf "040000 tree %s\tarchive\n" "$arch"; printf "100644 blob %s\tlake.json\n" "$blob"; } | git mktree)
           commit=$(git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit-tree "$tree" -m "Joran: Messreihe Seestationen")
-          git push -q --force-with-lease="refs/heads/live:$base" origin "$commit:refs/heads/live"
+          # GitHub lehnt Pushes vereinzelt ohne Grund ab («remote rejected … (failed)») — darum bis zu drei Versuche.
+          for i in 1 2 3; do
+            git push -q --force-with-lease="refs/heads/live:$base" origin "$commit:refs/heads/live" && exit 0
+            sleep 5
+          done
+          exit 1
