@@ -1,4 +1,4 @@
-Joran — Messung Prognosemodell (Stand 66caa94+lokal; Baseline: git:origin/baseline-2026-11-10; neu: dieser Stand)
+Joran — Messung Prognosemodell (Stand a61a447+lokal; Baseline: git:origin/baseline-2026-11-10; neu: dieser Stand)
 Einstellungen simon: Fenster Abend 16–21, Mindestdauer 1 h; Schwelle 12 kn, Kontrolle 14 kn
 Tage: 27 im Archiv, 26 auswertbar; Entwicklung 21 (2026-10-16 – 2026-11-05), Holdout 5 (2026-11-06 – 2026-11-10)
 Gemessen: Holdout, 5 Tage, Parameter wie im Stand hinterlegt (bestimmt auf 2026-10-16 – 2026-11-05)
