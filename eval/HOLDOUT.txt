@@ -1,0 +1,85 @@
+Joran — Messung Prognosemodell (Stand a61a447+lokal; Baseline: git:origin/baseline-2026-11-10; neu: dieser Stand)
+Einstellungen simon: Fenster Abend 16–21, Mindestdauer 1 h; Schwelle 12 kn, Kontrolle 14 kn
+Tage: 27 im Archiv, 26 auswertbar; Entwicklung 21 (2026-10-16 – 2026-11-05), Holdout 5 (2026-11-06 – 2026-11-10)
+Gemessen: Holdout, 5 Tage, Parameter wie im Stand hinterlegt (bestimmt auf 2026-10-16 – 2026-11-05)
+
+=== Schwelle 12 kn ===
+Wahrheit (alle Tage des Zeitraums): 26 Tage, 5 foilbar, 21 ruhig — automatisch 26, markiert 0, Abweichungen 0; Windsysteme: bise 1, w 4
+Gesamtmodell             Recall B|neu      FPR B|neu  Precision B|neu      Vorlauf B|neu  Fälle EV/NEV  zu spät B|neu
+See (Vingelz oder Ipsa          – | –    0.00 | 0.00            – | –              – | –           0/5          0 | 0
+Vingelz                         – | –    0.00 | 0.00            – | –              – | –           0/5          0 | 0
+Ipsach                          – | –    0.00 | 0.00            – | –              – | –           0/4          0 | 0
+Upwind-Station    System  Schwelle B|neu   Recall B|neu      FPR B|neu      Vorlauf B|neu  EV/NEV  Status neu
+Cressier          joran          10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  w              10 | 10          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.81
+Chasseral         joran          14 | 14          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  n              14 | 14          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Neuchâtel         w              10 | 10          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.81
+                  s              10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  joran          10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Payerne           w              10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  s               10 | 8          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.63
+                  so             10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Grenchen          bise           10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert (kein brauchbarer Faktor)
+                  n              10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Wynau             bise             9 | 9          – | –    0.00 | 0.00              – | –     0/5  Startwert (kein brauchbarer Faktor)
+Mühleberg         s                9 | 9          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  so               9 | 9          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Chaumont          joran          12 | 12          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w               12 | 8          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.63
+La Chaux-de-Fonds joran            8 | 8          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w                8 | 9          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.72
+Bullet/La Frétaz  joran          12 | 12          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w              12 | 12          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+La Brévine        joran            8 | 8          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w               8 | 10          – | –    0.20 | 0.00              – | –     0/5  vorläufig, Faktor 0.86
+Courtelary        tl               7 | 7          – | –    0.40 | 0.40              – | –     0/5  Startwert, zählt nicht
+Regel E Cressier  joran             fest          – | –    0.00 | 0.00              – | –     0/5  aktiv (unverändert)
+Tage (neu): 11-06 –; 11-07 –; 11-08 –; 11-09 –; 11-10 –
+
+=== Schwelle 14 kn ===
+Wahrheit (alle Tage des Zeitraums): 26 Tage, 4 foilbar, 22 ruhig — automatisch 26, markiert 0, Abweichungen 0; Windsysteme: w 4
+Gesamtmodell             Recall B|neu      FPR B|neu  Precision B|neu      Vorlauf B|neu  Fälle EV/NEV  zu spät B|neu
+See (Vingelz oder Ipsa          – | –    0.00 | 0.00            – | –              – | –           0/5          0 | 0
+Vingelz                         – | –    0.00 | 0.00            – | –              – | –           0/5          0 | 0
+Ipsach                          – | –    0.00 | 0.00            – | –              – | –           0/4          0 | 0
+Upwind-Station    System  Schwelle B|neu   Recall B|neu      FPR B|neu      Vorlauf B|neu  EV/NEV  Status neu
+Cressier          joran          12 | 12          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  w              12 | 11          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.81
+Chasseral         joran          16 | 16          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  n              16 | 16          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Neuchâtel         w              12 | 11          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.81
+                  s              12 | 12          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  joran          12 | 12          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Payerne           w              11 | 11          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  s               11 | 9          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.63
+                  so             11 | 11          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Grenchen          bise           11 | 11          – | –    0.00 | 0.00              – | –     0/5  Startwert (kein brauchbarer Faktor)
+                  n              11 | 11          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Wynau             bise           11 | 11          – | –    0.00 | 0.00              – | –     0/5  Startwert (kein brauchbarer Faktor)
+Mühleberg         s              11 | 11          – | –    0.00 | 0.00              – | –     0/5  Startwert
+                  so             11 | 11          – | –    0.00 | 0.00              – | –     0/5  Startwert
+Chaumont          joran          14 | 14          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w               14 | 9          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.63
+La Chaux-de-Fonds joran          10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w              10 | 10          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.72
+Bullet/La Frétaz  joran          14 | 14          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w              14 | 14          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+La Brévine        joran          10 | 10          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+                  w              10 | 12          – | –    0.00 | 0.00              – | –     0/5  vorläufig, Faktor 0.86
+Courtelary        tl               8 | 8          – | –    0.00 | 0.00              – | –     0/5  Startwert, zählt nicht
+Regel E Cressier  joran             fest          – | –    0.00 | 0.00              – | –     0/5  aktiv (unverändert)
+Tage (neu): 11-06 –; 11-07 –; 11-08 –; 11-09 –; 11-10 –
+
+B = Baseline. Recall: Signal spätestens beim Beginn am See. Vorlauf: Mittel über alle foilbaren Abende mit Signal (negativ = zu spät).
+FPR je Upwind-Station: Signal an ruhigen Abenden, dem Windsystem des Signals zugeordnet. Schwelle in kn bei dieser Seeschwelle.
+
+Akzeptanzregeln (Holdout):
+  [?] Recall Vingelz steigt oder bleibt gleich: – → – (0 Abende)
+  [?] Recall Ipsach steigt oder bleibt gleich: – → – (0 Abende)
+  [x] FPR insgesamt steigt um höchstens 10 Prozentpunkte: 0.00 → 0.00
+  [?] Mittlere Vorlaufzeit mindestens 30 min: –
+  [?] Recall bei 14 kn sinkt nicht: – → – (0 Abende)
+  [ ] Je Station und Windsystem mindestens 10 Ereignistage: 0 von 24 Zellen (Ereignistage: bise 1, w 4)
+Ergebnis nach Regeln: TEILWEISE NICHT AUSWERTBAR (keine Ereignisse) — VORLÄUFIG (zu wenige Ereignistage: committen, nicht aktiv setzen)
+Archiv: 27 Tagesdateien; Markierungen: keine (nur automatische Wahrheit)
