@@ -317,7 +317,7 @@ function report(R, meta){
     p(pad("Gesamtmodell",22), lp("Recall B|neu",15), lp("FPR B|neu",15), lp("Precision B|neu",17), lp("Vorlauf B|neu",19), lp("Fälle EV/NEV",14), lp("zu spät B|neu",15));
     [["see","See (Vingelz oder Ipsach)"]].concat(C.LAKE.map(x=>[x.id, x.name])).forEach(([id,name])=>{ const a = X.basis.res.lake[id], b = X.neu.res.lake[id];
       p(pad(name,22).slice(0,22)+(name.length>22?"":""), lp(pair(a.rec,b.rec,fmtR),15), lp(pair(a.fpr,b.fpr,fmtR),15), lp(pair(a.prec,b.prec,fmtR),17), lp(pair(a.lead,b.lead,fmtM),19), lp(`${b.ev}/${b.nev}`,14), lp(`${a.late} | ${b.late}`,15)); });
-    p(pad("Upwind-Station",18), pad("System",7), lp("Schwelle B|neu",15), lp("Recall B|neu",15), lp("FPR B|neu",15), lp("Vorlauf B|neu",19), lp("EV/NEV",8), "  Status neu");
+    p(pad("Upwind-Station",18), pad("System",7), lp("Schwelle B|neu",15), lp("Recall B|neu",15), lp("FPR B|neu",15), lp("Vorlauf B|neu",19), lp("EV/NEV",8), R.teil==="dev" ? "  Status neu (Parameter des letzten Blocks; frühere Blöcke können leer sein)" : "  Status neu");
     const Mn = X.neu.models[X.neu.models.length-1] || null;
     const ids = [...new Set(Object.keys(X.basis.res.up).concat(Object.keys(X.neu.res.up)))];
     ids.forEach(abk=>{ const a = X.basis.res.up[abk], b = X.neu.res.up[abk], r = b || a;

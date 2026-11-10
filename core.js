@@ -551,12 +551,12 @@ const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, minF:0.5, 
     wyn:{"bise":{"f":null,"rec":1,"fpr":0.35,"ev":6,"days":4}},
     chm:{"w":{"f":0.63,"rec":0.94,"fpr":0.02,"ev":18,"days":5,"rel":1}},
     cdf:{"w":{"f":0.72,"rec":1,"fpr":0.02,"ev":14,"days":4,"rel":1}},
-    brl:{"w":{"f":0.86,"rec":1,"fpr":0.05,"ev":18,"days":5,"rel":1}},
-    coy:{"tl":{"f":null,"rec":null,"fpr":null,"ev":18,"days":5,"rel":0}}
+    brl:{"w":{"f":0.86,"rec":1,"fpr":0.05,"ev":18,"days":5,"rel":1}}
   }};
 const modelOf = St => (St && St.model) || (MODEL.active ? MODEL : null);
 function modelF(up, St, sysId){
-  const c = St.st && St.st[up.abk]; if(c && c.ts) return null;          /* eigene Kalibrierung im Rückblick geht vor */
+  /* eigene Kalibrierung im Rückblick geht vor, auch wenn sie die Station als nicht verlässlich einstuft */
+  const c = St.st && St.st[up.abk]; if(c && (c.ts || c.pss!=null || c.rel===0 || c.rel===1)) return null;
   const M = modelOf(St), e = M && M.f && M.f[up.abk] && sysId ? M.f[up.abk][sysId] : null;
   return e || null;
 }
@@ -778,7 +778,8 @@ function calibrateStation(rows, up, St, days, truth, cha, rule){
    Treffer = Stationssignal (30 min im Sektor, Mittel ≥ T × Faktor, nicht abnehmend) spätestens beim Beginn am See;
    Fehlalarm = Signal an einem ruhigen Abend. Gewählt wird der höchste Faktor mit Recall ≥ minRecall, davon bleibt als
    Sicherheit der Anteil margin (verpasste Abende wiegen schwerer). Weniger als minDays Ereignistage: kein Eintrag, der
-   Startwert der Station gilt weiter. Erreicht kein Faktor den Recall, liegt er unter minF × Startwert oder liegt die
+   Startwert der Station gilt weiter. Eine Station, die bisher Push auslöst, bekommt
+   höchstens ihren Startwert (nie eine höhere Schwelle). Erreicht kein Faktor den Recall, liegt er unter minF × Startwert oder liegt die
    Fehlalarmrate über maxFpr, ist der Faktor unbrauchbar: Eine Erweiterungsstation (extra) zählt dann nicht (rel 0). Eine
    Station, die bisher Push auslöst, wird nie stummgeschaltet; sie behält Startwert und Push (Eintrag ohne f und rel). */
 function fitModel(data, opt){
@@ -812,7 +813,8 @@ function fitModel(data, opt){
     (up.tl ? ["tl"] : up.sys.filter(id=>St0.dirs[id])).forEach(s=>{
       const E = [], N = [];
       P.tGrid.forEach(T=>Object.keys(tr[T]).forEach(d=>{ const a = tr[T][d]; if(!all[d]) return;
-        if(a.ev){ if(dom(d, a.onset)===s) E.push({T, d, on:a.onset}); } else N.push({T, d}); }));
+        /* Taubenlöchler: nur Abende, an denen es am See aus Nord oder Bise wehte */
+        if(a.ev){ if(dom(d, a.onset)===s && (!up.tl || ["n","bise"].includes((dirOf(a.dir)||{}).id))) E.push({T, d, on:a.onset}); } else N.push({T, d}); }));
       const evDays = new Set(E.map(x=>x.d)).size;
       if(evDays<P.minDays || !N.length) return;
       const at = f => { const ts = T => Math.max(3, Math.round(T*f));
@@ -820,11 +822,12 @@ function fitModel(data, opt){
         const fp = N.filter(x=>(steps[x.d]||[]).some(q=>q.s===s && q.v>=ts(x.T))).length;
         return {rec:tp/E.length, fpr:fp/N.length}; };
       const rd = v => Math.round(v*100)/100;
+      const ext = !!(up.extra || (up.extraSys && up.extraSys.includes(s)));
       let best = null;
       for(let k=60; k>=4 && best==null; k--){ const f = k/20; if(at(f).rec>=P.minRecall-1e-9) best = f; }
       const e = {f:null, rec:null, fpr:null, ev:E.length, days:evDays};
-      const ext = !!(up.extra || (up.extraSys && up.extraSys.includes(s)));
-      if(best!=null){ const f = rd(best*P.margin), m = at(f); e.rec = rd(m.rec); e.fpr = rd(m.fpr);
+      /* Eine Station, die bisher Push auslöst, bekommt nie eine höhere Schwelle als ihren Startwert */
+      if(best!=null){ const f = ext ? rd(best*P.margin) : Math.min(rd(best*P.margin), up.f), m = at(f); e.rec = rd(m.rec); e.fpr = rd(m.fpr);
         if(f>=P.minF*up.f-1e-9 && m.fpr<=P.maxFpr+1e-9){ e.f = f; e.rel = 1; } }
       if(e.f==null && ext) e.rel = 0;
       (out[up.abk] || (out[up.abk] = {}))[s] = e;
