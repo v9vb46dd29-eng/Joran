@@ -131,3 +131,48 @@ Gefordert sind 10 Ereignistage je Station und Windsystem. Stand bei 12 kn: West 
 - Taubenlöchler, Süd, Südost, Nord: bisher kein Abend. Für diese Zellen ist die Regel vielleicht nie erfüllbar; sie braucht
   einen Entscheid, etwa nur West, Bise und Joran zu verlangen.
 - Markierungen in `eval/truth.json` (vor allem `tl:` und `sys:`) beschleunigen die Zuordnung, ersetzen aber keine Abende.
+
+## Lagebild nach Luftschichten (10.11.2026, Auswertung ohne Modelländerung)
+
+Anstoss von Simon: Das Modell soll verstehen, wie sich der Wind in der Bieler Bucht je Lage verhält, und dafür Winde aus
+verschiedenen Höhen nutzen. `node eval/schichten.cjs --T 12` wertet die Entwicklungstage aus (8–22 Uhr, 1614
+Zehnminutenwerte): Wind auf Kammhöhe (Chasseral, 1594 m), am Jurasüdfuss (Cressier, 431 m) und die Temperaturabnahme
+dazwischen als Mass, ob die Schichten gekoppelt sind (unter 4 K je km = stabil). Der Holdout bleibt unberührt.
+
+| Lage auf dem Chasseral | Schichtung | Tage | Kamm | Cressier | Ipsach (Anteil ≥ 12 kn) | Vingelz (Anteil ≥ 12 kn) |
+|---|---|---|---|---|---|---|
+| West | gemischt | 5 | 20 kn | 11 kn SW | 18 kn (74 %) | 8 kn (15 %) |
+| West | stabil | 2 | 14 kn | 0 kn | 2 kn (0 %) | 2 kn (0 %) |
+| Südwest | gemischt | 5 | 20 kn | 11 kn SW | 18 kn (85 %) | 10 kn (44 %) |
+| Südwest | stabil | 4 | 16 kn | 1 kn | 2 kn (0 %) | 2 kn (0 %) |
+| Süd | gemischt | 4 | 33 kn | 9 kn SW | 16 kn (63 %) | 11 kn (38 %) |
+| Ost (Bise) | gemischt | 9 | 22 kn | 9 kn NO | 8 kn (5 %) | 8 kn (11 %) |
+| Nordost (Bise) | gemischt | 3 | 16 kn | 11 kn NO | 8 kn (6 %) | 9 kn (28 %) |
+| Nord | gemischt | 3 | 25 kn | 5 kn | 8 kn (31 %) | 6 kn (0 %) |
+| Nordwest | gemischt | 5 | 17 kn | 3 kn | 5 kn (27 %) | 5 kn (4 %) |
+| Nordwest | stabil | 3 | 14 kn | 1 kn | 1 kn (0 %) | 1 kn (0 %) |
+
+Was sich zeigt (wenige Tage je Zeile, die Zehnminutenwerte eines Tages hängen zusammen, also Hinweise und keine Belege):
+
+- **Kopplung entscheidet.** Bei gleichem Höhenwind aus West oder Südwest misst Ipsach 18 kn, wenn die Luft durchmischt ist,
+  und 2 kn bei stabiler Schichtung. Der Höhenwind allein sagt nichts, erst zusammen mit der Schichtung.
+- **West:** Ipsach erreicht rund 0.9 des Kammwinds und das 1.7-Fache von Cressier. Vingelz liegt im Windschatten und
+  bekommt nur 0.4 bis 0.6 von Ipsach.
+- **Bise:** Der See misst etwa 0.8 des Winds am Jurasüdfuss und bleibt meist unter 12 kn. Vingelz ist hier gleich stark
+  oder stärker als Ipsach.
+- **Nordlage (17.10.):** 25 kn aus Nord auf dem Kamm, am Jurasüdfuss fast nichts, Ipsach 13 kn aus Nordost. Diese Lage sieht
+  nur der Chasseral; keine Station der unteren Schicht kündigt sie an.
+- **Chasseral-Signale:** Die drei Fehlalarme (16., 20., 27.10.) fielen auf 2.1, 3.7 und 1.1 K je km, die zwei Treffer
+  (17., 25.10.) auf 6.1 und 7.7 K je km.
+
+### Kandidat H3 (noch nicht gebaut): Schichtung als Bedingung für Signale aus der Höhe
+
+Ein Signal einer Kammstation (Chasseral, später Chaumont und Bullet) zählt nur, wenn die Temperatur von Cressier zum
+Chasseral um mindestens 4 K je km abnimmt. Erwartung auf den Entwicklungstagen bei 12 kn: 3 von 12 Fehlalarmen weniger
+(FPR 0.75 → 0.56), kein Abend verpasst. Kosten: keine neue Datenquelle, die Temperatur liegt in den SwissMetNet-Daten schon vor.
+Risiko: Die Grenze stützt sich auf 5 Signale. Der Joran statique an warmen Sommerabenden ist nicht in den Daten und
+könnte sich anders verhalten [OFFEN]. Der Holdout ist schon einmal gemessen; H3 bräuchte dort einen zweiten Lauf.
+
+Weitere Höhenquelle: Modellwind auf 850 und 700 hPa über Open-Meteo (frei, ohne Schlüssel). Nutzen: Höhenwind als Prognose
+für den nächsten Tag statt nur als Messung. Kosten: ein zusätzlicher Abruf je Refresh. Am 10.11. nicht prüfbar, das
+Tageskontingent war erschöpft [OFFEN].
