@@ -303,7 +303,7 @@ function report(R, meta){
   p(`Joran — Messung Prognosemodell (Stand ${meta.rev}; Baseline: ${meta.basis}; neu: ${meta.neu})`);
   p(`Einstellungen ${meta.user}: Fenster ${C.WINS[R.settings.win][2]}, Mindestdauer ${R.settings.minH} h; Schwelle ${R.settings.T} kn${R.settings.ctl?`, Kontrolle ${R.settings.ctl} kn`:""}`);
   const d = R.days;
-  p(`Tage: ${d.archive} im Archiv, ${d.known} auswertbar; Entwicklung ${d.dev} (${d.devRange.join(" – ")})` + (R.teil==="holdout" ? `, Holdout ${d.hold} (${d.holdRange.join(" – ")})` : ", Holdout nicht gelesen"));
+  p(`Tage: ${d.archive} im Archiv, ${d.known} auswertbar; Entwicklung ${d.dev} (${d.devRange.join(" – ")})` + (R.teil==="holdout" ? `, Holdout ${d.hold} (${d.holdRange.join(" – ")})` : ", Holdout nicht ausgewertet"));
   p(R.teil==="anpassung" ? `Gemessen: ${d.test} Entwicklungstage mit Parametern aus denselben Tagen — zu günstig, zählt nicht für die Akzeptanz`
     : R.teil==="dev" ? `Gemessen: ${d.test} Entwicklungstage in ${d.folds.length} Blöcken (${d.folds.map(f=>f.test.join("–")).join("; ")}), Parameter jeweils nur aus früheren Tagen`
     : `Gemessen: Holdout, ${d.test} Tage, Parameter wie im Stand hinterlegt${meta.fitted ? ` (bestimmt auf ${meta.fitted.join(" – ")})` : ""}`);
