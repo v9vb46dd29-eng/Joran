@@ -101,8 +101,11 @@ function localDay(off, now){
   const [y,m,d] = t.split("-").map(Number);
   return new Date(Date.UTC(y,m-1,d+off,12)).toISOString().slice(0,10);
 }
-const localHour = now => parseInt(fmtCH(now||new Date(),{hour:"2-digit",hour12:false}),10) % 24;
-const dayOfDate = dt => new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit"}).format(dt);
+/* Formatierer einmal anlegen: Sie werden beim Nachspielen vieler Tage sehr oft gebraucht */
+const HOUR_FMT = new Intl.DateTimeFormat("de-CH",{timeZone:"Europe/Zurich",hour:"2-digit",hour12:false});
+const DAY_FMT = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit"});
+const localHour = now => parseInt(HOUR_FMT.format(now||new Date()),10) % 24;
+const dayOfDate = dt => DAY_FMT.format(dt);
 const dayLabel = (day, o) => fmtCH(new Date(day+"T12:00:00Z"), o||{weekday:"short",day:"numeric",month:"numeric"});
 
 /* ================= Datenabruf ================= */
@@ -532,7 +535,22 @@ function ruleE(rows, St){
   return res;
 }
 /* Upwind-Regel je Station: 30 min im Sektor, Mittel ≥ Stationsschwelle, nicht abnehmend */
-function stTs(up, St){ const c = St.st && St.st[up.abk]; return c && c.ts ? c.ts : Math.round(St.T*up.f); }
+/* Modell v2 (vorläufig, siehe eval/ITERATIONEN.md): Stationsfaktor je Windsystem, aus der Seemessung bestimmt (fitModel).
+   Die Stationsschwelle ist T × Faktor und gilt damit für jede einstellbare Schwelle. active = false: Die App rechnet wie
+   bisher mit den Startwerten f der Stationen. Zum Messen aktiviert eval/measure.cjs das Modell über St.model.
+   f[abk][system] = {f, rel, rec, fpr, ev, days}: rel 1 = löst Push aus, 0 = nicht verlässlich (zählt nicht). */
+const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, tGrid:[8,10,12,14], minDays:3, fitted:null, f:{}};
+const modelOf = St => (St && St.model) || (MODEL.active ? MODEL : null);
+function modelF(up, St, sysId){
+  const c = St.st && St.st[up.abk]; if(c && c.ts) return null;          /* eigene Kalibrierung im Rückblick geht vor */
+  const M = modelOf(St), e = M && M.f && M.f[up.abk] && sysId ? M.f[up.abk][sysId] : null;
+  return e || null;
+}
+function stTs(up, St, sysId){
+  const c = St.st && St.st[up.abk]; if(c && c.ts) return c.ts;
+  const e = modelF(up, St, sysId);
+  return e && e.f ? Math.max(3, Math.round(St.T*e.f)) : Math.round(St.T*up.f);
+}
 function stTrust(up, St){ const c = St.st && St.st[up.abk]; return c && c.pss!=null ? c.pss : null; }
 /* Verlässlich nach Recall-Regel: 1 / 0, fehlt (undefined), solange die Station so nicht kalibriert ist */
 function stRel(up, St){ const c = St.st && St.st[up.abk]; return c && (c.rel===0 || c.rel===1) ? c.rel : undefined; }
@@ -555,6 +573,9 @@ function upwindNow(rows, up, St, cha){
   res.last = rows[rows.length-1];
   res.mean30 = last3.reduce((a,r)=>a+r.mean,0)/3;
   res.sys = up.tl ? {id:"tl", name:"Talwind → Taubenlöchler"} : dirOf(res.last.dir);
+  /* Modell v2: Schwelle und Verlässlichkeit nach dem Windsystem, das die Station gerade misst */
+  const mf = modelF(up, St, res.sys && res.sys.id);
+  if(mf){ res.ts = stTs(up, St, res.sys.id); res.mrel = mf.rel; }
   const dirOK = last3.every(inSec), lvlOK = Math.round(res.mean30)>=res.ts, riseOK = last3[2].mean >= last3[0].mean-0.5;
   if(!inHrs(up, res.last.t)) res.block = `nur ${up.hrs[0]}–${up.hrs[1]} Uhr`;
   else if(up.tl && cha && chaWest(cha.slice(-3))) res.block = "Westwind auf dem Chasseral";
@@ -571,7 +592,8 @@ function upwindNow(rows, up, St, cha){
 const isExtra = s => !!(s.up.extra || (s.up.extraSys && s.u.sys && s.up.extraSys.includes(s.u.sys.id)));
 /* Signal zählt für Push. Recall-Regel aktiv und Station so kalibriert → nur wenn verlässlich;
    sonst wie bisher Peirce ≥ 0.25 oder ungeprüft (nicht extra). rule: zum Messen einer nicht aktiven Regel. */
-const isTrusted = (s, rule) => (rule||CAL.rule)==="recall" && s.u.rel!==undefined ? s.u.rel===1
+const isTrusted = (s, rule) => s.u.mrel!==undefined ? s.u.mrel===1
+  : (rule||CAL.rule)==="recall" && s.u.rel!==undefined ? s.u.rel===1
   : (s.u.trust==null && !isExtra(s)) || (s.u.trust!=null && s.u.trust>=0.25);
 /* Messlage jetzt: alle Upwind-Signale plus Regel E plus Böenfront */
 function nowcast(stations, St, now, lk){
@@ -736,6 +758,63 @@ function calibrateStation(rows, up, St, days, truth, cha, rule){
   return {ev, nev, tl:!!up.tl, rule, best: m ? {ts: m.c.pss>0.05 ? m.k : null, pss:rd(m.c.pss), rec:rd(m.c.rec), fpr:rd(m.c.fpr), c:m.c} : null};
 }
 
+/* Modell v2 bestimmen. data = {days:[JJJJ-MM-TT], lake:{Tag: Tagesdatei der Seemessung}, S:{abk: 10-min-Zeilen, t als Date}, St}.
+   Je Station und Windsystem (das die Station misst) über alle Schwellen in tGrid gemeinsam:
+   Ereignis = Abend, der am See foilbar war und an dem die Station in den 2 h vor Beginn mehrheitlich dieses System mass;
+   Treffer = Stationssignal (30 min im Sektor, Mittel ≥ T × Faktor, nicht abnehmend) spätestens beim Beginn am See;
+   Fehlalarm = Signal an einem ruhigen Abend. Gewählt wird der höchste Faktor mit Recall ≥ minRecall, davon bleibt als
+   Sicherheit der Anteil margin (verpasste Abende wiegen schwerer). Weniger als minDays Ereignistage: kein Eintrag, der
+   Startwert der Station gilt weiter. Erreicht kein Faktor den Recall oder liegt die Fehlalarmrate über maxFpr: rel 0. */
+function fitModel(data, opt){
+  const P = Object.assign({}, MODEL, opt||{}), St0 = data.St, [h0,h1] = WINS[St0.win], out = {};
+  const dset = new Set(data.days), cha = data.S.cha || null;
+  const lastLE = (rows, t) => { let lo = 0, hi = rows.length-1, k = -1; while(lo<=hi){ const m = (lo+hi)>>1; if(rows[m].t<=t){ k = m; lo = m+1; } else hi = m-1; } return k; };
+  const tr = {};
+  P.tGrid.forEach(T=>{ const St = Object.assign({}, St0, {T}); tr[T] = {};
+    data.days.forEach(d=>{ if(!data.lake[d]) return; const a = lakeDay(data.lake[d], d, St); if(a.known) tr[T][d] = a; }); });
+  UPWIND.forEach(up=>{
+    const rows = data.S[up.abk]; if(!rows || !rows.length) return;
+    const inSec = stSecFn(up, Object.assign({}, St0, {dirs:DEF.dirs}));
+    const sid = r => up.tl ? (inSec(r) ? "tl" : null) : (inSec(r) ? dirOf(r.dir).id : null);
+    const steps = {}, all = {};                       /* Tag → mögliche Signale {t, s, v} bzw. alle Werte {t, s} */
+    rows.forEach((r,i)=>{
+      const d = dayOfDate(r.t); if(!dset.has(d)) return;
+      (all[d] || (all[d] = [])).push({t:r.t, s:sid(r)});
+      if(i<2) return;
+      const hr = localHour(r.t); if(hr<h0-2 || hr>h1 || !inHrs(up, r.t)) return;
+      const a = [rows[i-2], rows[i-1], r];
+      if(r.t-a[0].t > 25*60000 || !a.every(inSec) || a[2].mean < a[0].mean-0.5) return;
+      if(up.tl && cha){ const k = lastLE(cha, r.t); if(k>=2 && r.t-cha[k].t < 50*60000 && chaWest(cha.slice(k-2, k+1))) return; }
+      (steps[d] || (steps[d] = [])).push({t:r.t, s:sid(r), v:Math.round((a[0].mean+a[1].mean+a[2].mean)/3)});
+    });
+    const dom = (d, onset) => {                        /* System, das die Station in den 2 h vor Beginn mehrheitlich mass */
+      const w = (all[d]||[]).filter(x=>x.t<=onset && x.t>=onset-2*3600e3); if(w.length<6) return null;
+      const n = {}; w.forEach(x=>{ if(x.s) n[x.s] = (n[x.s]||0)+1; });
+      const b = Object.keys(n).sort((x,y)=>n[y]-n[x])[0];
+      return b && n[b]/w.length>=0.5 ? b : null;
+    };
+    (up.tl ? ["tl"] : up.sys).forEach(s=>{
+      const E = [], N = [];
+      P.tGrid.forEach(T=>Object.keys(tr[T]).forEach(d=>{ const a = tr[T][d]; if(!all[d]) return;
+        if(a.ev){ if(dom(d, a.onset)===s) E.push({T, d, on:a.onset}); } else N.push({T, d}); }));
+      const evDays = new Set(E.map(x=>x.d)).size;
+      if(evDays<P.minDays || !N.length) return;
+      const at = f => { const ts = T => Math.max(3, Math.round(T*f));
+        const tp = E.filter(x=>(steps[x.d]||[]).some(q=>q.s===s && q.v>=ts(x.T) && q.t<=x.on)).length;
+        const fp = N.filter(x=>(steps[x.d]||[]).some(q=>q.s===s && q.v>=ts(x.T))).length;
+        return {rec:tp/E.length, fpr:fp/N.length}; };
+      const rd = v => Math.round(v*100)/100;
+      let best = null;
+      for(let k=60; k>=4 && best==null; k--){ const f = k/20; if(at(f).rec>=P.minRecall-1e-9) best = f; }
+      const e = {f:null, rel:0, rec:null, fpr:null, ev:E.length, days:evDays};
+      if(best!=null){ e.f = rd(best*P.margin); const m = at(e.f); e.rec = rd(m.rec); e.fpr = rd(m.fpr); e.rel = m.fpr<=P.maxFpr+1e-9 ? 1 : 0; }
+      (out[up.abk] || (out[up.abk] = {}))[s] = e;
+    });
+  });
+  return {active:true, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, tGrid:P.tGrid, minDays:P.minDays,
+    fitted:data.days.length ? [data.days[0], data.days[data.days.length-1]] : null, f:out};
+}
+
 /* ================= Push-Einstellungen: nur geprüfte Felder übernehmen ================= */
 const PUSH_FIELDS = ["T","maxMean","maxGust","win","minH","dirs","spots","k","kDir","cut","st","push","pushForecast","pushLive"];
 function pushCfg(St){ const o = {}; PUSH_FIELDS.forEach(k=>o[k]=clone(St[k])); return o; }
@@ -776,6 +855,6 @@ const api = {SPOTS, JURA, CREST, BES, NEUP, JTYP, joranType, isExtra, LAKE, JORA
   getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, lakeDay, LAKE_COVER, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
   frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, stRel, isTrusted, stSecFn, upwindNow, nowcast, lageHint, chaWest,
-  contingency, calibrate, CAL, evOf, isEv, stationDayMax, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
+  contingency, calibrate, CAL, MODEL, modelOf, fitModel, evOf, isEv, stationDayMax, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
 if(typeof module!=="undefined" && module.exports) module.exports = api; else root.JoranCore = api;
 })(typeof self!=="undefined" ? self : this);

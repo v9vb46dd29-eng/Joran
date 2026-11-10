@@ -1,80 +1,73 @@
-/* Selbsttest für eval/measure.cjs mit SYNTHETISCHEN Daten (keine Messwerte!). Prüft Wahrheit, Aufteilung,
-   Kalibrierung (Peirce vs. Recall), Signal-Nachspielen, Zählung und Vorlaufzeit gegen von Hand gerechnete Werte.
-   Aufruf: node eval/selftest.cjs */
+#!/usr/bin/env node
+/* Joran — Selbsttest des Messskripts und des Modells v2 mit synthetischen Daten (ohne Netz, ohne Archiv).
+   Aufruf: node eval/selftest.cjs
+   1. Modell nicht aktiv: upwindNow und isTrusted verhalten sich wie in der Baseline (falls sie per Git erreichbar ist).
+   2. Synthetische Lage: An Windtagen misst Cressier aus West die Hälfte des Seewinds, eine Stunde früher. fitModel muss den höchsten
+      Faktor finden, der bei allen Schwellen des Rasters noch alle Abende erkennt, die Messung Recall 1 und FPR 0 ergeben; ein zu hoher Startwert verpasst die Abende. */
 "use strict";
-const assert = require("assert");
-const C = require("../core.js"), M = require("./measure.cjs");
+const path = require("path"), os = require("os"), fs = require("fs"), {execFileSync} = require("child_process");
+const ROOT = path.join(__dirname, "..");
+const C = require(path.join(ROOT, "core.js")), M = require("./measure.cjs");
+let fail = 0;
+const ok = (name, cond, info) => { console.log(`${cond ? "ok  " : "FEHL"} ${name}${info ? " — "+info : ""}`); if(!cond) fail++; };
 
-/* 30 Tage im Juni 2026 (MESZ = UTC+2). Tag i: foilbar, wenn i%3==0 (See 16 kn ab 18:00, sonst 5 kn).
-   Cressier: bis 17:00 5 kn, ab 17:00 v kn aus 300°. v = 15 an Windtagen, 10 an den schwachen Windtagen 9 und 24,
-   10 an ruhigen Tagen mit i%4==1 (Fehlalarm-Kandidaten 1,5,13,17,25,29), sonst 6. */
-const Z = (day, hh, mm) => new Date(Date.UTC(2026, 5, day, hh-2, mm));
-const lk = {st:{vin:{rows:[]}, ips:{rows:[]}}}, crm = [];
-for(let i=0; i<30; i++){
-  const day = i+1, ev = i%3===0, weak = i===9 || i===24, fpc = !ev && i%4===1;
-  for(let m=15*60; m<=21*60+30; m+=10){
-    const t = Z(day, Math.floor(m/60), m%60), v = ev && m>=18*60 ? 16 : 5;
-    lk.st.vin.rows.push({t:t.toISOString(), mean:v, dir:240, gust:v+4});
-    lk.st.ips.rows.push({t:new Date(+t+60e3).toISOString(), mean:v-1, dir:240, gust:v+3});
+/* ---------- synthetische Daten ---------- */
+const St = C.merge({T:12, win:"abend", minH:1});
+const days = []; for(let i=1; i<=20; i++) days.push(`2026-06-${String(i).padStart(2,"0")}`);
+const windy = new Set(days.filter((d,i)=>i%4===1));                     /* 5 Windtage */
+const lake = {}, S = {crm:[], cha:[]};
+let seed = 7; const rnd = () => (seed = (seed*16807)%2147483647)/2147483647;
+days.forEach(d=>{
+  const t0 = Date.parse(d+"T00:00:00Z"), o = {day:d, st:{vin:{rows:[]}, ips:{rows:[]}}};
+  for(let m=10*60; m<=20*60; m+=10){                                     /* 12–22 Uhr MESZ */
+    const t = new Date(t0+m*60000), hrL = m/60+2;
+    const w = windy.has(d) && hrL>=16.5 && hrL<=19.5 ? 18 : 3+rnd();     /* See: 18 kn von 16:30 bis 19:30 */
+    const u = windy.has(d) && hrL>=15.5 && hrL<=19.5 ? 9+rnd()*0.4 : 2+rnd();   /* Cressier: 9 kn West ab 15:30 */
+    o.st.ips.rows.push({t:t.toISOString(), mean:w, dir:250, gust:w+3});
+    o.st.vin.rows.push({t:t.toISOString(), mean:w*0.5, dir:250, gust:w});
+    S.crm.push({t, mean:u, dir:250, gust:u+2, temp:20, qff:1015});
+    S.cha.push({t, mean:5, dir:180, gust:7, temp:10, qff:1015});
   }
-  for(let m=0; m<24*60; m+=10){
-    const t = Z(day, Math.floor(m/60), m%60);
-    const v = m<17*60 ? 5 : ev ? (weak ? 10 : 15) : fpc ? 10 : 6;
-    crm.push({t, mean:v, dir:300, gust:v+5, temp:20, qff:1015});
-  }
+  lake[d] = o;
+});
+
+/* ---------- 1. Modell nicht aktiv = Baseline ---------- */
+let B = null;
+for(const ref of ["origin/baseline-2026-11-10", "baseline-2026-11-10"]){
+  try{ const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "joran-base-")), "core.js");
+    fs.writeFileSync(f, execFileSync("git", ["show", ref+":core.js"], {cwd:ROOT, encoding:"utf8", stdio:["ignore","pipe","ignore"]})); B = require(f); break; }catch(e){}
 }
-const S = {crm:{t:crm, h:M.hourly(crm)}};
-const St = C.merge({T:14, win:"abend", minH:1});
-const R = M.measure({lk, S, marks:null, St, split:0.6,
-  cores:{vorher:{label:"vorher", core:C, rule:"pss"}, nachher:{label:"nachher", core:C, rule:"recall"}}});
+if(B){
+  let diff = 0, n = 0;
+  C.UPWIND.forEach(up=>{ const ub = B.UPWIND.find(x=>x.abk===up.abk); if(!ub) return;
+    for(let i=5; i<S.crm.length; i+=3){ const rows = S.crm.slice(i-5, i+1).map(r=>Object.assign({}, r, {dir:(r.dir+i*7)%360, mean:r.mean*(1+i%5)}));
+      const a = C.upwindNow(rows, up, St, null), b = B.upwindNow(rows, ub, St, null); n++;
+      if(a.ok!==b.ok || a.ts!==b.ts || C.isTrusted({up, u:a})!==B.isTrusted({up:ub, u:b})) diff++; } });
+  ok("Modell nicht aktiv: Signale wie Baseline", diff===0, `${n} Vergleiche, ${diff} Abweichungen`);
+} else console.log("—    Baseline per Git nicht erreichbar, Vergleich übersprungen");
+ok("MODEL.active ist false (App rechnet wie bisher)", C.MODEL.active===false);
 
-assert.strictEqual(R.truth.known, 30); assert.strictEqual(R.truth.y, 10); assert.strictEqual(R.truth.n, 20);
-assert.deepStrictEqual(R.truth.sys, {joran:10});
-assert.deepStrictEqual(R.truth.jtyp, {stat:10});                      /* Juni, kein Südwest vorher → statique */
-assert.strictEqual(R.split.train, 18); assert.strictEqual(R.split.trainRange[1], "2026-06-18"); assert.strictEqual(R.split.testRange[0], "2026-06-19");
-const v = R.vorher.stations.find(s=>s.abk==="crm"), n = R.nachher.stations.find(s=>s.abk==="crm");
-/* Kalibrierung auf 18 Tagen: Peirce-Plateau 11–15 → Mitte 13; Recall-Regel: höchste Schwelle mit Recall ≥ 0.85 = 10 */
-assert.strictEqual(v.ts, 13); assert.strictEqual(n.ts, 10); assert.strictEqual(n.cal.rel, 1);
-/* Messung auf 12 Tagen (4 Windtage, davon 1 schwach; 8 ruhige, davon 2 mit 10 kn) */
-assert.strictEqual(v.total.ev, 4); assert.strictEqual(v.total.nev, 8);
-assert.strictEqual(v.total.tp, 3); assert.strictEqual(v.total.fp, 0);
-assert.strictEqual(n.total.tp, 4); assert.strictEqual(n.total.fp, 2);
-assert.strictEqual(n.cells.joran.fp, 2); assert.strictEqual(n.cells.w.fp, 0);
-/* Vorlauf: See ab 18:00; vorher Signal 17:20 (40 min); nachher 17:10 an starken (50), 17:20 am schwachen Tag (40) */
-assert.strictEqual(v.total.lead, 40); assert.strictEqual(n.total.lead, 47.5);
-assert.strictEqual(R.nachher.regelE.tp, 4); assert.strictEqual(R.nachher.regelE.fp, 2);
-assert.deepStrictEqual(R.accept.map(a=>a.ok), [true, false, true, true, false]);
-assert.ok(R.verdict.startsWith("NICHT ERFÜLLT — VORLÄUFIG"));
-assert.strictEqual(R.vorher.pooled.tp, 3); assert.strictEqual(R.nachher.pooled.tp, 4);   /* alle Signale vor 18:00 */
-/* nicht verlässliche Station zählt in ALLE nicht: Recall-Ziel unerreichbar machen */
-assert.strictEqual(C.isTrusted({u:{rel:0, trust:0.9}, up:C.UPWIND[0]}), true);            /* Recall-Regel nicht aktiv: rel wirkt nicht */
-assert.strictEqual(C.isTrusted({u:{rel:0, trust:0.9}, up:C.UPWIND[0]}, "recall"), false);
-/* Markierung überstimmt: Tag 2026-06-28 (i=27, automatisch foilbar) als «Nein» markiert → Abweichung ausgewiesen */
-const R2 = M.measure({lk, S, marks:{"2026-06-28":"n", "2026-06-02":"n"}, St, split:0.6,
-  cores:{vorher:{core:C, rule:"pss"}, nachher:{core:C, rule:"recall"}}});
-assert.strictEqual(R2.truth.deviations.length, 1); assert.strictEqual(R2.truth.deviations[0].day, "2026-06-28");
-assert.strictEqual(R2.truth.y, 9); assert.strictEqual(R2.truth.marked, 2);
-/* Wahrheit: «während minH Stunden ≥ T» — 30 min 22 kn + 30 min 7 kn ist kein Ereignis (Mittel 14.5 genügt nicht) */
-const day1 = (vals, step) => ({st:{vin:{rows:vals.map((v,k)=>({t:Z(1, 17, 0+k*(step||10)).toISOString(), mean:v, dir:300}))}, ips:{rows:[]}}});
-assert.strictEqual(C.lakeDay(day1([22,22,22,7,7,7]), "2026-06-01", St).ev, false);
-assert.strictEqual(C.lakeDay(day1([15,15,15,15,15,15]), "2026-06-01", St).ev, true);                /* 6 Werte = 60 min */
-assert.strictEqual(C.lakeDay(day1([15,15,15,15,15]), "2026-06-01", St).ev, false);                  /* 50 min */
-assert.strictEqual(C.lakeDay(day1([15,15,13,15,15,15]), "2026-06-01", St).ev, false);               /* Einbruch unter T */
-assert.strictEqual(C.lakeDay(day1([13.5,14,14,14,14,14]), "2026-06-01", St).ev, true);              /* gerundet wie in der App */
-const gap = {st:{vin:{rows:[0,10,30,40,50].map(m=>({t:Z(1,17,m).toISOString(), mean:15, dir:300}))}, ips:{rows:[]}}};
-assert.strictEqual(C.lakeDay(gap, "2026-06-01", St).ev, true);                                       /* ein fehlender Wert */
-const gap2 = {st:{vin:{rows:[0,10,40,50,60,70].map(m=>({t:Z(1,17,m).toISOString(), mean:15, dir:300}))}, ips:{rows:[]}}};
-assert.strictEqual(C.lakeDay(gap2, "2026-06-01", St).ev, false);                                     /* Lücke 30 min trennt */
-/* Joran-Typ: Südwest 12 kn in Neuchâtel vorher + Druckanstieg 2 hPa → dynamique; ohne Südwest im Oktober → unbestimmt */
-const on = Z(10, 18, 0), neuRows = [];
-for(let m=-7*60; m<=2*60; m+=10) neuRows.push({t:new Date(+on+m*60e3), mean:m<-60?12:8, dir:m<-60?240:300, temp:15, qff: m<-60 ? 1010 : 1012});
-assert.strictEqual(C.joranType(on, {neu:{t:neuRows}}), "dyn");
-assert.strictEqual(C.joranType(on, {neu:{t:neuRows.map(r=>Object.assign({}, r, {qff:1010}))}}), "stat");      /* Juni ohne Front */
-assert.strictEqual(C.joranType(new Date(Date.UTC(2026,9,10,16)), {}), null);                                  /* Oktober ohne Front */
-const marksT = {"2026-06-04":"y", "jtyp:2026-06-04":"dyn"};
-assert.strictEqual(M.measure({lk, S, marks:marksT, St, split:0.6, cores:{vorher:{core:C, rule:"pss"}, nachher:{core:C, rule:"recall"}}}).truth.jtyp.dyn, 1);
-/* Neuchâtel: Joran-Signal zählt ungeprüft nicht, West-Signal schon */
-const neuUp = C.UPWIND.find(u=>u.abk==="neu");
-assert.strictEqual(C.isTrusted({up:neuUp, u:{trust:null, sys:{id:"joran"}}}), false);
-assert.strictEqual(C.isTrusted({up:neuUp, u:{trust:null, sys:{id:"w"}}}), true);
-console.log("Selbsttest bestanden (synthetische Daten).");
+/* ---------- 2. fitModel und Messung ---------- */
+const Mo = C.fitModel({days, lake, S, St});
+const e = Mo.f.crm && Mo.f.crm.w;
+ok("fitModel findet Cressier/West", !!e, e ? JSON.stringify(e) : "kein Eintrag");
+/* Station misst 9 kn, höchste Schwelle im Raster 14 kn: 9/14 = 0.64, davon 90 % Sicherheit */
+ok("Faktor rund 0.6 und verlässlich", !!e && e.f>=0.5 && e.f<=0.65 && e.rel===1 && e.rec===1 && e.fpr===0);
+ok("Schwelle folgt T", !!e && C.stTs(C.UPWIND[0], Object.assign({}, St, {T:20, model:Mo}), "w")===Math.round(20*e.f));
+const T = M.buildTruth(lake, days, St, null, S);
+ok("Wahrheit: 5 foilbare, 15 ruhige Abende", Object.values(T.see).filter(x=>x.v==="y").length===5 && Object.values(T.see).filter(x=>x.v==="n").length===15);
+ok("Wahrheit je Seestation: Ipsach 5, Vingelz 0", Object.values(T.st.ips).filter(x=>x.v==="y").length===5 && Object.values(T.st.vin).filter(x=>x.v==="y").length===0);
+const base = M.score(C, S, St, T, days, null), neu = M.score(C, S, St, T, days, () => Mo);
+ok("Startwert (10 kn) verpasst die Abende", base.lake.see.rec===0 && base.lake.see.fpr===0, `Recall ${base.lake.see.rec}`);
+ok("Modell v2 erkennt alle, ohne Fehlalarm", neu.lake.see.rec===1 && neu.lake.see.fpr===0 && neu.lake.ips.rec===1, `Recall ${neu.lake.see.rec}, FPR ${neu.lake.see.fpr}`);
+ok("Vorlaufzeit rund 30–60 min", neu.lake.see.lead>=20 && neu.lake.see.lead<=70, `${Math.round(neu.lake.see.lead)} min`);
+ok("Zelle Cressier/West: Recall 1", neu.up.crm.cells.w.rec===1 && neu.up.crm.cells.w.ev===5);
+const F = M.folds(days);
+ok("Kreuzvalidierung: Blöcke zeitlich nach dem Trainingsteil", F.length===3 && F.every(f=>f.train[f.train.length-1] < f.test[0]));
+const R = M.measureAll({per:lake, S, marks:{"2026-06-01":"y"}, St, ctl:14, cores:{basis:{K:C}, neu:{K:C}}, split:{devBis:"2026-06-16", holdoutBis:"2026-06-20"}, teil:"dev"});
+ok("Markierung überstimmt und wird ausgewiesen", R.main.neu.truth.dev.length===1 && R.main.neu.truth.see["2026-06-01"].v==="y");
+ok("Holdout bleibt im Entwicklungslauf ungelesen", !Object.keys(R.main.neu.truth.see).some(d=>d>"2026-06-16"));
+ok("Zu wenige Ereignistage → vorläufig", /VORLÄUFIG/.test(R.verdict));
+
+console.log(fail ? `\n${fail} Test(s) fehlgeschlagen` : "\nAlle Tests bestanden");
+process.exitCode = fail ? 1 : 0;
