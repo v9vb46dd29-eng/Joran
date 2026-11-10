@@ -615,6 +615,7 @@ const isTrusted = (s, rule) => s.u.mrel!==undefined ? s.u.mrel===1
   : (s.u.trust==null && !isExtra(s)) || (s.u.trust!=null && s.u.trust>=0.25);
 /* Temperaturabnahme zwischen Bodenstation und Kammstation in K je km, aus den letzten frischen Werten; null, wenn etwas fehlt */
 function lapseRate(stations, up, ref, now){
+  if(!ref || !up) return null;
   const a = stations[ref.abk], b = stations[up.abk];
   if(!a || !b || a.err || b.err || !fresh(a.rows, now) || !fresh(b.rows, now) || !(up.alt>ref.alt)) return null;
   const ta = a.rows[a.rows.length-1].temp, tb = b.rows[b.rows.length-1].temp;

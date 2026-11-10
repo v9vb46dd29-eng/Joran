@@ -165,13 +165,30 @@ Was sich zeigt (wenige Tage je Zeile, die Zehnminutenwerte eines Tages hängen z
 - **Chasseral-Signale:** Die drei Fehlalarme (16., 20., 27.10.) fielen auf 2.1, 3.7 und 1.1 K je km, die zwei Treffer
   (17., 25.10.) auf 6.1 und 7.7 K je km.
 
-### Kandidat H3 (noch nicht gebaut): Schichtung als Bedingung für Signale aus der Höhe
+### H3: Kopplung der Luftschichten als Bedingung für Chasseral-Signale (Commits 5742fb9 und Folgecommit)
 
-Ein Signal einer Kammstation (Chasseral, später Chaumont und Bullet) zählt nur, wenn die Temperatur von Cressier zum
-Chasseral um mindestens 4 K je km abnimmt. Erwartung auf den Entwicklungstagen bei 12 kn: 3 von 12 Fehlalarmen weniger
-(FPR 0.75 → 0.56), kein Abend verpasst. Kosten: keine neue Datenquelle, die Temperatur liegt in den SwissMetNet-Daten schon vor.
-Risiko: Die Grenze stützt sich auf 5 Signale. Der Joran statique an warmen Sommerabenden ist nicht in den Daten und
-könnte sich anders verhalten [OFFEN]. Der Holdout ist schon einmal gemessen; H3 bräuchte dort einen zweiten Lauf.
+Ein Signal vom Chasseral zählt nur, wenn die Temperatur von Cressier (431 m) bis zum Chasseral (1594 m) um mindestens
+4 K je km abnimmt. Fehlt eine Temperatur, zählt das Signal. Teil von Modell v2, also nicht aktiv. Kosten: keine neue
+Datenquelle. Der Grenzwert ist fest und stammt aus dem Lagebild aller Entwicklungstage; er wird in der Kreuzvalidierung
+nicht je Block neu bestimmt, der Gewinn bei der FPR ist deshalb nicht unabhängig gemessen.
+
+| Messung | Schwelle | Recall See | FPR See | Vorlauf | Fälle EV/NEV |
+|---|---|---|---|---|---|
+| Kreuzvalidierung (`--T 12`) | 12 kn | 1.00 → 1.00 | 0.75 → 0.67 | 101 → 101 min | 4/12 |
+| Kreuzvalidierung | 14 kn | 0.75 → 0.75 | 0.58 → 0.50 | 86 → 86 min | 4/12 |
+| Anpassung (zu günstig) | 12 kn | 1.00 → 1.00 | 0.75 → 0.63 | 106 → 122 min | 5/16 |
+| Anpassung | 14 kn | 0.75 → 1.00 | 0.53 → 0.53 | 86 → 119 min | 4/17 |
+| Holdout, zweiter Lauf (von Simon freigegeben, `eval/HOLDOUT.txt`) | 12 und 14 kn | – → – | 0.00 → 0.00 | – | 0/5 |
+
+Die Sperre entfernt die Fehlalarme vom 16. und 27.10. Am 20.10. steigt der Wert nach zehn Minuten über 4 K je km, der
+Fehlalarm kommt nur später (erwartet waren drei Fehlalarme weniger, gemessen sind zwei).
+
+Reviewer (5742fb9): **ANNEHMEN, vorläufig.** Keine Regel verletzt, keine blockierenden Defekte, inaktiv 4410
+`nowcast`-Schritte ohne Abweichung zur Baseline. Der Recall ist robust (Grenzwerte von 3 bis 6 K je km verpassen keinen
+Abend), der Grenzwert selbst ist mit vier Chasseral-Tagen schwach belegt. Vor dem Aktivieren fehlen die riskanten Lagen:
+Bise oder Nordlage unter einer Inversion (am 17.10. meldete nur der Chasseral), Joran im Sommer, Inversion mit Durchbruch
+[OFFEN]. Als Test taugen erst Tage nach dem 10.11. Nach dem Entscheid kam nur eine Absicherung in `lapseRate` dazu
+(fehlende Bezugsstation), danach der Holdout-Lauf.
 
 Weitere Höhenquelle: Modellwind auf 850 und 700 hPa über Open-Meteo (frei, ohne Schlüssel). Nutzen: Höhenwind als Prognose
 für den nächsten Tag statt nur als Messung. Kosten: ein zusätzlicher Abruf je Refresh. Am 10.11. nicht prüfbar, das
