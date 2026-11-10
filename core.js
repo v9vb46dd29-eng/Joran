@@ -43,8 +43,8 @@ const LEVELS = ["unwahrscheinlich","knapp","möglich","wahrscheinlich","sehr wah
 /* Upwind-Stationen: welche Windsysteme sie früh anzeigen. f = Startwert Stationsschwelle / Seeschwelle,
    bis die Kalibrierung einen eigenen Wert liefert. Landstationen messen weniger als der See. */
 const UPWIND = [
-  {abk:"crm", name:"Cressier",  sys:["joran","w"],  f:0.85, role:"Jurasüdfuss, 10 km westlich"},
-  {abk:"cha", name:"Chasseral", sys:["joran","n"],  f:1.15, role:"Jurakamm 1594 m, Höhenwind"},
+  {abk:"crm", name:"Cressier",  sys:["joran","w"],  f:0.85, role:"Jurasüdfuss, 10 km westlich", alt:431},
+  {abk:"cha", name:"Chasseral", sys:["joran","n"],  f:1.15, role:"Jurakamm 1594 m, Höhenwind", alt:1594},
   /* Joran zählt in Neuchâtel erst, wenn der Rückblick die Station als verlässlich ausweist (extraSys) */
   {abk:"neu", name:"Neuchâtel", sys:["w","s","joran"], f:0.85, role:"Neuenburgersee, 25 km SW", extraSys:["joran"]},
   {abk:"pay", name:"Payerne",   sys:["w","s","so"], f:0.8,  role:"Broyetal, 35 km SW"},
@@ -541,6 +541,10 @@ function ruleE(rows, St){
    f[abk][system] = {f, rel, rec, fpr, ev, days}: rel 1 = löst Push aus, 0 = nicht verlässlich (zählt nicht),
    rel fehlt = kein brauchbarer Faktor gefunden, Station zählt wie bisher mit ihrem Startwert. */
 const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, minF:0.5, tGrid:[8,10,12,14], minDays:4,
+  /* Kopplung der Luftschichten (H3): Ein Signal der Kammstation zählt nur, wenn die Temperatur von der Bodenstation ref
+     bis zum Kamm um mindestens min K je km abnimmt. Bei stabiler Schichtung kommt der Höhenwind nicht bis auf den See.
+     Fester Wert aus dem Lagebild der Entwicklungstage (eval/schichten.cjs), nicht je Block neu bestimmt. */
+  kopplung:{min:4, ref:"crm", st:["cha"]},
   /* Stand der Parameter: node eval/measure.cjs --fit (Entwicklungstage 2026-10-16 bis 2026-11-05) */
   fitted:["2026-10-16", "2026-11-05"],
   f:{
@@ -609,13 +613,26 @@ const isExtra = s => !!(s.up.extra || (s.up.extraSys && s.u.sys && s.up.extraSys
 const isTrusted = (s, rule) => s.u.mrel!==undefined ? s.u.mrel===1
   : (rule||CAL.rule)==="recall" && s.u.rel!==undefined ? s.u.rel===1
   : (s.u.trust==null && !isExtra(s)) || (s.u.trust!=null && s.u.trust>=0.25);
+/* Temperaturabnahme zwischen Bodenstation und Kammstation in K je km, aus den letzten frischen Werten; null, wenn etwas fehlt */
+function lapseRate(stations, up, ref, now){
+  const a = stations[ref.abk], b = stations[up.abk];
+  if(!a || !b || a.err || b.err || !fresh(a.rows, now) || !fresh(b.rows, now) || !(up.alt>ref.alt)) return null;
+  const ta = a.rows[a.rows.length-1].temp, tb = b.rows[b.rows.length-1].temp;
+  return ta==null || tb==null ? null : (ta-tb)/((up.alt-ref.alt)/1000);
+}
 /* Messlage jetzt: alle Upwind-Signale plus Regel E plus Böenfront */
 function nowcast(stations, St, now, lk){
   const sig = [], front = [];
+  const MM = modelOf(St), KP = MM && MM.kopplung ? MM.kopplung : null;
   const ch = stations.cha && !stations.cha.err && fresh(stations.cha.rows, now) ? stations.cha.rows : null;
   UPWIND.forEach(up=>{
     const d = stations[up.abk]; if(!d || d.err || !fresh(d.rows, now)) return;
     const u = upwindNow(d.rows, up, St, ch);
+    /* Modell v2, Kopplung: Signal aus der Höhe nur bei durchmischter Luft. Fehlt eine Temperatur, zählt das Signal. */
+    if(u.ok && KP && KP.st.includes(up.abk)){
+      const lp = lapseRate(stations, up, UPWIND.find(x=>x.abk===KP.ref), now);
+      if(lp!=null){ u.lapse = lp; if(lp<KP.min){ u.ok = false; u.block = `stabile Schichtung (${r1(lp)} K je km)`; } }
+    }
     if(u.ok) sig.push({up, u});
     if(LAKE_LEVEL.includes(up.abk)){ const f = frontCheck(d.rows, St); if(f.length) front.push({up, f}); }
   });
@@ -833,7 +850,7 @@ function fitModel(data, opt){
       (out[up.abk] || (out[up.abk] = {}))[s] = e;
     });
   });
-  return {active:true, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, minF:P.minF, tGrid:P.tGrid, minDays:P.minDays,
+  return {active:true, kopplung:P.kopplung, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, minF:P.minF, tGrid:P.tGrid, minDays:P.minDays,
     fitted:data.days.length ? [data.days[0], data.days[data.days.length-1]] : null, f:out};
 }
 
@@ -877,6 +894,6 @@ const api = {SPOTS, JURA, CREST, BES, NEUP, JTYP, joranType, isExtra, LAKE, JORA
   getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, lakeDay, LAKE_COVER, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
   frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, stRel, isTrusted, stSecFn, upwindNow, nowcast, lageHint, chaWest,
-  contingency, calibrate, CAL, MODEL, modelOf, fitModel, evOf, isEv, stationDayMax, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
+  contingency, calibrate, CAL, MODEL, modelOf, fitModel, lapseRate, evOf, isEv, stationDayMax, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
 if(typeof module!=="undefined" && module.exports) module.exports = api; else root.JoranCore = api;
 })(typeof self!=="undefined" ? self : this);

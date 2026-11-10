@@ -62,6 +62,17 @@ ok("Startwert (10 kn) verpasst die Abende", base.lake.see.rec===0 && base.lake.s
 ok("Modell v2 erkennt alle, ohne Fehlalarm", neu.lake.see.rec===1 && neu.lake.see.fpr===0 && neu.lake.ips.rec===1, `Recall ${neu.lake.see.rec}, FPR ${neu.lake.see.fpr}`);
 ok("Vorlaufzeit rund 30–60 min", neu.lake.see.lead>=20 && neu.lake.see.lead<=70, `${Math.round(neu.lake.see.lead)} min`);
 ok("Zelle Cressier/West: Recall 1", neu.up.crm.cells.w.rec===1 && neu.up.crm.cells.w.ev===5);
+/* ---------- 3. Kopplung der Schichten (H3) ---------- */
+{
+  const now = new Date("2026-06-10T15:00:00Z"), mk = (mean, dir, temp) => [20,10,0].map(m=>({t:new Date(now-m*60000), mean, dir, gust:mean+3, temp, qff:1015}));
+  const st = (tCha, tCrm) => ({cha:{rows:mk(20, 320, tCha)}, crm:{rows:mk(2, 90, tCrm)}});
+  const Sm = Object.assign({}, St, {model:C.fitModel({days:[], lake:{}, S:{}, St})});
+  const sig = (stn, S2) => C.nowcast(stn, S2, now, null).sig.some(x=>x.up.abk==="cha");
+  ok("Kopplung: durchmischt (8.6 K/km) → Chasseral-Signal zählt", sig(st(8, 18), Sm));
+  ok("Kopplung: stabil (1.7 K/km) → Chasseral-Signal gesperrt", !sig(st(16, 18), Sm));
+  ok("Kopplung: Temperatur fehlt → Signal zählt", sig(st(null, 18), Sm));
+  ok("Kopplung: Modell nicht aktiv → Signal zählt wie bisher", sig(st(16, 18), St));
+}
 const F = M.folds(days);
 ok("Kreuzvalidierung: Blöcke zeitlich nach dem Trainingsteil", F.length===3 && F.every(f=>f.train[f.train.length-1] < f.test[0]));
 const R = M.measureAll({per:lake, S, marks:{"2026-06-01":"y"}, St, ctl:14, cores:{basis:{K:C}, neu:{K:C}}, split:{devBis:"2026-06-16", holdoutBis:"2026-06-20"}, teil:"dev"});
