@@ -538,8 +538,22 @@ function ruleE(rows, St){
 /* Modell v2 (vorläufig, siehe eval/ITERATIONEN.md): Stationsfaktor je Windsystem, aus der Seemessung bestimmt (fitModel).
    Die Stationsschwelle ist T × Faktor und gilt damit für jede einstellbare Schwelle. active = false: Die App rechnet wie
    bisher mit den Startwerten f der Stationen. Zum Messen aktiviert eval/measure.cjs das Modell über St.model.
-   f[abk][system] = {f, rel, rec, fpr, ev, days}: rel 1 = löst Push aus, 0 = nicht verlässlich (zählt nicht). */
-const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, tGrid:[8,10,12,14], minDays:3, fitted:null, f:{}};
+   f[abk][system] = {f, rel, rec, fpr, ev, days}: rel 1 = löst Push aus, 0 = nicht verlässlich (zählt nicht),
+   rel fehlt = kein brauchbarer Faktor gefunden, Station zählt wie bisher mit ihrem Startwert. */
+const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, minF:0.5, tGrid:[8,10,12,14], minDays:4,
+  /* Stand der Parameter: node eval/measure.cjs --fit (Entwicklungstage 2026-10-16 bis 2026-11-05) */
+  fitted:["2026-10-16", "2026-11-05"],
+  f:{
+    crm:{"w":{"f":0.81,"rec":0.89,"fpr":0.02,"ev":18,"days":5,"rel":1}},
+    neu:{"w":{"f":0.81,"rec":0.89,"fpr":0,"ev":18,"days":5,"rel":1}},
+    pay:{"s":{"f":0.63,"rec":0.89,"fpr":0.04,"ev":18,"days":5,"rel":1}},
+    gre:{"bise":{"f":null,"rec":1,"fpr":0.67,"ev":9,"days":5}},
+    wyn:{"bise":{"f":null,"rec":1,"fpr":0.35,"ev":6,"days":4}},
+    chm:{"w":{"f":0.63,"rec":0.94,"fpr":0.02,"ev":18,"days":5,"rel":1}},
+    cdf:{"w":{"f":0.72,"rec":1,"fpr":0.02,"ev":14,"days":4,"rel":1}},
+    brl:{"w":{"f":0.86,"rec":1,"fpr":0.05,"ev":18,"days":5,"rel":1}},
+    coy:{"tl":{"f":null,"rec":null,"fpr":null,"ev":18,"days":5,"rel":0}}
+  }};
 const modelOf = St => (St && St.model) || (MODEL.active ? MODEL : null);
 function modelF(up, St, sysId){
   const c = St.st && St.st[up.abk]; if(c && c.ts) return null;          /* eigene Kalibrierung im Rückblick geht vor */
@@ -764,7 +778,9 @@ function calibrateStation(rows, up, St, days, truth, cha, rule){
    Treffer = Stationssignal (30 min im Sektor, Mittel ≥ T × Faktor, nicht abnehmend) spätestens beim Beginn am See;
    Fehlalarm = Signal an einem ruhigen Abend. Gewählt wird der höchste Faktor mit Recall ≥ minRecall, davon bleibt als
    Sicherheit der Anteil margin (verpasste Abende wiegen schwerer). Weniger als minDays Ereignistage: kein Eintrag, der
-   Startwert der Station gilt weiter. Erreicht kein Faktor den Recall oder liegt die Fehlalarmrate über maxFpr: rel 0. */
+   Startwert der Station gilt weiter. Erreicht kein Faktor den Recall, liegt er unter minF × Startwert oder liegt die
+   Fehlalarmrate über maxFpr, ist der Faktor unbrauchbar: Eine Erweiterungsstation (extra) zählt dann nicht (rel 0). Eine
+   Station, die bisher Push auslöst, wird nie stummgeschaltet; sie behält Startwert und Push (Eintrag ohne f und rel). */
 function fitModel(data, opt){
   const P = Object.assign({}, MODEL, opt||{}), St0 = data.St, [h0,h1] = WINS[St0.win], out = {};
   const dset = new Set(data.days), cha = data.S.cha || null;
@@ -774,14 +790,14 @@ function fitModel(data, opt){
     data.days.forEach(d=>{ if(!data.lake[d]) return; const a = lakeDay(data.lake[d], d, St); if(a.known) tr[T][d] = a; }); });
   UPWIND.forEach(up=>{
     const rows = data.S[up.abk]; if(!rows || !rows.length) return;
-    const inSec = stSecFn(up, Object.assign({}, St0, {dirs:DEF.dirs}));
+    const inSec = stSecFn(up, St0); if(!inSec) return;      /* Sektor wie upwindNow: nur aktive Windsysteme */
     const sid = r => up.tl ? (inSec(r) ? "tl" : null) : (inSec(r) ? dirOf(r.dir).id : null);
     const steps = {}, all = {};                       /* Tag → mögliche Signale {t, s, v} bzw. alle Werte {t, s} */
     rows.forEach((r,i)=>{
       const d = dayOfDate(r.t); if(!dset.has(d)) return;
       (all[d] || (all[d] = [])).push({t:r.t, s:sid(r)});
       if(i<2) return;
-      const hr = localHour(r.t); if(hr<h0-2 || hr>h1 || !inHrs(up, r.t)) return;
+      const hr = localHour(r.t); if(hr<6 || hr>=21 || hr<h0-2 || hr>h1 || !inHrs(up, r.t)) return;   /* wie die Push-Prüfung */
       const a = [rows[i-2], rows[i-1], r];
       if(r.t-a[0].t > 25*60000 || !a.every(inSec) || a[2].mean < a[0].mean-0.5) return;
       if(up.tl && cha){ const k = lastLE(cha, r.t); if(k>=2 && r.t-cha[k].t < 50*60000 && chaWest(cha.slice(k-2, k+1))) return; }
@@ -793,7 +809,7 @@ function fitModel(data, opt){
       const b = Object.keys(n).sort((x,y)=>n[y]-n[x])[0];
       return b && n[b]/w.length>=0.5 ? b : null;
     };
-    (up.tl ? ["tl"] : up.sys).forEach(s=>{
+    (up.tl ? ["tl"] : up.sys.filter(id=>St0.dirs[id])).forEach(s=>{
       const E = [], N = [];
       P.tGrid.forEach(T=>Object.keys(tr[T]).forEach(d=>{ const a = tr[T][d]; if(!all[d]) return;
         if(a.ev){ if(dom(d, a.onset)===s) E.push({T, d, on:a.onset}); } else N.push({T, d}); }));
@@ -806,12 +822,15 @@ function fitModel(data, opt){
       const rd = v => Math.round(v*100)/100;
       let best = null;
       for(let k=60; k>=4 && best==null; k--){ const f = k/20; if(at(f).rec>=P.minRecall-1e-9) best = f; }
-      const e = {f:null, rel:0, rec:null, fpr:null, ev:E.length, days:evDays};
-      if(best!=null){ e.f = rd(best*P.margin); const m = at(e.f); e.rec = rd(m.rec); e.fpr = rd(m.fpr); e.rel = m.fpr<=P.maxFpr+1e-9 ? 1 : 0; }
+      const e = {f:null, rec:null, fpr:null, ev:E.length, days:evDays};
+      const ext = !!(up.extra || (up.extraSys && up.extraSys.includes(s)));
+      if(best!=null){ const f = rd(best*P.margin), m = at(f); e.rec = rd(m.rec); e.fpr = rd(m.fpr);
+        if(f>=P.minF*up.f-1e-9 && m.fpr<=P.maxFpr+1e-9){ e.f = f; e.rel = 1; } }
+      if(e.f==null && ext) e.rel = 0;
       (out[up.abk] || (out[up.abk] = {}))[s] = e;
     });
   });
-  return {active:true, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, tGrid:P.tGrid, minDays:P.minDays,
+  return {active:true, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, minF:P.minF, tGrid:P.tGrid, minDays:P.minDays,
     fitted:data.days.length ? [data.days[0], data.days[data.days.length-1]] : null, f:out};
 }
 

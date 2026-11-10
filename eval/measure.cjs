@@ -14,7 +14,8 @@
      --user NAME        Einstellungen aus users/NAME.json (Standard: simon)
      --basis SPEC       core.js der Baseline: Datei oder git:REV (Standard: git:origin/baseline-2026-11-10)
      --neu SPEC         core.js des gemessenen Stands (Standard: dieser Stand)
-     --teil dev|holdout Entwicklungstage mit zeitlicher Kreuzvalidierung (Standard) oder Holdout
+     --teil dev|holdout Entwicklungstage mit zeitlicher Kreuzvalidierung (Standard) oder Holdout;
+                        «anpassung» misst die Entwicklungstage mit Parametern aus denselben Tagen (zu günstig, nur zur Einsicht)
      --offline          SwissMetNet nicht abrufen, nur Cache (eval/cache)
      --archive DIR      zusätzlicher Ordner mit Tagesdateien;  --no-git  Archiv im Branch origin/live nicht lesen
      --truth FILE       Markierungen (Standard: eval/truth.json, falls vorhanden)
@@ -41,7 +42,7 @@ function parseArgs(argv){
     else if(a==="-h" || a==="--help"){ console.log(fs.readFileSync(__filename,"utf8").split("*/")[0]); process.exit(0); }
     else throw new Error("unbekannte Option "+a);
   }
-  if(!["dev","holdout"].includes(o.teil)) throw new Error("--teil dev oder holdout");
+  if(!["dev","holdout","anpassung"].includes(o.teil)) throw new Error("--teil dev, anpassung oder holdout");
   return o;
 }
 const git = args => execFileSync("git", args, {cwd:ROOT, encoding:"utf8", stdio:["ignore","pipe","ignore"], maxBuffer:256<<20});
@@ -252,17 +253,19 @@ function folds(dev){
 }
 
 function measureAll({per, S, marks, St, ctl, cores, split, teil}){
-  const all = Object.keys(per).sort();
+  const nArchive = Object.keys(per).length;
+  /* im Entwicklungslauf werden Tage nach devBis gar nicht angefasst */
+  const all = Object.keys(per).sort().filter(d=>d<=(teil!=="holdout" ? split.devBis : split.holdoutBis));
   const known = all.filter(d=>C.lakeDay(per[d], d, St).known || (marks && ["y","n"].includes(marks[d])));
   const dev = known.filter(d=>d<=split.devBis), hold = known.filter(d=>d>split.devBis && d<=split.holdoutBis);
-  const F = teil==="dev" ? folds(dev) : [{train:dev, test:hold}];
+  const F = teil==="dev" ? folds(dev) : teil==="anpassung" ? [{train:dev, test:dev}] : [{train:dev, test:hold}];
   const test = F.flatMap(f=>f.test);
   const fitData = days => ({days, lake:per, S, St});
   const one = (T, core) => {
-    const Stt = Object.assign({}, St, {T}), TR = buildTruth(per, known.filter(d=>d<=(teil==="dev" ? split.devBis : split.holdoutBis)), Stt, marks, S);
+    const Stt = Object.assign({}, St, {T}), TR = buildTruth(per, known, Stt, marks, S);
     let modelFor = null, models = [];
     if(core.K.fitModel && core.K.MODEL){
-      if(teil==="dev"){ models = F.map(f=>core.K.fitModel(fitData(f.train))); modelFor = d => models[F.findIndex(f=>f.test.includes(d))]; }
+      if(teil!=="holdout"){ models = F.map(f=>core.K.fitModel(fitData(f.train))); modelFor = d => models[F.findIndex(f=>f.test.includes(d))]; }
       else { const M = Object.assign({}, core.K.MODEL, {active:true}); models = [M]; modelFor = () => M; }
     }
     return {T, truth:TR, res:score(core.K, S, Stt, TR, test, modelFor), models};
@@ -287,7 +290,7 @@ function measureAll({per, S, marks, St, ctl, cores, split, teil}){
   const core = A.slice(0,-1).map(a=>a.ok);
   const base = core.some(x=>x===false) ? "NICHT ERFÜLLT" : core.some(x=>x===null) ? "TEILWEISE NICHT AUSWERTBAR (keine Ereignisse)" : "ERFÜLLT";
   const verdict = A[A.length-1].ok ? base : `${base} — VORLÄUFIG (zu wenige Ereignistage: committen, nicht aktiv setzen)`;
-  return {teil, settings:{T:St.T, ctl:control?ctl:null, win:St.win, minH:St.minH}, days:{archive:all.length, known:known.length, dev:dev.length, hold:hold.length,
+  return {teil, settings:{T:St.T, ctl:control?ctl:null, win:St.win, minH:St.minH}, days:{archive:nArchive, known:known.length, dev:dev.length, hold:hold.length,
     devRange:[dev[0]||null, dev[dev.length-1]||null], holdRange:[hold[0]||null, hold[hold.length-1]||null], test:test.length, testRange:[test[0]||null, test[test.length-1]||null],
     folds:F.map(f=>({train:[f.train[0], f.train[f.train.length-1]], test:[f.test[0], f.test[f.test.length-1]], n:f.test.length}))},
     main, control, accept:A, fewCells:few, verdict};
@@ -301,7 +304,8 @@ function report(R, meta){
   p(`Einstellungen ${meta.user}: Fenster ${C.WINS[R.settings.win][2]}, Mindestdauer ${R.settings.minH} h; Schwelle ${R.settings.T} kn${R.settings.ctl?`, Kontrolle ${R.settings.ctl} kn`:""}`);
   const d = R.days;
   p(`Tage: ${d.archive} im Archiv, ${d.known} auswertbar; Entwicklung ${d.dev} (${d.devRange.join(" – ")})` + (R.teil==="holdout" ? `, Holdout ${d.hold} (${d.holdRange.join(" – ")})` : ", Holdout nicht gelesen"));
-  p(R.teil==="dev" ? `Gemessen: ${d.test} Entwicklungstage in ${d.folds.length} Blöcken (${d.folds.map(f=>f.test.join("–")).join("; ")}), Parameter jeweils nur aus früheren Tagen`
+  p(R.teil==="anpassung" ? `Gemessen: ${d.test} Entwicklungstage mit Parametern aus denselben Tagen — zu günstig, zählt nicht für die Akzeptanz`
+    : R.teil==="dev" ? `Gemessen: ${d.test} Entwicklungstage in ${d.folds.length} Blöcken (${d.folds.map(f=>f.test.join("–")).join("; ")}), Parameter jeweils nur aus früheren Tagen`
     : `Gemessen: Holdout, ${d.test} Tage, Parameter wie im Stand hinterlegt${meta.fitted ? ` (bestimmt auf ${meta.fitted.join(" – ")})` : ""}`);
   if(meta.err && Object.keys(meta.err).length) p(`Stationsdaten fehlen/teilweise: ${Object.entries(meta.err).map(([k,v])=>k+" ("+v+")").join("; ")}`);
   const block = (X, T) => {
@@ -321,7 +325,7 @@ function report(R, meta){
       Object.keys(r.cells).forEach((s,i)=>{ const ca = a && a.cells[s], cb = b && b.cells[s];
         const e = Mn && uN && Mn.f[abk] && Mn.f[abk][s];
         const tsB = uB ? Math.round(T*uB.f) : "–", tsN = !uN ? "–" : e && e.f ? Math.max(3, Math.round(T*e.f)) : Math.round(T*uN.f);
-        const status = !uN ? "entfernt" : !uB ? "neu" : !r.data ? "keine Daten" : e ? (e.rel ? "vorläufig, Faktor "+e.f : "vorläufig, nicht verlässlich") : (uN.extra ? "Startwert, zählt nicht" : "Startwert");
+        const status = !uN ? "entfernt" : !uB ? "neu" : !r.data ? "keine Daten" : e && e.rel===1 ? "vorläufig, Faktor "+e.f : e && e.rel===0 ? "vorläufig, nicht verlässlich" : (uN.extra ? "Startwert, zählt nicht" : e ? "Startwert (kein brauchbarer Faktor)" : "Startwert");
         p(pad(i?"":r.name,18), pad(s,7), lp(`${tsB} | ${tsN}`,15), lp(pair(ca&&ca.rec,cb&&cb.rec,fmtR),15), lp(pair(ca&&ca.fpr,cb&&cb.fpr,fmtR),15), lp(pair(ca&&ca.lead,cb&&cb.lead,fmtM),19), lp(`${(cb||ca).ev}/${(cb||ca).nev}`,8), "  "+status); }); });
     const ea = X.basis.res.regelE, eb = X.neu.res.regelE;
     p(pad("Regel E Cressier",18), pad("joran",7), lp("fest",15), lp(pair(ea.rec,eb.rec,fmtR),15), lp(pair(ea.fpr,eb.fpr,fmtR),15), lp(pair(ea.lead,eb.lead,fmtM),19), lp(`${eb.ev}/${eb.nev}`,8), "  aktiv (unverändert)");
@@ -331,7 +335,7 @@ function report(R, meta){
   if(R.control) block(R.control, R.settings.ctl);
   p(""); p("B = Baseline. Recall: Signal spätestens beim Beginn am See. Vorlauf: Mittel über alle foilbaren Abende mit Signal (negativ = zu spät).");
   p("FPR je Upwind-Station: Signal an ruhigen Abenden, dem Windsystem des Signals zugeordnet. Schwelle in kn bei dieser Seeschwelle.");
-  p(""); p(`Akzeptanzregeln (${R.teil==="dev" ? "Entwicklungstage, Kreuzvalidierung" : "Holdout"}):`);
+  p(""); p(`Akzeptanzregeln (${R.teil==="dev" ? "Entwicklungstage, Kreuzvalidierung" : R.teil==="anpassung" ? "nur zur Einsicht, Parameter aus denselben Tagen" : "Holdout"}):`);
   R.accept.forEach(a=>p(`  [${a.ok===null?"?":a.ok?"x":" "}] ${a.name}: ${a.val}`));
   p(`Ergebnis nach Regeln: ${R.verdict}`);
   return L.join("\n");
