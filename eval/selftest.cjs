@@ -73,6 +73,23 @@ ok("Zelle Cressier/West: Recall 1", neu.up.crm.cells.w.rec===1 && neu.up.crm.cel
   ok("Kopplung: Temperatur fehlt → Signal zählt", sig(st(null, 18), Sm));
   ok("Kopplung: Modell nicht aktiv → Signal zählt wie bisher", sig(st(16, 18), St));
 }
+/* ---------- 4. Archiv, Höhenwind (H4) und Prognose-Stufe ---------- */
+{
+  const page = `<b>11.11.2026 (CET) 10:39</b> Wind-10min-Ø: 8.3km/h (4.5kn, 2Bf) SW Wind-10min-Max: 10.4km/h (5.6kn, 2Bf) SW Gust-Factor (GF): 1.6 / Richtungstreue: 98&#037; Wassertemperatur: 11.0&deg;C`;
+  const r = C.parseMeteobase(page);
+  ok("Seemessung: Richtungstreue wird gelesen (auch als &#037;)", r.steady===98 && r.mean===4.5, `steady ${r.steady}`);
+  ok("Seemessung: Richtungstreue mit %-Zeichen", C.parseMeteobase(page.replace("&#037;", "%")).steady===98);
+  const time = [], w = [], d = [], t8 = [], t2 = [];
+  for(let h=0; h<24; h++){ time.push(`2026-06-10T${String(h).padStart(2,"0")}:00`); w.push(20); d.push(250); t8.push(10); t2.push(18); }
+  const H = {time, wind_speed_850hPa:w, wind_direction_850hPa:d, temperature_850hPa:t8, temperature_2m:t2};
+  const hd = C.hoeheDay(H, "2026-06-10", St), Sm = Object.assign({}, St, {model:{hoehe:C.MODEL.hoehe}});
+  ok("Höhenwind: Tagesmittel, Richtung und Kopplung", !!hd && Math.round(hd.v)===20 && Math.round(hd.d)===250 && hd.coupled===true, hd ? `${hd.v} kn, ${hd.lapse.toFixed(1)} K/km` : "null");
+  ok("H4 nicht aktiv: Prognose zählt immer", C.hoeheOk(Object.assign({}, hd, {coupled:false}), St)===true);
+  ok("H4 aktiv: durchmischt und stark genug zählt, stabil oder zu schwach nicht",
+    C.hoeheOk(hd, Sm) && !C.hoeheOk(Object.assign({}, hd, {coupled:false}), Sm) && !C.hoeheOk(Object.assign({}, hd, {v:10}), Sm));
+  ok("H4: fehlende Höhendaten sperren nichts", C.hoeheOk(null, Sm)===true);
+  ok("Prognose-Stufe ohne Archivprognosen: nicht gemessen", M.forecastStage(C, St, T, days, null)===null);
+}
 const F = M.folds(days);
 ok("Kreuzvalidierung: Blöcke zeitlich nach dem Trainingsteil", F.length===3 && F.every(f=>f.train[f.train.length-1] < f.test[0]));
 const R = M.measureAll({per:lake, S, marks:{"2026-06-01":"y"}, St, ctl:14, cores:{basis:{K:C}, neu:{K:C}}, split:{devBis:"2026-06-16", holdoutBis:"2026-06-20"}, teil:"dev"});

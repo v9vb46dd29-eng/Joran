@@ -244,7 +244,7 @@ ol.steps li{margin:3px 0}
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v16</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v17</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -297,21 +297,18 @@ ol.steps li{margin:3px 0}
         <div id="lakeDiag" class="ftr" style="margin:8px 0 0"></div>
         <p class="ftr" style="margin:8px 0 0">Test: <a href="https://joran.rfjhvvs9p2.workers.dev/?url=https%3A%2F%2Fvingelz.meteobase.ch%2F" target="_blank" rel="noopener">Worker direkt öffnen</a> — muss die Vingelz-Seite zeigen.</p></details>
       <details><summary>Methode und Quellen</summary><div style="font-size:15px">
-<p><b>Prognose.</b> Vier hochauflösende Modelle über Open-Meteo: ICON-CH1 (MeteoSchweiz, 1 km, 33 h), ICON-CH2 (MeteoSchweiz, 2 km, 5 Tage), ICON-D2 (DWD, 2 km, 2 Tage), AROME HD (Météo-France, 1.3 km, ca. 2 Tage). Abgefragt wird die nächste Wasserzelle. Pro Stunde zählt der stärkste aktive Spot in einer gewählten Richtung.</p>
-<p><b>Ob.</b> Ein Modell trifft, wenn es die Schwelle im Zeitfenster so lange hält wie die Mindestdauer. Sehr wahrscheinlich: drei Viertel der Modelle (mindestens zwei). Wahrscheinlich: die Hälfte. Möglich: eines. Knapp: bestes Modell höchstens 3 kn darunter. Ab Übermorgen rechnet nur noch ICON-CH2.</p>
-<p><b>Wann.</b> Das Zeitfenster umfasst die Stunden, in denen mindestens die Hälfte der Modelle die Schwelle erreicht. Gibt es solche Stunden nicht, zählen Stunden mit mindestens einem Modell (Anzeige «einzelne Modelle»).</p>
-<p><b>Am See jetzt.</b> Vingelz und Ipsach (meteoBase.ch, 10-Minuten-Mittel und -Spitze). Die Seiten erlauben keinen direkten Abruf aus dem Browser (CORS). Die App holt sie darum über einen öffentlichen CORS-Proxy (allorigins, codetabs, corsproxy — der erste, der antwortet) oder über einen eigenen Proxy, und ergänzt die Verlaufskurve aus dem Branch <code>live</code>, den die GitHub Action füllt. Werte, die die App selbst holt, merkt sie sich bis 18 Stunden in diesem Browser. Die Kachel ist blau, wenn die letzten zwei Werte deine Schwelle in einer aktiven Richtung erreichen. Dann gibt es auch einen Mess-Push «Am See». Im Tagesdiagramm erscheinen die Seewerte als Punkte — so siehst du direkt, wie gut die Modelle heute liegen.</p>
-<p><b>Joran-Zutaten.</b> Thermischer Joran entsteht, wenn auf Jurahöhe Luft aus Nordwest anliegt und am Abend die Luft auf der Jura-Hochfläche relativ zum See schwerer wird. Joran zeigt dazu aus ICON-CH2: Wind auf dem Chasseral-Kamm aus 270–360° ab 12 kn und den Anstieg des Druckgefälles La Chaux-de-Fonds → See seit Mittag um mindestens 0.5 hPa. Das sind Erfahrungswerte, nicht kalibriert; sie ändern die Stufe nicht, sondern sagen dir, wann sich der Blick auf die Messung lohnt.</p>
-<p><b>Upwind-Messung.</b> SwissMetNet, 10-Minuten-Werte. Eine Station meldet ein Signal, wenn der Wind 30 Minuten lang aus ihrem Windsystem kommt, im Mittel ihre Schwelle erreicht und nicht abnimmt. Die Schwelle je Station kalibriert der Rückblick; ohne Kalibrierung gilt ein Startwert (Anzeige «ungeprüft»). Zusätzlich gilt Regel E für Joran in Cressier (an 1030 Abenden geprüft).</p>
-<p><b>Kalibrierung der Stationen.</b> Ziel: kein foilbarer Abend soll verpasst werden; ein Fehlalarm wiegt weniger. Neue Regel: Je Station gilt die höchste Schwelle, die mindestens 85 % der Windtage ihres Windsystems erkennt (Recall ≥ 0.85). Unter gleichwertigen Schwellen zählt die mit der tieferen Fehlalarmrate. Erreicht keine Schwelle 85 %, gilt die Station als nicht verlässlich und löst keinen Push aus. Joran, Taubenlöchler (nur Courtelary) und die übrigen Windsysteme werden getrennt gezählt. <i>Stand: vorbereitet, noch nicht aktiv.</i> Bis je Station und Windsystem mindestens zehn Windtage vorliegen, gilt weiter die bisherige Regel: beste Schwelle nach Peirce-Score, Stationen unter 0.25 lösen keinen Push aus.</p>
-<p><b>Wahrheit für die Kalibrierung.</b> Die GitHub Action legt die Seemessung Vingelz/Ipsach zusätzlich als eine Datei pro Tag ab (Branch <code>live</code>, Ordner <code>archive</code>). meteoBase bietet keine älteren Werte an; das Archiv beginnt darum mit dieser Version. Ein Tag gilt als foilbar, wenn im Zeitfenster deiner Einstellungen an einer Seestation jeder 10-Minuten-Mittelwert während deiner Mindestdauer (gerundet) deine Schwelle erreichte. Deine Markierungen «Ja»/«Nein» gehen vor. Das Skript <code>eval/measure.cjs</code> spielt das Live-Signal der App in 10-Minuten-Schritten nach und misst für jede Schwelle Recall, Fehlalarmrate, Precision und Vorlaufzeit: für das Gesamtmodell je Seestation und für jede Upwind-Station je Windsystem. Die letzten rund 20 % der Tage bleiben als Holdout bis zur Schlussmessung unberührt.</p>
-<p><b>Modell v2 (vorläufig, nicht aktiv).</b> Jede Upwind-Station erhält je Windsystem einen eigenen Faktor; ihre Schwelle ist deine Seeschwelle mal dieser Faktor und passt damit zu jeder Einstellung. Der Faktor stammt aus dem Vergleich mit der Seemessung: der höchste Wert, mit dem die Station über die Schwellen 8, 10, 12 und 14 kn mindestens 85 % der foilbaren Abende rechtzeitig meldet, abzüglich 10 % Sicherheit. Dafür braucht es mindestens vier Windtage. Eine Erweiterungsstation löst erst Push aus, wenn sie so einen Faktor mit höchstens 30 % Fehlalarmen erreicht. Eine Station, die heute Push auslöst, wird nie stummgeschaltet: Findet sich kein brauchbarer Faktor, behält sie ihren Startwert. Regel E für Joran in Cressier und der Taubenlöchler in Courtelary bleiben eigene Regeln und werden getrennt gezählt. Dazu kommt die Kopplung der Luftschichten: Ein Signal vom Chasseral zählt nur, wenn die Temperatur von Cressier bis zum Kamm um mindestens 4 K je Kilometer abnimmt. Bei stabiler Schichtung bleibt der Höhenwind oben; an den Entwicklungstagen mass Ipsach bei Westwind auf dem Kamm dann 2 kn statt 18 kn. Fehlt eine Temperatur, zählt das Signal. Stand 10.11.2026: 26 Archivtage, davon 5 foilbar bei 12 kn (4 West, 1 Bise), alle an Ipsach. Das reicht für Faktoren bei Westwind (Cressier und Neuchâtel 0.81, La Brévine 0.86, La Chaux-de-Fonds 0.72, Chaumont 0.63), nicht für Bise, Joran und Taubenlöchler. Weil je Station und Windsystem noch keine zehn Windtage vorliegen, rechnet die App weiter mit den Startwerten. Verlauf und Reviewer-Entscheide stehen in <code>eval/ITERATIONEN.md</code>.</p>
-<p><b>Zwei Arten Joran.</b> Der <i>Joran dynamique</i> kommt mit einer Kaltfront: Westlich des Juras staut sich kalte Luft und fällt über den Kamm. Er tritt ganzjährig auf, oft schon tagsüber, und zieht mit der Front von West nach Ost. Joran zeigt dafür den Druckunterschied Besançon − Neuchâtel aus ICON-CH2 (wie MeteoSchweiz; Hinweis ab +2 hPa) und misst ihn früh an den westlichen Stationen Bullet/La Frétaz, La Brévine und Neuchâtel. Der <i>Joran statique</i> entsteht abends nach ruhigen, warmen Tagen (Mai–August) oder als Gewitter-Fallwind lokal an den Jurahöhen; ihn zeigen die beiden Zutaten oben sowie Chasseral und Chaumont. Die neuen Stationen und Joran in Neuchâtel lösen erst Push aus, wenn der Rückblick sie als verlässlich ausweist. Die Messung (<code>eval/measure.cjs</code>) ordnet jeden Joran-Tag einem Typ zu, um später zu prüfen, ob sich getrennte Schwellen lohnen. Grenzwerte sind Erfahrungswerte, nicht kalibriert.</p>
-<p><b>Joran am See.</b> Die Fallböen teilen sich oft zwischen Vingelz und Alfermée: Ein Ast zieht in die Bucht Richtung Nidau, einer Richtung Sutz. Am See misst man dann Südwest oder Nordost statt Nordwest, und Vingelz liegt oft im Windschatten, während Ipsach mehr Wind hat. Darum bestimmen die Upwind-Stationen das Windsystem: Melden Regel E oder eine verlässliche Joran-Station Joran, zählt am See jede Richtung als Joran, und Joran zeigt einen Hinweis zur Joran-Lage. Die Modelle lösen diese Teilung nicht auf (Gitter 1–2 km).</p>
-<p><b>Taubenlöchler.</b> Abends fliesst kühle Luft das Vallon de St-Imier hinunter und durch die Taubenlochschlucht in die Bielerbucht (dort aus Nord/Nordost). Die Station Courtelary misst diesen Talwind entlang der Talachse (220–280°), Signal nur ab 15 Uhr und nicht bei Westwind auf dem Chasseral (ab 15 kn aus 200–290°), weil dann grossräumiger Westwind im Tal ebenfalls talabwärts weht. Courtelary zählt erst, wenn der Rückblick an Tagen mit Markierung «TL» einen Peirce-Score ab 0.25 ergibt (nach der neuen Regel: wenn eine Schwelle mindestens 85 % dieser Tage erkennt). Grenzwerte sind Erfahrungswerte, nicht kalibriert.</p>
-<p><b>Sturm</b> überschreibt jede positive Bewertung — aber nur dann: Mittelwind oder Böen über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) am See oder an einer Upwind-Station auf Seehöhe, oder eine echte Böenfront, bei der alle drei Merkmale gleichzeitig auftreten: Temperatursturz ≥ 3 °C, Mittelwind +8 kn und Böen ≥ 30 kn innert 20 Minuten. Der frühere Böenfaktor-Test (Böe doppelt so stark wie Mittel) entfällt: An Landstationen ist das bei mässigem, böigem Wind alltäglich.</p>
-<p><b>Push.</b> Der Cloudflare Worker (Ordner <code>proxy</code>) stösst alle 10 Minuten zwischen 6 und 21 Uhr eine GitHub Action an; sie prüft dieselben Regeln (Datei <code>core.js</code>) für jeden Nutzer mit dessen eigenen Einstellungen (<code>users/&lt;name&gt;.json</code>) und sendet über ntfy.sh an dessen eigenes Thema. GitHubs eigener Zeitplan läuft nur noch als Rückfall, weil er in der Praxis oft nur alle paar Stunden startet.</p>
-<p>Einstellungen und Markierungen liegen in diesem Browser; nur was du für Push speicherst, steht öffentlich lesbar in <code>users/&lt;name&gt;.json</code> — ohne ntfy-Thema. Wetterdaten: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD).</p>
+<p><b>Prognose.</b> Vier Wettermodelle rechnen den Wind über dem See (ICON-CH1, ICON-CH2, ICON-D2, AROME). Je Stunde zählt der stärkste deiner Spots.</p>
+<p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen. <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines trifft, aber das stärkste liegt höchstens 3 kn unter deiner Schwelle. Ab übermorgen rechnet nur noch ICON-CH2.</p>
+<p><b>Wann?</b> Angezeigt werden die Stunden, in denen mindestens die Hälfte der Modelle deine Schwelle erreicht.</p>
+<p><b>Am See jetzt.</b> Messwerte von Vingelz und Ipsach (meteoBase.ch), alle 10 Minuten. Die Kachel wird blau, wenn deine Schwelle erreicht ist. Im Tagesdiagramm stehen die Messwerte als Punkte.</p>
+<p><b>Wind kommt.</b> Messstationen in Anströmrichtung (SwissMetNet) zeigen den Wind oft 30 bis 90 Minuten früher. Eine Station meldet, wenn der Wind 30 Minuten lang aus der passenden Richtung kommt und stark genug ist. Für Joran gilt zusätzlich eine eigene Regel in Cressier.</p>
+<p><b>Höhenwind.</b> Wind auf rund 1500 m (ICON-EU). Er kommt nur bis auf den See, wenn die Luft durchmischt ist. Ist sie stabil geschichtet, bleibt er oben. Vorerst ein Hinweis, er ändert die Bewertung nicht.</p>
+<p><b>Joran.</b> Der Front-Joran kommt mit einer Kaltfront von Westen, zu jeder Jahreszeit. Der Abend-Joran entsteht nach warmen, ruhigen Tagen von Mai bis August. Zwei Zeichen sprechen für Joran: Nordwestwind auf dem Chasseral und steigender Druck über dem Jura. Am See teilt sich der Joran oft: Ipsach hat Wind, Vingelz liegt im Windschatten.</p>
+<p><b>Taubenlöchler.</b> Abends fliesst kühle Luft durch die Taubenlochschlucht in die Bucht. Die Station Courtelary zeigt ihn an.</p>
+<p><b>Sturm.</b> Über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) oder bei einer Böenfront warnt Joran, auch wenn sonst alles passt.</p>
+<p><b>Push.</b> Zwischen 6 und 21 Uhr prüft ein Programm auf GitHub alle 10 Minuten dieselben Regeln mit deinen Einstellungen und schickt die Nachricht über ntfy.</p>
+<p><b>Wie gut ist das?</b> Die Seemessung wird jeden Tag gespeichert und mit Prognose und Signalen verglichen. Dabei gilt: lieber ein Fehlalarm als ein verpasster Abend. Ein genaueres Modell mit eigenen Schwellen je Station und Windlage und mit Höhenwind ist vorbereitet, aber noch nicht aktiv. Es braucht mehr Windtage. Details stehen im Repo unter <code>eval/METHODE.md</code> und <code>eval/ITERATIONEN.md</code>.</p>
+<p><b>Daten.</b> Einstellungen bleiben in diesem Browser. Nur was du für Push speicherst, steht öffentlich im Repo, ohne ntfy-Thema. Quellen: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD), meteoBase.ch.</p>
 </div></details>
     </div>
     <div style="margin-top:22px"><button class="btn2" id="reset" style="width:100%;color:var(--warn);background:var(--card);padding:13px">Einstellungen zurücksetzen</button></div>
@@ -453,21 +450,22 @@ function renderLive(){
 
   h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
   h += chartHTML(cur.day);
-  h += `<small class="cap">Balken = mittlerer Modellwind im besten Spot (mit Modellfaktor), Strich mit Enden = Spannweite der Modelle (schwächstes bis stärkstes). Blau = Schwelle erreicht, grün = knapp, grau = darunter, gestrichelt = Wind nur aus abgewählter Richtung. ${cur.k===0?"Punkte = gemessen am See (bester von Vingelz/Ipsach, Stundenmittel). ":""}Hinterlegt: dein Zeitfenster.</small>`;
+  h += `<small class="cap">Balken: Modellwind am besten Spot. Strich: schwächstes bis stärkstes Modell. Blau: Schwelle erreicht. Grün: knapp darunter (bis 3 kn). Grau: zu wenig. Gestrichelt: abgewählte Richtung. ${cur.k===0?"Punkte: am See gemessen. ":""}Hinterlegt: dein Zeitfenster.</small>`;
   if(cur.k===0){ const ab = abgleich(cur.day); if(ab) h += ab; }
   if(jc) h += joranHTML(jc, cur, nc);
+  h += hoeheHTML(cur);
 
   h += `<details class="sub"><summary>Modelle im Detail <span class="dim">${cur.s.hits} von ${cur.s.n} treffen</span></summary>${modelTable(cur)}</details>`;
   const nSig = nc.sig.length;
   h += `<details class="sub"><summary>Upwind-Stationen <span class="dim">${nSig?nSig+" Signal"+(nSig>1?"e":""):"kein Signal"}</span></summary>
-    <p style="font-size:.82rem;margin-top:6px">Diese Stationen liegen in Anströmrichtung und zeigen Wind oft 30–90 Minuten bevor er am See ankommt. Für die Entscheidung zählt am Ende, was oben am See gemessen wird.</p>${stationsHTML(nc)}</details>`;
+    <p style="font-size:.82rem;margin-top:6px">Diese Stationen zeigen den Wind oft 30 bis 90 Minuten, bevor er am See ankommt. Am Ende zählt die Messung am See.</p>${stationsHTML(nc)}</details>`;
 
   h += `<details class="sub"><summary>Quellen und Diagnose</summary><div class="chips">`;
   MODELS.forEach(m=>{ const d = D.err[m.id]; h += `<span class="chip ${d?"fail":"ok"}">${m.name}${d?" — "+esc(d):""}</span>`; });
   h += `<span class="chip ${D.ens?"ok":"fail"}">Ensemble${D.ens?" ("+D.ens.members.length+" Läufe)":" — "+esc(D.err.ens||"")}</span>`;
   C.LAKE.forEach(L=>{ const ok = LK && LK.st[L.id] && LK.st[L.id].rows.length; h += `<span class="chip ${ok?"ok":"fail"}">${L.name}${ok?"":" — nicht abrufbar"}</span>`; });
   UPWIND.forEach(s=>{ const d = D.stations[s.abk]; h += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?" — "+esc(d.err):""}</span>`; });
-  h += `<span class="chip ${D.jura?"ok":"fail"}">Joran-Zutaten</span></div>`;
+  h += `<span class="chip ${D.jura?"ok":"fail"}">Joran-Zutaten</span><span class="chip ${D.hoehe?"ok":"fail"}">Höhenwind</span></div>`;
   h += `<div class="chips" style="margin-top:10px">
     <a class="chip" href="https://www.windguru.cz/56996" target="_blank" rel="noopener">Windguru</a>
     <a class="chip" href="https://www.meteoschweiz.admin.ch/service-und-publikationen/applikationen/niederschlag.html" target="_blank" rel="noopener">Radar</a></div>`;
@@ -493,11 +491,12 @@ function verdictHTML(cur, hour, nc){
   let cls = "c"+clsOf(s.level,S), word = LEVELS[s.level].charAt(0).toUpperCase()+LEVELS[s.level].slice(1), why = "", basis;
   if(s.top){
     const dn = dirOf(s.top.d);
-    why = s.win ? `Wind ≥ ${S.T} kn erwartet von ${winTxt(s.win)}${s.win.consensus?"":" (nur einzelne Modelle)"}. ` : "";
-    why += `${s.hits} von ${s.n} Modellen treffen. Bestes Signal: ${r0(s.top.v)} kn ${dn?dn.name:""} (${card(s.top.d)}) in ${spotName(s.top.spot)} gegen ${s.top.hr}:00, ${s.topM.name}.`;
-  } else why = "In den gewählten Richtungen zeigt kein Modell nennenswerten Wind.";
+    why = s.win ? `Ab ${S.T} kn von ${winTxt(s.win)}${s.win.consensus?"":" (nur einzelne Modelle)"}. ` : "";
+    if(s.level===1) why += `Kein Modell erreicht ${S.T} kn, das stärkste liegt höchstens 3 kn darunter. `;
+    why += `${s.hits} von ${s.n} Modellen treffen. Stärkstes: ${r0(s.top.v)} kn ${dn?dn.name:card(s.top.d)} in ${spotName(s.top.spot)} um ${s.top.hr} Uhr (${s.topM.name}).`;
+  } else why = "Kein Modell zeigt Wind aus deinen Richtungen.";
   if(cur.ens) why += ` Ensemble: ${cur.ens.hit} von ${cur.ens.n} Läufen erreichen die Schwelle.`;
-  if(s.n===1) why += " Nur ein Modell reicht so weit — Aussage unsicher.";
+  if(s.n===1) why += " Nur ein Modell reicht so weit, die Aussage ist unsicher.";
   basis = `Prognose, ${WINS[S.win][2]}` + (s.level>=S.cut ? " — lohnt sich nach deiner Einstellung" : "");
 
   const lakeOk = live ? nc.lake.filter(x=>x.ok) : [];
@@ -574,21 +573,36 @@ function abgleich(day){
 function joranHTML(jc, cur, nc){
   const live = cur.k===0;
   const li = [];
-  li.push(`<li class="${jc.crestOk?"y":""}">Nordwest auf Kammhöhe (Chasseral): ${jc.crest?`${r0(jc.crest.v)} kn aus ${card(jc.crest.d)} gegen ${jc.crest.hr} Uhr`:"keine NW-Strömung"}${jc.crestOk?"":` <span class="dim">— ab ${C.JORAN_X.crest} kn</span>`}</li>`);
-  li.push(`<li class="${jc.dpOk?"y":""}">Druckgefälle Jura → See: ${jc.rise!=null?`${jc.rise>=0?"+":""}${r1(jc.rise)} hPa seit Mittag`:"–"}${jc.dpMax!=null?`, höchstens ${jc.dpMax>0?"+":""}${r1(jc.dpMax)} hPa um ${jc.dpHr} Uhr`:""}</li>`);
+  li.push(`<li class="${jc.crestOk?"y":""}">Nordwest auf dem Chasseral: ${jc.crest?`${r0(jc.crest.v)} kn um ${jc.crest.hr} Uhr`:"nein"}${jc.crestOk?"":` <span class="dim">(nötig: ${C.JORAN_X.crest} kn)</span>`}</li>`);
+  li.push(`<li class="${jc.dpOk?"y":""}">Druck über dem Jura steigt: ${jc.rise!=null?`${jc.rise>=0?"+":""}${r1(jc.rise)} hPa seit Mittag`:"keine Angabe"}</li>`);
   if(live){
     const cdf = D.stations.cdf, neu = D.stations.neu;
     const lq = r => r && !r.err && r.rows.length ? r.rows[r.rows.length-1] : null;
     const a = lq(cdf), b = lq(neu);
     if(a && b && a.qff!=null && b.qff!=null && C.fresh(cdf.rows) && C.fresh(neu.rows))
-      li.push(`<li>Gemessen: Druck La Chaux-de-Fonds − Neuchâtel ${a.qff-b.qff>=0?"+":""}${r1(a.qff-b.qff)} hPa (${hhmm(a.t)})</li>`);
+      li.push(`<li>Gemessen um ${hhmm(a.t)}: Druck Jura − See ${a.qff-b.qff>=0?"+":""}${r1(a.qff-b.qff)} hPa</li>`);
   }
-  if(jc.bn!=null) li.push(`<li class="${jc.bnOk?"y":""}">Front-Joran (dynamique): Druck Besançon − Neuchâtel höchstens ${jc.bn>0?"+":""}${r1(jc.bn)} hPa um ${jc.bnHr} Uhr${jc.bnOk?"":` <span class="dim">— ab +${C.JORAN_X.bn} hPa</span>`}</li>`);
-  if(jc.storm) li.push(`<li class="w">Gewitterneigung (CAPE) — Joran kann als Böenfront kommen</li>`);
-  const hint = jc.bnOk ? `<br><b>Kaltluft staut sich westlich des Juras.</b> Front-Joran (dynamique) möglich: Er kommt mit der Front von Westen, Bullet, La Brévine und Neuchâtel melden ihn zuerst.`
-    : jc.n===2 && cur.s.level<S.cut ? `<br><b>Die Modelle zeigen am See wenig, aber beide Zutaten sind da.</b> Thermischer Joran (statique) wird oft unterschätzt — ab 16 Uhr Messung oben beobachten.`
-    : jc.n===0 && cur.s.top && dirOf(cur.s.top.d) && dirOf(cur.s.top.d).id==="joran" ? `<br>Modelle zeigen Joran, aber ohne Zutaten — eher vorsichtig sein.` : "";
-  return `<div class="note"><b>Joran-Zutaten</b> <span class="dim">(ICON-CH2, Hinweis, nicht kalibriert)</span><ul class="ing">${li.join("")}</ul>${hint}</div>`;
+  if(jc.bn!=null) li.push(`<li class="${jc.bnOk?"y":""}">Kaltluft westlich des Juras: ${jc.bn>0?"+":""}${r1(jc.bn)} hPa um ${jc.bnHr} Uhr${jc.bnOk?"":` <span class="dim">(nötig: +${C.JORAN_X.bn} hPa)</span>`}</li>`);
+  if(jc.storm) li.push(`<li class="w">Gewitter möglich: Joran kann als Böenfront kommen</li>`);
+  const hint = jc.bnOk ? `<br><b>Front-Joran möglich.</b> Er kommt von Westen; Bullet, La Brévine und Neuchâtel melden ihn zuerst.`
+    : jc.n===2 && cur.s.level<S.cut ? `<br><b>Beide Zeichen sind da, die Modelle zeigen wenig.</b> Abend-Joran wird oft unterschätzt: ab 16 Uhr die Messung beobachten.`
+    : jc.n===0 && cur.s.top && dirOf(cur.s.top.d) && dirOf(cur.s.top.d).id==="joran" ? `<br>Die Modelle zeigen Joran, die Zeichen fehlen. Eher vorsichtig sein.` : "";
+  return `<div class="note"><b>Joran-Zutaten</b> <span class="dim">(Hinweis)</span><ul class="ing">${li.join("")}</ul>${hint}</div>`;
+}
+/* Höhenwind auf 850 hPa und Schichtung: Hinweis zur Lage, ändert die Bewertung nicht */
+function hoeheHTML(cur){
+  const hd = D.hoehe ? C.hoeheDay(D.hoehe, cur.day, S) : null; if(!hd) return "";
+  const dn = dirOf(hd.d), wo = dn ? dn.name : card(hd.d);
+  let txt = hd.coupled==null ? "" : hd.coupled ? "Die Luft ist durchmischt: Der Wind kann bis auf den See kommen." : "Die Luft ist stabil geschichtet: Der Wind bleibt eher oben.";
+  if(hd.coupled && dn && dn.id==="bise") txt += " Bei Bise kommt am See etwa die Hälfte an.";
+  if(hd.coupled && dn && dn.id==="w") txt += " Bei West hat Ipsach meist deutlich mehr als Vingelz.";
+  let now = "";
+  if(cur.k===0){
+    const up = UPWIND.find(u=>u.abk==="cha"), ref = UPWIND.find(u=>u.abk==="crm");
+    const lp = C.lapseRate(D.stations, up, ref, new Date());
+    if(lp!=null) now = `<br><span class="dim">Gemessen jetzt (Cressier bis Chasseral): ${lp>=C.MODEL.kopplung.min?"durchmischt":"stabil geschichtet"}</span>`;
+  }
+  return `<div class="note"><b>Höhenwind</b> <span class="dim">(1500 m, Hinweis)</span><br>${esc(wo)} ${r0(hd.v)} kn. ${txt}${now}</div>`;
 }
 
 function chartHTML(day){
@@ -918,7 +932,7 @@ function renderHist(){
         <button class="tl" aria-pressed="${!!truth["tl:"+d]}" data-tl="1" title="Taubenlöchler: Wind aus Nord/Nordost in der Bielerbucht">TL</button></div></div>`;
   });
   h += `</div><div class="chips" style="margin-top:14px"><button class="btn2" id="exp">Markierungen kopieren</button><button class="btn2" id="imp">Markierungen einfügen</button></div>
-    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, fliesst nicht in die Bilanz ein. «TL» = Taubenlöchler (Wind aus Nord/Nordost in der Bucht), zusätzlich zu «Ja» markieren; prüft die Station Courtelary.</small>`;
+    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, zählt nicht mit. «TL» = Taubenlöchler (Wind aus Nord oder Nordost in der Bucht), zusätzlich zu «Ja» markieren.</small>`;
   el.innerHTML = h;
 
   el.querySelectorAll(".mk button").forEach(bt=>bt.addEventListener("click",()=>{
@@ -975,9 +989,9 @@ async function run(full){
   if(!D){ const c = loadMCache(); D = c ? Object.assign(c, {stations:{}, at:new Date()}) : null; }
   const needModels = full!==false && (!D || Date.now()-D.mt > M_MAX);
   const first = !D;
-  if(!D){ D = {models:{}, err:{}, ens:null, jura:null, stations:{}, mt:new Date(0), at:new Date()}; $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`; }
+  if(!D){ D = {models:{}, err:{}, ens:null, jura:null, hoehe:null, stations:{}, mt:new Date(0), at:new Date()}; $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`; }
   else if(!$("#out .verdict")){ try{ renderLive(); }catch(e){} }   /* letzter Stand aus dem Speicher, ausgegraut */
-  DONE = 0; TOTAL = 2 + (needModels ? MODELS.length + 2 : 0);
+  DONE = 0; TOTAL = 2 + (needModels ? MODELS.length + 3 : 0);
   if(!first) progress();
   const jobs = [
     C.fetchStations().then(st=>{ D.stations = st; D.at = new Date(); }).then(renderSoon, renderSoon),
@@ -988,6 +1002,7 @@ async function run(full){
     jobs.push(...MODELS.map(m=>C.fetchModel(m).then(x=>{ N.models[m.id] = x; }).catch(e=>{ N.err[m.id] = e.message||"Fehler"; }).then(renderSoon)));
     jobs.push(C.fetchEnsemble().then(x=>{ D.ens = x; delete D.err.ens; }).catch(e=>{ D.err.ens = e.message||"Fehler"; }).then(renderSoon));
     jobs.push(C.fetchJura().then(x=>{ D.jura = x; }).catch(()=>{}).then(renderSoon));
+    jobs.push(C.fetchHoehe().then(x=>{ D.hoehe = x; }).catch(()=>{}).then(renderSoon));
   }
   try{
     await Promise.allSettled(jobs);
