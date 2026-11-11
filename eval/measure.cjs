@@ -4,7 +4,8 @@
    Wahrheit: Archiv der Seestationen Vingelz/Ipsach (archive/JJJJ-MM-TT.json im Repo und im Branch «live»), foilbar nach
    core.lakeDay (Zeitfenster und Mindestdauer aus den Einstellungen, Schwelle T als Parameter). eval/truth.json überstimmt die
    automatische Wahrheit; jede Abweichung wird ausgewiesen.
-   Modell: Das Live-Signal der App wird in 10-min-Schritten nachgespielt (core.nowcast, Push-Bedingung wie push/check.cjs).
+   Modell: Das Live-Signal der App wird in 10-min-Schritten nachgespielt (core.nowcast, Push-Bedingung wie push/check.cjs,
+   mit Lieferverzug der Stationsdaten und Sturmsperre vom See).
    Gemessen wird das Gesamtmodell je Seestation sowie jede Upwind-Station je Windsystem:
    Recall, Fehlalarmrate (FPR), Precision, mittlere Vorlaufzeit (Minuten vom ersten Signal bis ≥ T kn am See), Fallzahl.
 
@@ -20,6 +21,10 @@
      --archive DIR      zusätzlicher Ordner mit Tagesdateien;  --no-git  Archiv im Branch origin/live nicht lesen
      --truth FILE       Markierungen (Standard: eval/truth.json, falls vorhanden)
      --fit              Modellparameter aus den Entwicklungstagen ausgeben (für core.js) und beenden
+     --fest             Kopplung (H3) und Höhenwind (H4) nicht je Block bestimmen, sondern die hinterlegten Werte nehmen
+     --verzug MIN       Lieferverzug der Upwind-Stationen: Beim Prüfschritt liegen nur Werte vor, die mindestens so alt
+                        sind (Standard 10, bestimmt mit eval/verzug.cjs; 0 = wie vor dem 11.11.2026)
+     --ohne-sturm       Sturmsperre vom See nicht nachspielen (wie vor dem 11.11.2026)
      --json FILE        Ergebnis zusätzlich als JSON
    Aufteilung (eval/split.json): Entwicklungstage bis devBis, Holdout danach bis holdoutBis (letzte rund 20 % der Tage).
    Der Holdout wird nur mit --teil holdout gelesen. Kreuzvalidierung: Die Entwicklungstage nach dem ersten Block werden in
@@ -31,18 +36,22 @@ const ROOT = path.join(__dirname, "..");
 const C = require(path.join(ROOT, "core.js"));
 
 /* ================= Optionen ================= */
+/* Lieferverzug in Minuten: Alter des jüngsten SwissMetNet-Werts, den die Action beim Lauf sieht (eval/verzug.cjs) */
+const VERZUG = 10;
 function parseArgs(argv){
-  const o = {T:null, ctl:14, user:null, basis:null, neu:null, teil:"dev", offline:false, archive:[], git:true, truth:null, fit:false, json:null};
+  const o = {T:null, ctl:14, user:null, basis:null, neu:null, teil:"dev", offline:false, archive:[], git:true, truth:null, fit:false, json:null, fest:false, verzug:VERZUG, sturm:true};
   for(let i=0; i<argv.length; i++){
     const a = argv[i], v = () => argv[++i];
     if(a==="--T") o.T = parseFloat(v()); else if(a==="--kontrolle") o.ctl = parseFloat(v()); else if(a==="--user") o.user = v();
     else if(a==="--basis") o.basis = v(); else if(a==="--neu") o.neu = v(); else if(a==="--teil") o.teil = v();
     else if(a==="--offline") o.offline = true; else if(a==="--archive") o.archive.push(v()); else if(a==="--no-git") o.git = false;
     else if(a==="--truth") o.truth = v(); else if(a==="--fit") o.fit = true; else if(a==="--json") o.json = v();
+    else if(a==="--fest") o.fest = true; else if(a==="--verzug") o.verzug = parseFloat(v()); else if(a==="--ohne-sturm") o.sturm = false;
     else if(a==="-h" || a==="--help"){ console.log(fs.readFileSync(__filename,"utf8").split("*/")[0]); process.exit(0); }
     else throw new Error("unbekannte Option "+a);
   }
   if(!["dev","holdout","anpassung"].includes(o.teil)) throw new Error("--teil dev, anpassung oder holdout");
+  if(!(o.verzug>=0 && o.verzug<=120)) throw new Error("--verzug 0–120 min");
   return o;
 }
 const git = args => execFileSync("git", args, {cwd:ROOT, encoding:"utf8", stdio:["ignore","pipe","ignore"], maxBuffer:256<<20});
@@ -99,6 +108,20 @@ function lakeByDay(lk){
   return per;
 }
 
+/* Markierungen prüfen (Format «Markierungen kopieren» der App). Unbekannte Einträge werden gemeldet und nicht verwendet. */
+const MARK_DAY = /^\d{4}-\d{2}-\d{2}$/;
+function checkMarks(raw){
+  if(!raw || typeof raw!=="object" || Array.isArray(raw)) throw new Error("Markierungen: kein JSON-Objekt");
+  const sysIds = C.DIRS.map(d=>d.id), marks = {}, bad = [], n = {y:0, n:0, k:0, tl:0, sys:0};
+  Object.keys(raw).forEach(k=>{ const v = raw[k];
+    if(MARK_DAY.test(k)){ if(["y","n","k"].includes(v)){ marks[k] = v; n[v]++; } else if(v!=null && v!=="") bad.push(`${k}: «${v}» (erlaubt y, n, k)`); }
+    else if(/^tl:/.test(k) && MARK_DAY.test(k.slice(3))){ if(v){ marks[k] = 1; n.tl++; } }
+    else if(/^sys:/.test(k) && MARK_DAY.test(k.slice(4))){ if(sysIds.includes(v)){ marks[k] = v; n.sys++; } else if(v) bad.push(`${k}: «${v}» (erlaubt ${sysIds.join(", ")})`); }
+    else bad.push(`${k}: unbekannter Eintrag`); });
+  /* tl: und sys: wirken nur an Tagen, die als foilbar gelten */
+  return {marks, bad, n};
+}
+
 /* ================= Stationsdaten (SwissMetNet, 10 min) ================= */
 const CACHE = path.join(__dirname, "cache");
 const toRows = a => (a||[]).map(r=>Object.assign({}, r, {t:new Date(r.t)})).filter(r=>r.mean!=null && !isNaN(r.t)).sort((a,b)=>a.t-b.t);
@@ -144,19 +167,29 @@ function stepsOf(day, St){
   return out;
 }
 /* Live-Signal eines Tages nachspielen. Rückgabe: erster Push, erstes Signal je Station (mit System und Push-Fähigkeit), Regel E */
-function replay(K, S, St, day){
-  const res = {push:null, sig:{}, e:null, n:0};
+/* opt.verzug (min): Die Station liefert verzögert, beim Schritt t liegen nur Werte bis t − verzug vor.
+   opt.lake (Tagesdatei der Seemessung): Sturmsperre vom See wie in der Action (core.lakeStorm mit den Werten bis t). Die
+   Seemessung holt die Action im selben Lauf direkt, sie zählt ohne Verzug. res.storm = erster Schritt mit Sperre,
+   res.held = erster Schritt, an dem nur die Sperre den Push verhindert hat. */
+function replay(K, S, St, day, opt){
+  const res = {push:null, sig:{}, e:null, n:0, storm:null, held:null};
+  const lag = ((opt && opt.verzug) || 0)*60000;
+  const lakeRows = opt && opt.lake ? Object.fromEntries(C.LAKE.map(L=>[L.id, ((opt.lake.st[L.id]||{}).rows||[]).map(r=>({ms:Date.parse(r.t), r})).sort((a,b)=>a.ms-b.ms)])) : null;
   for(const t of stepsOf(day, St)){
-    const stn = {};
-    K.UPWIND.forEach(up=>{ const rows = S[up.abk]; if(!rows) return; const i = lastIdx(rows, t); if(i>=0) stn[up.abk] = {rows:rows.slice(Math.max(0,i-8), i+1), at:t}; });
+    const stn = {}, tv = new Date(t-lag);
+    K.UPWIND.forEach(up=>{ const rows = S[up.abk]; if(!rows) return; const i = lastIdx(rows, tv); if(i>=0) stn[up.abk] = {rows:rows.slice(Math.max(0,i-8), i+1), at:t}; });
     const nc = K.nowcast(stn, St, t, null);
+    /* Sturmsperre vom See mit diesem Stand gerechnet, für Baseline und neu gleich */
+    const lkT = lakeRows ? {st:Object.fromEntries(C.LAKE.map(L=>[L.id, {rows:lakeRows[L.id].filter(x=>x.ms<=+t).slice(-3).map(x=>x.r)}]))} : null;
+    const front = nc.front.length || (lkT && C.lakeStorm(lkT, St, t).length);
+    if(front && !res.storm) res.storm = t;
     if(Object.values(stn).some(x=>K.fresh(x.rows, t))) res.n++;
     nc.sig.forEach(s=>{ const sys = s.up.tl ? "tl" : (s.u.sys && s.u.sys.id) || null, tr = K.isTrusted(s);
       const p = res.sig[s.up.abk];
       if(!p) res.sig[s.up.abk] = {t, sys, trusted:tr, tPush: tr ? t : null};
       else if(tr && !p.tPush){ p.tPush = t; p.trusted = true; } });
     if(nc.eOk && !res.e) res.e = t;
-    if(!res.push && !nc.front.length && (nc.eOk || nc.trusted.length)) res.push = t;
+    if(!res.push && (nc.eOk || nc.trusted.length)){ if(!front) res.push = t; else if(!res.held) res.held = t; }
   }
   return res;
 }
@@ -211,7 +244,7 @@ function buildTruth(per, days, St, marks, S){
 }
 
 /* ================= Messung eines Stands auf Testtagen ================= */
-function score(K, S, St, T, testDays, modelFor){
+function score(K, S, St, T, testDays, modelFor, opt){
   const cnt = () => ({ev:0, tp:0, late:0, nev:0, fp:0, leads:[]});
   const fin = c => Object.assign(c, {rec:rate(c.tp,c.ev), fpr:rate(c.fp,c.nev), prec:rate(c.tp,c.tp+c.fp), lead:mean(c.leads)});
   const lake = {see:cnt()}; C.LAKE.forEach(L=>lake[L.id] = cnt());
@@ -220,7 +253,7 @@ function score(K, S, St, T, testDays, modelFor){
   const E = cnt(), log = [];
   testDays.forEach(d=>{
     const M = modelFor ? modelFor(d) : null;
-    const R = replay(K, S, M ? Object.assign({}, St, {model:M}) : St, d);
+    const R = replay(K, S, M ? Object.assign({}, St, {model:M}) : St, d, opt && {verzug:opt.verzug, lake:opt.sturm ? opt.per[d] : null});
     const add = (c, tr) => { if(!tr) return;
       if(tr.v==="y"){ c.ev++; if(R.push){ if(!tr.onset || R.push<=tr.onset) c.tp++; else c.late++; if(tr.onset) c.leads.push((tr.onset-R.push)/60000); } }
       else { c.nev++; if(R.push) c.fp++; } };
@@ -236,7 +269,7 @@ function score(K, S, St, T, testDays, modelFor){
     });
     if(tr.v==="y"){ if(sys==="joran"){ E.ev++; if(R.e){ if(!tr.onset || R.e<=tr.onset) E.tp++; else E.late++; if(tr.onset) E.leads.push((tr.onset-R.e)/60000); } } }
     else { E.nev++; if(R.e) E.fp++; }
-    log.push({day:d, v:tr.v, sys, onset:tr.onset, push:R.push, by:Object.keys(R.sig).filter(k=>R.sig[k].trusted).join(",") + (R.e ? (Object.keys(R.sig).some(k=>R.sig[k].trusted)?",":"")+"E" : "")});
+    log.push({day:d, v:tr.v, sys, onset:tr.onset, push:R.push, storm:R.storm, held:R.held, by:Object.keys(R.sig).filter(k=>R.sig[k].trusted).join(",") + (R.e ? (Object.keys(R.sig).some(k=>R.sig[k].trusted)?",":"")+"E" : "")});
   });
   Object.values(lake).forEach(fin); fin(E);
   Object.values(up).forEach(r=>Object.values(r.cells).forEach(fin));
@@ -247,7 +280,7 @@ function score(K, S, St, T, testDays, modelFor){
    Kann der Stand den Höhenwind prüfen (core.hoeheOk, H4), zählt die Prognose nur, wenn auch diese Bedingung erfüllt ist.
    Daten: eval/data/prognose_vortag.json (Open-Meteo Previous Runs) und eval/data/hoehenwind_icon_eu.json (Historical
    Forecast, kurze Vorlaufzeit, also eher zu günstig). Tage ohne Daten zählen nicht. */
-function forecastStage(K, St, T, testDays, FC){
+function forecastStage(K, St, T, testDays, FC, modelFor){
   if(!FC || !FC.models) return null;
   const c = {ev:0, tp:0, nev:0, fp:0, skip:0};
   testDays.forEach(d=>{
@@ -255,10 +288,12 @@ function forecastStage(K, St, T, testDays, FC){
     let s = null; try{ s = K.summarize(FC.models, d, St); }catch(e){}
     if(!s || s.level==null || s.level<0){ c.skip++; return; }
     let alarm = s.level>=St.cut;
-    if(alarm && K.hoeheDay && K.hoeheOk && K.MODEL && K.MODEL.hoehe && FC.hoehe){
+    /* Regel H4 mit den Parametern des Blocks; hat der Block keine Regel (zu wenige Abende), zählt die Prognose wie bisher */
+    const P = K.hoeheDay && K.hoeheOk && K.MODEL ? (modelFor ? (modelFor(d)||{}).hoehe : K.MODEL.hoehe) : null;
+    if(alarm && P && FC.hoehe){
       const hd = K.hoeheDay(FC.hoehe, d, St);
       if(!hd){ c.skip++; return; }
-      alarm = K.hoeheOk(hd, Object.assign({}, St, {model:{hoehe:K.MODEL.hoehe}}));
+      alarm = K.hoeheOk(hd, Object.assign({}, St, {model:{hoehe:P}}));
     }
     if(tr.v==="y"){ c.ev++; if(alarm) c.tp++; } else { c.nev++; if(alarm) c.fp++; }
   });
@@ -274,7 +309,7 @@ function folds(dev){
   return out;
 }
 
-function measureAll({per, S, marks, St, ctl, cores, split, teil, FC}){
+function measureAll({per, S, marks, St, ctl, cores, split, teil, FC, fest, verzug, sturm}){
   const nArchive = Object.keys(per).length;
   /* im Entwicklungslauf werden Tage nach devBis gar nicht angefasst */
   const all = Object.keys(per).sort().filter(d=>d<=(teil!=="holdout" ? split.devBis : split.holdoutBis));
@@ -282,16 +317,17 @@ function measureAll({per, S, marks, St, ctl, cores, split, teil, FC}){
   const dev = known.filter(d=>d<=split.devBis), hold = known.filter(d=>d>split.devBis && d<=split.holdoutBis);
   const F = teil==="dev" ? folds(dev) : teil==="anpassung" ? [{train:dev, test:dev}] : [{train:dev, test:hold}];
   const test = F.flatMap(f=>f.test);
-  const fitData = days => ({days, lake:per, S, St});
+  const fitData = days => ({days, lake:per, S, St, hoehe:FC ? FC.hoehe : null});
+  const ropt = {verzug:verzug||0, sturm:!!sturm, per};
   const one = (T, core) => {
     const Stt = Object.assign({}, St, {T}), TR = buildTruth(per, known, Stt, marks, S);
     let modelFor = null, models = [];
     if(core.K.fitModel && core.K.MODEL){
-      if(teil!=="holdout"){ models = F.map(f=>core.K.fitModel(fitData(f.train))); modelFor = d => models[F.findIndex(f=>f.test.includes(d))]; }
+      if(teil!=="holdout"){ models = F.map(f=>core.K.fitModel(fitData(f.train), fest ? {fest:true} : null)); modelFor = d => models[F.findIndex(f=>f.test.includes(d))]; }
       else { const M = Object.assign({}, core.K.MODEL, {active:true}); models = [M]; modelFor = () => M; }
     }
     /* Prognose-Stufe nur auf Entwicklungstagen: Für den Holdout sind keine Höhendaten abgelegt */
-    return {T, truth:TR, res:score(core.K, S, Stt, TR, test, modelFor), models, fc: teil!=="holdout" ? forecastStage(core.K, Stt, TR, test, FC) : null};
+    return {T, truth:TR, res:score(core.K, S, Stt, TR, test, modelFor, ropt), models, fc: teil!=="holdout" ? forecastStage(core.K, Stt, TR, test, FC, modelFor) : null};
   };
   const run = T => ({basis:one(T, cores.basis), neu:one(T, cores.neu)});
   const main = run(St.T), control = ctl && ctl!==St.T ? run(ctl) : null;
@@ -313,10 +349,10 @@ function measureAll({per, S, marks, St, ctl, cores, split, teil, FC}){
   const core = A.slice(0,-1).map(a=>a.ok);
   const base = core.some(x=>x===false) ? "NICHT ERFÜLLT" : core.some(x=>x===null) ? "TEILWEISE NICHT AUSWERTBAR (keine Ereignisse)" : "ERFÜLLT";
   const verdict = A[A.length-1].ok ? base : `${base} — VORLÄUFIG (zu wenige Ereignistage: committen, nicht aktiv setzen)`;
-  return {teil, settings:{T:St.T, ctl:control?ctl:null, win:St.win, minH:St.minH}, days:{archive:nArchive, known:known.length, dev:dev.length, hold:hold.length,
+  return {teil, settings:{T:St.T, ctl:control?ctl:null, win:St.win, minH:St.minH, verzug:ropt.verzug, sturm:ropt.sturm, fest:!!fest}, days:{archive:nArchive, known:known.length, dev:dev.length, hold:hold.length,
     devRange:[dev[0]||null, dev[dev.length-1]||null], holdRange:[hold[0]||null, hold[hold.length-1]||null], test:test.length, testRange:[test[0]||null, test[test.length-1]||null],
     folds:F.map(f=>({train:[f.train[0], f.train[f.train.length-1]], test:[f.test[0], f.test[f.test.length-1]], n:f.test.length}))},
-    main, control, accept:A, fewCells:few, verdict};
+    main, control, accept:A, fewCells:few, sysDays:sysN, verdict};
 }
 
 /* ================= Ausgabe ================= */
@@ -325,6 +361,7 @@ function report(R, meta){
   const pad = (s,n) => String(s).padEnd(n), lp = (s,n) => String(s).padStart(n), pair = (a,b,f) => `${f(a)} | ${f(b)}`;
   p(`Joran — Messung Prognosemodell (Stand ${meta.rev}; Baseline: ${meta.basis}; neu: ${meta.neu})`);
   p(`Einstellungen ${meta.user}: Fenster ${C.WINS[R.settings.win][2]}, Mindestdauer ${R.settings.minH} h; Schwelle ${R.settings.T} kn${R.settings.ctl?`, Kontrolle ${R.settings.ctl} kn`:""}`);
+  p(`Nachspielen: Lieferverzug der Stationsdaten ${R.settings.verzug} min, Sturmsperre vom See ${R.settings.sturm ? "ein" : "aus"}`);
   const d = R.days;
   p(`Tage: ${d.archive} im Archiv, ${d.known} auswertbar; Entwicklung ${d.dev} (${d.devRange.join(" – ")})` + (R.teil==="holdout" ? `, Holdout ${d.hold} (${d.holdRange.join(" – ")})` : ", Holdout nicht ausgewertet"));
   p(R.teil==="anpassung" ? `Gemessen: ${d.test} Entwicklungstage mit Parametern aus denselben Tagen — zu günstig, zählt nicht für die Akzeptanz`
@@ -356,7 +393,11 @@ function report(R, meta){
         p(pad(i?"":r.name,18), pad(s,7), lp(`${tsB} | ${tsN}`,15), lp(pair(ca&&ca.rec,cb&&cb.rec,fmtR),15), lp(pair(ca&&ca.fpr,cb&&cb.fpr,fmtR),15), lp(pair(ca&&ca.lead,cb&&cb.lead,fmtM),19), lp(`${(cb||ca).ev}/${(cb||ca).nev}`,8), "  "+status); }); });
     const ea = X.basis.res.regelE, eb = X.neu.res.regelE;
     p(pad("Regel E Cressier",18), pad("joran",7), lp("fest",15), lp(pair(ea.rec,eb.rec,fmtR),15), lp(pair(ea.fpr,eb.fpr,fmtR),15), lp(pair(ea.lead,eb.lead,fmtM),19), lp(`${eb.ev}/${eb.nev}`,8), "  aktiv (unverändert)");
-    p("Tage (neu): " + X.neu.res.log.map(x=>`${x.day.slice(5)} ${x.v==="y"?"JA":"–"}${x.sys?"/"+x.sys:""}${x.push?" Push "+C.hhmm(x.push)+" ["+x.by+"]":""}${x.onset?" See "+C.hhmm(x.onset):""}`).join("; "));
+    p("Tage (neu): " + X.neu.res.log.map(x=>`${x.day.slice(5)} ${x.v==="y"?"JA":"–"}${x.sys?"/"+x.sys:""}${x.push?" Push "+C.hhmm(x.push)+" ["+x.by+"]":""}${x.held?" Sturmsperre ab "+C.hhmm(x.held):""}${x.onset?" See "+C.hhmm(x.onset):""}`).join("; "));
+    const held = X.neu.res.log.filter(x=>x.held);
+    if(held.length) p(`Sturmsperre: an ${held.length} Tag(en) hielt sie den Push zurück (${held.map(x=>x.day.slice(5)+(x.push?", Push dann "+C.hhmm(x.push):", kein Push")).join("; ")})`);
+    if(X.neu.models.length && X.neu.models[0]){ const fm = M => `Kopplung ${M.kopplung ? "ab "+M.kopplung.min+" K je km" : "keine Grenze"}, Höhenwind ${M.hoehe ? "ab "+M.hoehe.f+" × T" : "keine Regel"}`;
+      p((R.settings.fest || R.teil==="holdout" ? "H3/H4 hinterlegt: " : "H3/H4 je Block: ") + (R.settings.fest || R.teil==="holdout" ? fm(X.neu.models[0]) : X.neu.models.map((M,i)=>`${i+1}) ${fm(M)}`).join("; "))); }
   };
   block(R.main, R.settings.T);
   if(R.control) block(R.control, R.settings.ctl);
@@ -365,6 +406,11 @@ function report(R, meta){
   p(""); p(`Akzeptanzregeln (${R.teil==="dev" ? "Entwicklungstage, Kreuzvalidierung" : R.teil==="anpassung" ? "nur zur Einsicht, Parameter aus denselben Tagen" : "Holdout"}):`);
   R.accept.forEach(a=>p(`  [${a.ok===null?"?":a.ok?"x":" "}] ${a.name}: ${a.val}`));
   p(`Ergebnis nach Regeln: ${R.verdict}`);
+  /* Entscheid 11.11.2026: Die Regel «10 Ereignistage» gilt je Windsystem einzeln. Ein System mit 10 Abenden kann für sich
+     zur Aktivierung vorgeschlagen werden, auch wenn andere Systeme noch zu wenige haben. */
+  const sysAll = [...new Set(meta.KN.UPWIND.flatMap(u=>u.tl ? ["tl"] : u.sys))];
+  p(`Ereignistage je Windsystem (Regel gilt je System einzeln, nötig 10): ${sysAll.map(s=>`${s} ${(R.sysDays||{})[s]||0}`).join(", ")}`
+    + ` — bereit: ${sysAll.filter(s=>((R.sysDays||{})[s]||0)>=10).join(", ") || "keines"}`);
   return L.join("\n");
 }
 
@@ -374,29 +420,30 @@ async function main(){
   const split = JSON.parse(fs.readFileSync(path.join(__dirname, "split.json"), "utf8"));
   const {lk, nFiles} = loadArchive(o.archive, o.git);
   const tf = o.truth || path.join(__dirname, "truth.json");
-  const marks = fs.existsSync(tf) ? JSON.parse(fs.readFileSync(tf, "utf8")) : null;
-  if(o.truth && !marks) throw new Error("Markierungsdatei fehlt: "+o.truth);
+  if(o.truth && !fs.existsSync(tf)) throw new Error("Markierungsdatei fehlt: "+o.truth);
+  const mk = fs.existsSync(tf) ? checkMarks(JSON.parse(fs.readFileSync(tf, "utf8"))) : null, marks = mk ? mk.marks : null;
+  if(mk && mk.bad.length) console.error(`Markierungen: ${mk.bad.length} Eintrag/Einträge nicht verwendet — ${mk.bad.join("; ")}`);
   const cores = {basis:loadBase(o.basis), neu:loadCore(o.neu)};
   const abks = [...new Set(cores.basis.K.UPWIND.concat(cores.neu.K.UPWIND).map(u=>u.abk))];
   const per = lakeByDay(lk);
+  const rd = f => { const q = path.join(__dirname, "data", f); return fs.existsSync(q) ? JSON.parse(fs.readFileSync(q, "utf8")) : null; };
   const first = Object.keys(per).sort()[0];
   const {S, err} = await loadStations(abks, o.offline, first ? new Date(Date.parse(first+"T00:00:00Z")-2*864e5) : null);
   if(o.fit){
     if(!cores.neu.K.fitModel) throw new Error("dieser Stand kann keine Parameter bestimmen");
     const dev = Object.keys(per).sort().filter(d=>d<=split.devBis && C.lakeDay(per[d], d, St).known);
-    const M = cores.neu.K.fitModel({days:dev, lake:per, S, St});
-    console.log(JSON.stringify({fitted:M.fitted, f:M.f}));
+    const M = cores.neu.K.fitModel({days:dev, lake:per, S, St, hoehe:rd("hoehenwind_icon_eu.json") ? rd("hoehenwind_icon_eu.json").hourly : null}, o.fest ? {fest:true} : null);
+    console.log(JSON.stringify({fitted:M.fitted, kopplung:M.kopplung, hoehe:M.hoehe, f:M.f}));
     return;
   }
-  const rd = f => { const q = path.join(__dirname, "data", f); return fs.existsSync(q) ? JSON.parse(fs.readFileSync(q, "utf8")) : null; };
   const pv = rd("prognose_vortag.json"), hw = rd("hoehenwind_icon_eu.json");
   const FC = pv ? {models:Object.fromEntries(pv.models.map(x=>[x.id, x.spots])), hoehe:hw ? hw.hourly : null} : null;
-  const R = measureAll({per, S, marks, St, ctl:o.ctl, cores, split, teil:o.teil, FC});
+  const R = measureAll({per, S, marks, St, ctl:o.ctl, cores, split, teil:o.teil, FC, fest:o.fest, verzug:o.verzug, sturm:o.sturm});
   let rev = "?"; try{ rev = git(["rev-parse","--short","HEAD"]).trim() + (git(["status","--porcelain","core.js","eval"]).trim() ? "+lokal" : ""); }catch(e){}
   const KN = cores.neu.K;
   console.log(report(R, {rev, user:id, basis:cores.basis.name, neu:cores.neu.name, err, KB:cores.basis.K, KN, fitted:KN.MODEL && KN.MODEL.fitted}));
-  console.log(`Archiv: ${nFiles} Tagesdateien; Markierungen: ${marks ? path.relative(ROOT, tf) : "keine (nur automatische Wahrheit)"}`);
+  console.log(`Archiv: ${nFiles} Tagesdateien; Markierungen: ${mk ? `${path.relative(ROOT, tf)} (foilbar ${mk.n.y}, ruhig ${mk.n.n}, zählt nicht ${mk.n.k}, Taubenlöchler ${mk.n.tl}, Windsystem ${mk.n.sys})` : "keine (nur automatische Wahrheit)"}`);
   if(o.json) fs.writeFileSync(o.json, JSON.stringify(R, (k,v)=>k==="leads"||k==="models"?undefined:v, 1)+"\n");
 }
 if(require.main===module) main().catch(e=>{ console.error(e.message||e); process.exitCode = 1; });
-module.exports = {measureAll, buildTruth, score, forecastStage, replay, folds, stepsOf, classify, loadArchive, lakeByDay, report};
+module.exports = {VERZUG, checkMarks, measureAll, buildTruth, score, forecastStage, replay, folds, stepsOf, classify, loadArchive, lakeByDay, report};

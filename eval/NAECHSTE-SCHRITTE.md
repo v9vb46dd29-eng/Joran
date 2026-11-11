@@ -1,6 +1,6 @@
 # Nächste Schritte
 
-Stand 11.11.2026. Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.md`.
+Stand 11.11.2026 (v18). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.md`.
 
 ## Was läuft
 
@@ -9,6 +9,8 @@ Stand 11.11.2026. Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.
 - Die App zeigt den Höhenwind (850 hPa, ICON-EU) mit Schichtung als Hinweis.
 - Vorbereitet, aber nicht aktiv (`MODEL.active = false` in `core.js`): Stationsfaktoren je Windsystem (Modell v2),
   Kopplung der Luftschichten für Chasseral-Signale (H3), Höhenwind in der Prognose (H4).
+- Seit v18 bestimmt die Messung auch die Grenze von H3 und den Faktor von H4 je Block, rechnet mit 10 min Lieferverzug
+  der Stationsdaten und mit der Sturmsperre vom See.
 
 ## Überprüfung Ende Dezember 2026 (automatisch geplant auf den 28.12.2026)
 
@@ -17,11 +19,16 @@ Stand 11.11.2026. Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.
    Die Tage 6.–10.11.2026 waren schon Holdout und dürfen in die Entwicklung wandern; der neue Holdout sind die jüngsten Tage.
 3. Archivprognosen und Höhenwind für den neuen Zeitraum nachladen (`eval/data/prognose_vortag.json` löschen und
    `node eval/prognose.cjs` laufen lassen; `eval/data/hoehenwind_icon_eu.json` über die Historical Forecast API erneuern).
-4. Parameter neu bestimmen (`node eval/measure.cjs --fit`), in `core.MODEL.f` eintragen, messen bei 10, 12 und 14 kn.
-5. Ereignistage je Windsystem zählen. Liegen für West mindestens 10 vor: Aktivierung **nur für West** vorschlagen, mit
-   Reviewer-Entscheid und einmaliger Holdout-Messung. Dafür braucht es Simons Entscheid, ob die 10-Tage-Regel je Windsystem
-   einzeln gelten darf.
-6. H3 und H4 an den neuen Tagen prüfen: Hat die Kopplung einen foilbaren Abend gesperrt? Hält die Grenze 1.1 × T auf 850 hPa?
+4. Parameter neu bestimmen (`node eval/measure.cjs --fit`): `f` in `core.MODEL.f` eintragen, `kopplung.min` und
+   `hoehe.f` in `core.MODEL.kopplung` und `core.MODEL.hoehe`. Messen bei 10, 12 und 14 kn. Den Lieferverzug mit
+   `node eval/verzug.cjs` nachprüfen (heute 10 min).
+5. Ereignistage je Windsystem zählen (letzte Zeile der Messung). Die Regel gilt je Windsystem einzeln (Entscheid
+   11.11.2026). Liegen für West mindestens 10 vor: Aktivierung **nur für West** vorschlagen, mit Reviewer-Entscheid und
+   einmaliger Holdout-Messung. Dafür braucht es einen Schalter je Windsystem (heute schaltet `MODEL.active` alles
+   zusammen): Stationsfaktoren nur für West; H3 gehört zu Joran und Nord und bleibt aus; H4 wirkt auf jede Richtung und
+   bleibt aus, bis es je Richtung belegt ist.
+6. H3 und H4 an den neuen Tagen prüfen: Hat die Kopplung einen foilbaren Abend gesperrt? Hält der Faktor auf 850 hPa?
+   Die Zeile «H3/H4 je Block» zeigt, was die Daten je Block hergeben.
 7. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
@@ -36,12 +43,16 @@ Stand 11.11.2026. Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.
 
 ## Offene Entscheide (Simon)
 
-- Darf die Regel «10 Ereignistage» je Windsystem einzeln gelten? Sonst blockieren Süd, Südost und Taubenlöchler alles.
-- Markierungen im Rückblick exportieren und als `eval/truth.json` ablegen. Sie gehen der automatischen Wahrheit vor.
+- Entschieden am 11.11.2026: Die Regel «10 Ereignistage» gilt je Windsystem einzeln. Simon hat den Entscheid delegiert;
+  er lässt sich jederzeit umstossen. Aktiviert wird weiterhin nur über einen PR und Simons «merge».
+- Markierungen im Rückblick ablegen: «Fürs Modell speichern» (mit Token) schreibt `eval/truth.json`. Sie gehen der
+  automatischen Wahrheit vor. Vor allem Joran- und Taubenlöchler-Abende helfen.
 
 ## Technische Restpunkte
 
-- Die Messung rechnet ohne Lieferverzug von SwissMetNet und ohne Sturmsperre vom See.
+- Der Lieferverzug (10 min) ist aus 18 Push-Tagen bestimmt, an denen mehrere App-Versionen liefen. Seit dem 29.10.
+  trifft er an allen sieben Tagen auf 10 min genau.
+- In H4 bleibt die Grenze «durchmischt ab 4 K je km» (2 m bis 850 hPa) fest; je Block bestimmt wird nur der Faktor.
 - Die Vorlaufzeit ist an Tagen, an denen es schon vor dem Zeitfenster weht, wenig aussagekräftig.
 - Höhenwind-Archiv: ICON-CH2 liefert keine Druckflächen, Previous Runs auch nicht. Die Auswertung nutzt die jüngsten
   Läufe von ICON-EU und ist damit eher zu günstig.

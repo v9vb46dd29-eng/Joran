@@ -281,3 +281,86 @@ der Holdout blieb unberührt. Der Faktor 1.1 ist knapp: Die Grenze liegt bei 13.
 (17.10.) hatte 14 kn auf 850 hPa. Zeitlich geprüft liegt die FPR bei 0.42 statt 0.25. Vor dem Aktivieren je Block
 bestimmen und mit echten Vortagesläufen messen. Übernommene Hinweise: `hoeheDay` verträgt fehlende Felder, der Höhenwind
 wird im Browser zwischengespeichert, Texte zu «knapp», «sehr wahrscheinlich» und «Wann?» präzisiert.
+
+## 11.11.2026, zweiter Teil: Messung näher an der Wirklichkeit, H3/H4 je Block (v18)
+
+Auftrag von Simon: Entscheid zur 10-Tage-Regel eintragen, H3 und H4 je Block bestimmen, Lieferverzug und Sturmsperre ins
+Nachspielen, Markierungen einlesbar machen, Texte im Dashboard. Das Modell bleibt inaktiv, Push und Bewertung der App
+ändern sich nicht. Der Holdout wurde nicht angefasst.
+
+### Entscheid: 10 Ereignistage je Windsystem einzeln
+
+Simon hat den Entscheid delegiert. Die Regel gilt je Windsystem einzeln: Ein System mit 10 Abenden kann für sich zur
+Aktivierung vorgeschlagen werden. Begründung: Süd, Südost und Taubenlöchler hatten in 3.7 Wochen keinen Abend und würden
+West sonst auf unbestimmte Zeit blockieren. Die Messung zeigt den Stand je System in der letzten Zeile (heute: West 4,
+Bise 1, bereit keines). Kosten: Eine Aktivierung je System braucht einen Schalter je System, der noch fehlt.
+
+### Lieferverzug der Stationsdaten (`node eval/verzug.cjs`)
+
+Die echten Zeiten der Nachricht «Wind kommt — Messung» stehen in der Git-Geschichte von `push/state.json` (18 Tage). Das
+Nachspielen der Baseline trifft sie je nach angenommenem Verzug so:
+
+| Verzug | Treffer auf 10 min genau | Median der Abweichung |
+|---|---|---|
+| 0 min | 6 von 18 | 10 min |
+| 10 min | 11 von 18 | 0 min |
+| 20 min | 6 von 18 | 10 min |
+| 30 min | 5 von 18 | 20 min |
+
+Die Action sieht also Werte, die rund 10 min alt sind. Seit dem 29.10. trifft das an allen sieben Tagen. Die Abweichungen
+davor fallen in die Zeit älterer App-Versionen. Standard im Messskript: `--verzug 10`.
+
+### Sturmsperre vom See
+
+Das Nachspielen prüft jetzt bei jedem Schritt die Seemessung gegen die eigenen Grenzen (`core.lakeStorm`), wie die Action.
+Dafür nimmt `lakeStorm` neu den Zeitpunkt entgegen; in der App ist das Ergebnis dasselbe. Auf den Entwicklungstagen griff
+die Sperre an einem Tag: am 25.10. (Sturmlage) von 14:00 bis 14:20, der Push kam trotzdem rechtzeitig.
+
+### H3 und H4 je Block bestimmt (`core.fitModel`)
+
+- **H3, Kopplung:** höchste Grenze, mit der das erste rechtzeitige Chasseral-Signal an jedem foilbaren Abend bestehen
+  bleibt, davon 90 %, höchstens 4 K je km. Die Daten dürfen die Grenze also nur lockern. Unter 2 solchen Abenden gibt es
+  keine Grenze. Ohne die Obergrenze läge der Wert bei 5.4 K je km (aus den zwei Abenden 17. und 25.10.); die
+  hinterlegten 4 sind vorsichtiger.
+- **H4, Höhenwind:** kleinstes Verhältnis von Höhenwind zu Schwelle über alle foilbaren Abende bei 10, 12 und 14 kn, davon
+  90 %. Unter 4 Abenden oder wenn ein foilbarer Abend bei stabiler Schichtung lag, gibt es keine Regel. 8 kn zählt hier
+  nicht mit, weil sich die Schwelle erst ab 10 kn einstellen lässt: Bei 8 kn waren der 19. und der 29.10. foilbar und
+  stabil geschichtet, H4 hätte beide gesperrt.
+- Aus allen Entwicklungstagen ergibt `--fit` Kopplung 4 K je km (unverändert) und Höhenwind **1.0 × T** statt 1.1. Der
+  alte Wert hatte keinen Sicherheitsabstand (Grenze 13.2 kn, schwächster Abend 13.8 kn). Hinterlegt ist neu 1.0.
+
+Je Block: Block 1 (Training 16.–20.10., ein foilbarer Abend) bekommt weder Grenze noch Regel. Blöcke 2 und 3 bekommen
+4 K je km und 1.0 × T.
+
+| Kreuzvalidierung, neues Nachspielen | Schwelle | Recall B → neu | FPR B → neu | Vorlauf | Fälle EV/NEV |
+|---|---|---|---|---|---|
+| Live-Signal, See | 10 kn | 1.00 → 1.00 | 0.78 → 0.78 | 135 min | 7/9 |
+| Live-Signal, See | 12 kn | 1.00 → 1.00 | 0.75 → 0.67 | 91 min | 4/12 |
+| Live-Signal, See | 14 kn | 0.75 → 0.75 | 0.58 → 0.50 | 76 min | 4/12 |
+| Prognose am Vortag | 10 kn | 1.00 → 1.00 | 0.78 → 0.22 | – | 7/9 |
+| Prognose am Vortag | 12 kn | 1.00 → 1.00 | 0.58 → 0.33 | – | 4/12 |
+| Prognose am Vortag | 14 kn | 1.00 → 1.00 | 0.50 → 0.25 | – | 4/12 |
+
+Was sich gegenüber dem ersten Teil des Tages ändert:
+
+- H3 hält: Der Gewinn beim Live-Signal bleibt (0.75 → 0.67), auch wenn die Grenze je Block bestimmt wird.
+- H4 bei 12 kn: FPR 0.33 statt 0.25. Der tiefere Faktor lässt den 3.11. durch (12.9 kn auf 850 hPa, Bise).
+- Vorlauf 91 statt 101 min bei 12 kn: je 10 min Lieferverzug, dazu am 25.10. die Sturmsperre. Recall und FPR ändern sich
+  durch Verzug und Sperre nicht. Mit `--verzug 0 --ohne-sturm --fest` kommen die Zahlen vom Vormittag wieder heraus.
+- Die Kreuzvalidierung kann weiterhin nicht zeigen, ob H3 oder H4 einen Abend verpassen würden: Alle foilbaren Abende
+  bei 12 kn liegen im ersten Testblock, und der hat keine Regel.
+
+Kosten: keine neue Datenquelle, kein zusätzlicher Abruf. `core.js` wächst um rund 25 Zeilen, die nur das Messskript
+braucht. Nutzen: Die Messung sagt jetzt ehrlich, was sich aus früheren Tagen ableiten lässt, und der hinterlegte Faktor
+für H4 hat einen Sicherheitsabstand.
+
+### Markierungen
+
+`eval/measure.cjs` prüft `eval/truth.json` beim Einlesen (gültige Tage, `tl:`, `sys:`) und meldet, was es nicht verwendet.
+Im Rückblick gibt es mit Token den Knopf «Fürs Modell speichern»: Er legt die Markierungen als `eval/truth.json` im Repo
+ab und behält bereits abgelegte Tage. Markierungen liegen noch keine vor; sie stehen nur in Simons Browser.
+
+### Dashboard (v18)
+
+Kürzere Texte bei Höhenwind, Legende und «Messung gegen Modell». Der Höhenwind nennt die Messung zwischen Cressier und
+Chasseral nur noch, wenn sie dem Modell widerspricht. Gedankenstriche in den sichtbaren Texten sind ersetzt.

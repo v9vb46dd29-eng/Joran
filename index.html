@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Joran — Wingfoil Bielersee</title>
+<title>Joran · Wingfoil Bielersee</title>
 <style>
 :root{
   --bg:#f2f2f7; --card:#fff; --card2:#f2f2f7; --ink:#000; --ink2:#3c3c4399; --muted:#8a8a8e; --line:#c6c6c8;
@@ -244,7 +244,7 @@ ol.steps li{margin:3px 0}
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v17</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v18</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -295,7 +295,7 @@ ol.steps li{margin:3px 0}
         <p style="font-size:15px">Vingelz und Ipsach erlauben keinen direkten Abruf aus dem Browser. Joran holt sie über einen eigenen Cloudflare Worker (Ordner <code>proxy</code> im Repo), zur Not über öffentliche Proxys. Feld leer lassen = Standard-Worker.</p>
         <div class="fld"><input type="text" id="proxy" placeholder="leer = Standard-Proxy von Joran" autocomplete="off" aria-label="Eigener Proxy"><div><button class="btn2" id="proxyS">Speichern</button></div></div>
         <div id="lakeDiag" class="ftr" style="margin:8px 0 0"></div>
-        <p class="ftr" style="margin:8px 0 0">Test: <a href="https://joran.rfjhvvs9p2.workers.dev/?url=https%3A%2F%2Fvingelz.meteobase.ch%2F" target="_blank" rel="noopener">Worker direkt öffnen</a> — muss die Vingelz-Seite zeigen.</p></details>
+        <p class="ftr" style="margin:8px 0 0">Test: <a href="https://joran.rfjhvvs9p2.workers.dev/?url=https%3A%2F%2Fvingelz.meteobase.ch%2F" target="_blank" rel="noopener">Worker direkt öffnen</a>. Er muss die Vingelz-Seite zeigen.</p></details>
       <details><summary>Methode und Quellen</summary><div style="font-size:15px">
 <p><b>Prognose.</b> Vier Wettermodelle rechnen den Wind über dem See (ICON-CH1, ICON-CH2, ICON-D2, AROME). Je Stunde zählt der stärkste deiner Spots.</p>
 <p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen (und mindestens zwei). <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines hält die Schwelle lange genug, aber das stärkste liegt höchstens 3 kn darunter. Ab übermorgen rechnet nur noch ICON-CH2.</p>
@@ -385,7 +385,7 @@ function renderLake(){
   el.innerHTML = lk.map(x=>{
     const l = x.last;
     if(!l) return `<a class="lk old" href="${x.L.url}" target="_blank" rel="noopener"><div class="lh"><b>${x.L.name}</b><small>Station öffnen ↗</small></div>
-      <div class="lv">–</div><div class="ls dim">${LKBUSY?"lädt …":"Nicht abrufbar"+(x.err?` (${esc(x.err)})`:"")+" — tippen öffnet die Station"}</div></a>`;
+      <div class="lv">–</div><div class="ls dim">${LKBUSY?"lädt …":"Nicht abrufbar"+(x.err?` (${esc(x.err)})`:"")+". Tippen öffnet die Station."}</div></a>`;
     const dn = dirOf(l.dir), on = x.fresh && over(l.mean,S) && dirOn(l.dir,S);
     return `<a class="lk${on?" on":""}${x.fresh?"":" old"}" href="${x.L.url}" target="_blank" rel="noopener" title="Station ${x.L.name} öffnen">
       <div class="lh"><b>${x.L.name}</b><small>${hhmm(l.t)}${x.fresh?"":" · veraltet"}</small></div>
@@ -450,7 +450,7 @@ function renderLive(){
 
   h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
   h += chartHTML(cur.day);
-  h += `<small class="cap">Balken: Modellwind am besten Spot. Strich: schwächstes bis stärkstes Modell. Blau: Schwelle erreicht. Grün: knapp darunter (bis 3 kn). Grau: zu wenig. Gestrichelt: abgewählte Richtung. ${cur.k===0?"Punkte: am See gemessen. ":""}Hinterlegt: dein Zeitfenster.</small>`;
+  h += `<small class="cap">Balken: Modellwind am besten Spot, Strich: schwächstes bis stärkstes Modell. Blau reicht, Grün ist knapp (bis 3 kn darunter), Grau zu wenig. Gestrichelt: abgewählte Richtung. ${cur.k===0?"Punkte: am See gemessen. ":""}Hell hinterlegt: dein Zeitfenster.</small>`;
   if(cur.k===0){ const ab = abgleich(cur.day); if(ab) h += ab; }
   if(jc) h += joranHTML(jc, cur, nc);
   h += hoeheHTML(cur);
@@ -461,10 +461,10 @@ function renderLive(){
     <p style="font-size:.82rem;margin-top:6px">Diese Stationen zeigen den Wind oft 30 bis 90 Minuten, bevor er am See ankommt. Am Ende zählt die Messung am See.</p>${stationsHTML(nc)}</details>`;
 
   h += `<details class="sub"><summary>Quellen und Diagnose</summary><div class="chips">`;
-  MODELS.forEach(m=>{ const d = D.err[m.id]; h += `<span class="chip ${d?"fail":"ok"}">${m.name}${d?" — "+esc(d):""}</span>`; });
-  h += `<span class="chip ${D.ens?"ok":"fail"}">Ensemble${D.ens?" ("+D.ens.members.length+" Läufe)":" — "+esc(D.err.ens||"")}</span>`;
-  C.LAKE.forEach(L=>{ const ok = LK && LK.st[L.id] && LK.st[L.id].rows.length; h += `<span class="chip ${ok?"ok":"fail"}">${L.name}${ok?"":" — nicht abrufbar"}</span>`; });
-  UPWIND.forEach(s=>{ const d = D.stations[s.abk]; h += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?" — "+esc(d.err):""}</span>`; });
+  MODELS.forEach(m=>{ const d = D.err[m.id]; h += `<span class="chip ${d?"fail":"ok"}">${m.name}${d?": "+esc(d):""}</span>`; });
+  h += `<span class="chip ${D.ens?"ok":"fail"}">Ensemble${D.ens?" ("+D.ens.members.length+" Läufe)":": "+esc(D.err.ens||"fehlt")}</span>`;
+  C.LAKE.forEach(L=>{ const ok = LK && LK.st[L.id] && LK.st[L.id].rows.length; h += `<span class="chip ${ok?"ok":"fail"}">${L.name}${ok?"":": nicht abrufbar"}</span>`; });
+  UPWIND.forEach(s=>{ const d = D.stations[s.abk]; h += `<span class="chip ${d&&!d.err?"ok":"fail"}">${s.name}${d&&d.err?": "+esc(d.err):""}</span>`; });
   h += `<span class="chip ${D.jura?"ok":"fail"}">Joran-Zutaten</span><span class="chip ${D.hoehe?"ok":"fail"}">Höhenwind</span></div>`;
   h += `<div class="chips" style="margin-top:10px">
     <a class="chip" href="https://www.windguru.cz/56996" target="_blank" rel="noopener">Windguru</a>
@@ -483,8 +483,8 @@ function verdictHTML(cur, hour, nc){
 
   if(live && nc.front.length){
     return `<div class="verdict danger"><span class="word">Nicht rausfahren</span>
-      <div class="why">Sturm gemessen — ${esc(nc.front.map(x=>x.up.name+": "+x.f.join(", ")).join("; "))}.</div>
-      <div class="basis">Messung, über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen) — überschreibt die Prognose</div>${thrChip()}</div>`;
+      <div class="why">Sturm gemessen: ${esc(nc.front.map(x=>x.up.name+": "+x.f.join(", ")).join("; "))}.</div>
+      <div class="basis">Messung, über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen). Geht der Prognose vor.</div>${thrChip()}</div>`;
   }
   if(s.level<0) return `<div class="verdict"><span class="word">Keine Daten</span><div class="why">Kein Modell liefert Werte für diesen Tag und dieses Zeitfenster.</div></div>`;
 
@@ -497,7 +497,7 @@ function verdictHTML(cur, hour, nc){
   } else why = "Kein Modell zeigt Wind aus deinen Richtungen.";
   if(cur.ens) why += ` Ensemble: ${cur.ens.hit} von ${cur.ens.n} Läufen erreichen die Schwelle.`;
   if(s.n===1) why += " Nur ein Modell reicht so weit, die Aussage ist unsicher.";
-  basis = `Prognose, ${WINS[S.win][2]}` + (s.level>=S.cut ? " — lohnt sich nach deiner Einstellung" : "");
+  basis = `Prognose, ${WINS[S.win][2]}` + (s.level>=S.cut ? ", lohnt sich nach deiner Einstellung" : "");
 
   const lakeOk = live ? nc.lake.filter(x=>x.ok) : [];
   if(lakeOk.length){
@@ -542,9 +542,9 @@ function modelTable(cur){
 function warnings(cur){
   const w = [], s = cur.s;
   const cape = Math.max(0, ...s.ok.map(x=>x.e.capeMax||0));
-  if(cape>=1000) w.push(`CAPE bis ${Math.round(cape)} J/kg — Gewitter möglich. Eine Böenfront kündigt sich an Upwind-Stationen durch Temperatursturz und Windsprung an.`);
+  if(cape>=1000) w.push(`CAPE bis ${Math.round(cape)} J/kg: Gewitter möglich. Eine Böenfront zeigt sich an den Upwind-Stationen zuerst (Temperatursturz, Windsprung).`);
   const gMax = Math.max(0, ...s.ok.map(x=>x.e.top && x.e.top.g!=null ? x.e.top.g : 0));
-  if(gMax*S.k > S.maxGust) w.push(`Böen bis ${r0(gMax*S.k)} kn möglich (mit Modellfaktor) — über deiner Grenze ${S.maxGust} kn.`);
+  if(gMax*S.k > S.maxGust) w.push(`Böen bis ${r0(gMax*S.k)} kn möglich (mit Modellfaktor), über deiner Grenze von ${S.maxGust} kn.`);
   const tops = s.ok.filter(x=>x.e.top).map(x=>x.e.top.v);
   if(tops.length>1 && Math.max(...tops)-Math.min(...tops)>=6) w.push(`Modelle uneinig: ${r0(Math.max(...tops)-Math.min(...tops))} kn Spannweite.`);
   return w;
@@ -567,7 +567,7 @@ function abgleich(day){
   });
   if(!rows.length) return "";
   const d = rows.reduce((a,r)=>a+r.d,0)/rows.length;
-  const txt = Math.abs(d)<2 ? "Die Modelle liegen gerade richtig." : d>0 ? `Am See weht es ${r0(d)} kn mehr als die Modelle rechnen — die Prognose für die nächsten Stunden eher nach oben lesen.` : `Am See weht es ${r0(-d)} kn weniger als die Modelle rechnen — die Prognose eher nach unten lesen.`;
+  const txt = Math.abs(d)<2 ? "Die Modelle liegen gerade richtig." : d>0 ? `Am See weht es ${r0(d)} kn mehr als im Modell. Die Prognose für die nächsten Stunden eher höher lesen.` : `Am See weht es ${r0(-d)} kn weniger als im Modell. Die Prognose für die nächsten Stunden eher tiefer lesen.`;
   return `<div class="note"><b>Messung gegen Modell, ${hr}–${hr+1} Uhr</b><br>${rows.map(r=>`${r.n}: gemessen ${r0(r.m)} kn, Modelle ${r0(r.mm)} kn`).join(" · ")}<br>${txt}</div>`;
 }
 function joranHTML(jc, cur, nc){
@@ -593,14 +593,16 @@ function joranHTML(jc, cur, nc){
 function hoeheHTML(cur){
   const hd = D.hoehe ? C.hoeheDay(D.hoehe, cur.day, S) : null; if(!hd) return "";
   const dn = hd.d!=null ? dirOf(hd.d) : null, wo = hd.d==null ? "Wind" : dn ? dn.name : card(hd.d);
-  let txt = hd.coupled==null ? "" : hd.coupled ? "Die Luft ist durchmischt: Der Wind kann bis auf den See kommen." : "Die Luft ist stabil geschichtet: Der Wind bleibt eher oben.";
-  if(hd.coupled && dn && dn.id==="bise") txt += " Bei Bise kommt am See oft deutlich weniger an.";
-  if(hd.coupled && dn && dn.id==="w") txt += " Bei West hat Ipsach meist deutlich mehr als Vingelz.";
+  let txt = hd.coupled==null ? "" : hd.coupled ? "Luft durchmischt: Der Wind kann bis auf den See." : "Luft stabil geschichtet: Der Wind bleibt eher oben.";
+  if(hd.coupled && dn && dn.id==="bise") txt += " Bei Bise kommt am See oft viel weniger an.";
+  if(hd.coupled && dn && dn.id==="w") txt += " Bei West hat Ipsach meist mehr als Vingelz.";
   let now = "";
   if(cur.k===0){
     const up = UPWIND.find(u=>u.abk==="cha"), ref = UPWIND.find(u=>u.abk==="crm");
     const lp = C.lapseRate(D.stations, up, ref, new Date());
-    if(lp!=null) now = `<br><span class="dim">Gemessen jetzt (Cressier bis Chasseral): ${lp>=C.MODEL.kopplung.min?"durchmischt":"stabil geschichtet"}</span>`;
+    /* die Messung nur nennen, wenn sie dem Modell widerspricht */
+    const mix = lp!=null ? lp>=C.MODEL.kopplung.min : null;
+    if(mix!=null && hd.coupled!=null && mix!==hd.coupled) now = `<br><b>Die Messung zeigt es anders:</b> zwischen Cressier und Chasseral jetzt ${mix?"durchmischt":"stabil geschichtet"}.`;
   }
   return `<div class="note"><b>Höhenwind</b> <span class="dim">(1500 m, Hinweis)</span><br>${esc(wo)} ${r0(hd.v)} kn. ${txt}${now}</div>`;
 }
@@ -674,7 +676,7 @@ function stationsHTML(nc){
     const tag = u.off ? `<span class="sig off">Richtung abgewählt</span>` : old ? `<span class="sig off">veraltet</span>`
       : u.ok ? (!C.isTrusted({u, up}) ? `<span class="sig near">Signal, ${u.trust==null&&u.rel===undefined?"ungeprüft":"unzuverlässig"}</span>` : `<span class="sig on">Signal</span>`)
       : u.block && u.last && Math.round(u.mean30)>=u.ts ? `<span class="sig off">gesperrt: ${esc(u.block)}</span>` : u.near ? `<span class="sig near">fast</span>` : "";
-    h += `<div class="row"><div class="nm"><b>${up.name}</b>${tag}<em>${esc(up.role)} — zeigt ${esc(sysTxt)}. Schwelle ${u.ts} kn, ${trust}. ${hhmm(l.t)}</em></div>
+    h += `<div class="row"><div class="nm"><b>${up.name}</b>${tag}<em>${esc(up.role)}. Zeigt ${esc(sysTxt)}. Schwelle ${u.ts} kn, ${trust}. ${hhmm(l.t)}</em></div>
       <div class="val ${u.ok?"on":"off"}">${arrow(l.dir)} ${dn?dn.name:card(l.dir)} ${r0(l.mean)}<span class="dim"> / ${r0(l.gust)} kn</span></div></div>`;
   });
   if(nc.e){
@@ -727,7 +729,7 @@ async function gh(path, opt){
   const r = await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/${path}`, Object.assign({headers:{
     "Authorization":"Bearer "+g.token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"}}, opt||{}));
   if(r.status===404) return null;
-  if(!r.ok){ let m = "HTTP "+r.status; try{ const j = await r.json(); if(j.message) m += " — "+j.message; }catch(e){} throw new Error(m); }
+  if(!r.ok){ let m = "HTTP "+r.status; try{ const j = await r.json(); if(j.message) m += ": "+j.message; }catch(e){} throw new Error(m); }
   return r.status===204 ? {} : r.json();
 }
 async function readUserFile(id){
@@ -768,7 +770,7 @@ async function testPush(user){
   PUSHMSG = "Starte Testlauf …"; renderPush();
   try{
     await gh("actions/workflows/joran-push.yml/dispatches", {method:"POST", body:JSON.stringify({ref:"main", inputs:{test:true, user:user||""}})});
-    PUSHMSG = "Testlauf gestartet — die Nachricht kommt in 1–2 Minuten.";
+    PUSHMSG = "Testlauf gestartet. Die Nachricht kommt in 1–2 Minuten.";
   }catch(e){ PUSHMSG = "Testlauf nicht gestartet: "+e.message; }
   renderPush();
 }
@@ -793,14 +795,14 @@ function renderPush(){
   if(g.me){
     h += `<div class="sw" style="margin-top:10px"><input type="checkbox" id="pushSw" ${on?"checked":""} aria-label="Push ein oder aus">
       <div class="t"><b>${on?"Dein Push ist eingeschaltet":"Dein Push ist ausgeschaltet"}</b>
-      <small>${PENDING?"Noch nicht gespeichert — unten senden":rc?`Stand in GitHub: Schwelle ${rc.T} kn, ${WINS[rc.win][2]}`:MINE===null?"Für diesen Namen ist noch nichts gespeichert":"Wird geladen …"}</small></div></div>`;
+      <small>${PENDING?"Noch nicht gespeichert, unten senden":rc?`Stand in GitHub: Schwelle ${rc.T} kn, ${WINS[rc.win][2]}`:MINE===null?"Für diesen Namen ist noch nichts gespeichert":"Wird geladen …"}</small></div></div>`;
     h += `<div class="chips" style="margin-top:10px">
       <button class="chip" id="pF" aria-pressed="${!!S.pushForecast}">Prognose-Push</button>
       <button class="chip" id="pL" aria-pressed="${!!S.pushLive}">Mess-Push (Upwind)</button></div>`;
     if(!PENDING && (!rc || !same(rc, myCode(rc?rc.push:false))))
       h += `<div class="note">${rc?"Deine App-Einstellungen weichen von deinem gespeicherten Push ab.":"Deine Einstellungen sind noch nicht für Push gespeichert."} <button class="btn2" id="pSync" style="margin-top:6px">Einstellungen für Push speichern</button></div>`;
     if(PENDING){
-      h += `<div class="note"><b>Speichern — wähle einen Weg:</b>
+      h += `<div class="note"><b>Speichern, wähle einen Weg:</b>
         <div class="chips"><a class="chip ok" href="${esc(issueURL(PENDING.push))}" target="_blank" rel="noopener">Mit GitHub-Konto senden</a>
         <button class="chip" id="pCode">Code kopieren (ohne GitHub)</button></div>
         <small>Mit GitHub: Es öffnet sich ein vorausgefülltes Formular, du tippst nur auf «Create». Nach etwa einer Minute kommt eine Bestätigung aufs Handy. Ohne GitHub: Code kopieren und dem Repo-Besitzer schicken.</small></div>`;
@@ -808,13 +810,13 @@ function renderPush(){
   }
   if(PUSHMSG) h += `<div class="note">${esc(PUSHMSG)}</div>`;
   h += `<details><summary>So kommst du zu Push</summary><ol class="steps">
-    <li>App <b>ntfy</b> installieren (iOS/Android, gratis, ohne Konto) und ein Thema mit zufälligem Namen abonnieren, z. B. <code>${esc(g.topicHint)}</code>. Wer das Thema kennt, sieht deine Nachrichten — darum zufällig und privat halten.</li>
+    <li>App <b>ntfy</b> installieren (iOS/Android, gratis, ohne Konto) und ein Thema mit zufälligem Namen abonnieren, z. B. <code>${esc(g.topicHint)}</code>. Wer das Thema kennt, sieht deine Nachrichten. Darum zufällig wählen und privat halten.</li>
     <li>Dem Repo-Besitzer <b>privat</b> deinen Namen (bei GitHub: GitHub-Name) und dein Thema schicken. Er schaltet dich frei.</li>
     <li>Oben deinen Namen eintragen, Schwelle und Einstellungen wählen, Schalter einschalten und speichern.</li>
     <li>Pausieren geht jederzeit auch direkt in der ntfy-App (Thema stummschalten).</li></ol></details>`;
 
   /* Verwaltung: nur mit Token (Repo-Besitz) */
-  h += `<details${g.token?" open":""}><summary>${g.token?"Verwaltung (Repo-Besitz)":"Verwaltung — nur für den Repo-Besitzer"}</summary>`;
+  h += `<details${g.token?" open":""}><summary>${g.token?"Verwaltung (Repo-Besitz)":"Verwaltung (nur für den Repo-Besitzer)"}</summary>`;
   if(g.token){
     h += `<p style="font-size:.85rem">Freischalten: Im Repo unter Settings → Secrets and variables → Actions das Secret <code>NTFY_TOPICS</code> pflegen, Format <code>{"anna":"joran-…","ben":"joran-…"}</code>. Nur wer dort steht, bekommt Push oder kann über GitHub speichern.</p>`;
     if(!ADMIN) h += `<button class="btn2" id="aLoad">Nutzer anzeigen</button>`;
@@ -846,7 +848,7 @@ function renderPush(){
   const ps = $("#pSync"); if(ps) ps.addEventListener("click", ()=>sendMine(rc ? rc.push : true));
   const pc = $("#pCode"); if(pc) pc.addEventListener("click", async ()=>{
     const txt = JSON.stringify(Object.assign({name:g.me}, myCode(PENDING.push)));
-    try{ await navigator.clipboard.writeText(txt); pc.textContent = "Kopiert — jetzt schicken"; }catch(e){ window.prompt("Code kopieren:", txt); }
+    try{ await navigator.clipboard.writeText(txt); pc.textContent = "Kopiert, jetzt schicken"; }catch(e){ window.prompt("Code kopieren:", txt); }
   });
   $("#gSave").addEventListener("click", ()=>{ saveG(Object.assign(loadG(), {owner:$("#gOwner").value.trim(), repo:$("#gRepo").value.trim(), token:$("#gTok").value.trim()})); PUSHMSG = ""; ADMIN = null; readMine(); });
   const gt = $("#gTest"); if(gt) gt.addEventListener("click", ()=>testPush(""));
@@ -891,7 +893,7 @@ function renderHist(){
     const isSet = Math.abs(cal.best.k-S.k)<1e-9 && cal.best.cut===S.cut && JSON.stringify(Object.fromEntries(pdk.map(id=>[id,pd[id].k])))===JSON.stringify(S.kDir||{});
     h += `<div class="note"><b>Beste Einstellung:</b> Faktor ${cal.best.k.toFixed(2)}, lohnt sich ab «${LEVELS[cal.best.cut]}». Erkannt ${c.tp} von ${c.ev}, Fehlalarme ${c.fp} von ${c.nev}, Peirce ${c.pss.toFixed(2)}.
       ${pdk.length?`<br>Eigener Faktor je Windsystem: ${pdk.map(id=>`${(DIRS.find(d=>d.id===id)||{}).name} ${pd[id].k.toFixed(2)} (${pd[id].ev} Windtage)`).join(", ")}.`:""}
-      ${b.ev<10?"<br><small>Weniger als zehn Windtage markiert — das Ergebnis ist vorläufig.</small>":""}
+      ${b.ev<10?"<br><small>Weniger als zehn Windtage markiert, das Ergebnis ist vorläufig.</small>":""}
       ${isSet?"<br><small>Ist bereits eingestellt.</small>":`<br><button class="btn2" id="apply" style="margin-top:8px">Übernehmen</button>`}</div>`;
   } else h += `<div class="note">Für eine Kalibrierung braucht es mindestens drei foilbare und drei nicht foilbare Tage. Markiert: ${b.ev} foilbar, ${b.nev} nicht foilbar.</div>`;
 
@@ -931,8 +933,8 @@ function renderHist(){
         <button class="n" aria-pressed="${t==="n"}" data-t="n" title="nicht foilbar">Nein</button>
         <button class="tl" aria-pressed="${!!truth["tl:"+d]}" data-tl="1" title="Taubenlöchler: Wind aus Nord/Nordost in der Bielerbucht">TL</button></div></div>`;
   });
-  h += `</div><div class="chips" style="margin-top:14px"><button class="btn2" id="exp">Markierungen kopieren</button><button class="btn2" id="imp">Markierungen einfügen</button></div>
-    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, zählt nicht mit. «TL» = Taubenlöchler (Wind aus Nord oder Nordost in der Bucht), zusätzlich zu «Ja» markieren.</small>`;
+  h += `</div><div class="chips" style="margin-top:14px"><button class="btn2" id="exp">Markierungen kopieren</button><button class="btn2" id="imp">Markierungen einfügen</button>${loadG().token?`<button class="btn2" id="expM">Fürs Modell speichern</button>`:""}</div>
+    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, zählt nicht mit. «TL» = Taubenlöchler (Wind aus Nord oder Nordost in der Bucht), zusätzlich zu «Ja» markieren.${loadG().token?" «Fürs Modell speichern» legt die Markierungen im Repo ab (eval/truth.json).":""}</small>`;
   el.innerHTML = h;
 
   el.querySelectorAll(".mk button").forEach(bt=>bt.addEventListener("click",()=>{
@@ -949,6 +951,22 @@ function renderHist(){
   $("#exp").addEventListener("click", async ()=>{
     const txt = JSON.stringify(loadT());
     try{ await navigator.clipboard.writeText(txt); $("#exp").textContent = "Kopiert"; } catch(e){ window.prompt("Markierungen kopieren:", txt); }
+  });
+  /* Repo-Besitz: Markierungen als eval/truth.json ablegen; das Messskript liest sie von dort */
+  const em = $("#expM"); if(em) em.addEventListener("click", async ()=>{
+    const tr = loadT(), n = Object.keys(tr).length;
+    if(!n){ alert("Noch keine Tage markiert."); return; }
+    em.disabled = true; em.textContent = "Speichert …";
+    try{
+      const cur = await gh("contents/eval/truth.json");
+      /* bereits abgelegte Tage bleiben, was hier markiert ist, geht vor */
+      let old = {}; if(cur){ try{ old = JSON.parse(unb64(cur.content)); }catch(e){} }
+      const all = Object.assign({}, old, tr), keys = Object.keys(all).sort();
+      const body = {message:"Joran: Markierungen aus dem Rückblick", content:b64(JSON.stringify(Object.fromEntries(keys.map(k=>[k, all[k]])), null, 1)+"\n")};
+      if(cur) body.sha = cur.sha;
+      await gh("contents/eval/truth.json", {method:"PUT", body:JSON.stringify(body)});
+      em.textContent = `Gespeichert (${keys.length} Einträge)`;
+    }catch(e){ em.disabled = false; em.textContent = "Fürs Modell speichern"; alert("Nicht gespeichert: "+(e.message||e)); }
   });
   $("#imp").addEventListener("click", ()=>{
     const txt = window.prompt("Markierungen einfügen (JSON):"); if(!txt) return;
@@ -980,7 +998,7 @@ let rT = null;
 /* Während des Ladens keine neue Bewertung aus halben Daten: alter Stand bleibt ausgegraut, nur der Fortschritt zählt hoch.
    Die Seekacheln (reine Messwerte) dürfen sofort erscheinen. */
 let DONE = 0, TOTAL = 0;
-function progress(){ const o = $("#out"); o.classList.add("loading"); o.dataset.prog = `Wird aktualisiert … (${DONE}/${TOTAL}) — Bewertung erst, wenn alles da ist`; }
+function progress(){ const o = $("#out"); o.classList.add("loading"); o.dataset.prog = `Wird aktualisiert … (${DONE}/${TOTAL}). Bewertung erst, wenn alles da ist.`; }
 function renderSoon(){ DONE++; progress(); }
 async function run(full){
   if(BUSY) return; BUSY = true;
@@ -1061,7 +1079,7 @@ function applyTheme(t){
   if(t==="auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t);
   const dark = t==="dark" || (t==="auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   $("#tc").setAttribute("content", dark ? "#000000" : "#f2f2f7");
-  const b = $("#theme"); b.innerHTML = TH_ICON[t]; b.setAttribute("aria-label", "Darstellung: " + TH_NAME[t] + " — tippen zum Wechseln"); b.title = TH_NAME[t];
+  const b = $("#theme"); b.innerHTML = TH_ICON[t]; b.setAttribute("aria-label", "Darstellung: " + TH_NAME[t] + ", tippen zum Wechseln"); b.title = TH_NAME[t];
 }
 $("#theme").addEventListener("click", ()=>{
   const n = {auto:"light", light:"dark", dark:"auto"}[getTheme()];

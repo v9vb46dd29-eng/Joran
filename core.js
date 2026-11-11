@@ -528,9 +528,9 @@ function frontCheck(rows, St){
   return [...new Set(fr)];
 }
 /* Seestationen: 10-min-Spitze bzw. -Mittel über den eigenen Grenzen */
-function lakeStorm(lk, St){
+function lakeStorm(lk, St, now){
   const out = [];
-  lakeNow(lk, St).forEach(x=>{
+  lakeNow(lk, St, now).forEach(x=>{
     if(!x.fresh) return;
     const l = x.last, f = [];
     if(l.gust!=null && Math.round(l.gust)>St.maxGust) f.push(`Böen ${Math.round(l.gust)} kn über deiner Grenze ${St.maxGust} kn`);
@@ -574,11 +574,18 @@ function ruleE(rows, St){
 const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, minF:0.5, tGrid:[8,10,12,14], minDays:4,
   /* Kopplung der Luftschichten (H3): Ein Signal der Kammstation zählt nur, wenn die Temperatur von der Bodenstation ref
      bis zum Kamm um mindestens min K je km abnimmt. Bei stabiler Schichtung kommt der Höhenwind nicht bis auf den See.
-     Fester Wert aus dem Lagebild der Entwicklungstage (eval/schichten.cjs), nicht je Block neu bestimmt. */
-  kopplung:{min:4, ref:"crm", st:["cha"]},
-  /* Höhenwind in der Prognose (H4): Wind auf 850 hPa bei durchmischter Luft mindestens f × T. Fester Wert aus
-     eval/hoehenwind.cjs: Auf den Entwicklungstagen lag jeder foilbare Abend bei 10, 12 und 14 kn darüber. */
-  hoehe:{f:1.1},
+     min: hinterlegter Wert aus dem Lagebild der Entwicklungstage (eval/schichten.cjs). fitModel bestimmt ihn neu:
+     höchste Grenze, mit der das erste rechtzeitige Signal der Kammstation an jedem foilbaren Abend bestehen bleibt (der
+     Push kommt also nicht später), davon der Anteil margin. Höchstens max: Die Daten dürfen die Grenze nur lockern, nie
+     über den Wert heben, ab dem die Schichtung im Lagebild als durchmischt gilt. Unter minDays solchen Abenden gibt es
+     keine Grenze, das Signal zählt dann wie bisher. */
+  kopplung:{min:4, ref:"crm", st:["cha"], minDays:2, max:4},
+  /* Höhenwind in der Prognose (H4): Wind auf 850 hPa bei durchmischter Luft mindestens f × T. f: hinterlegter Wert aus
+     node eval/measure.cjs --fit (bis 11.11.2026 fest 1.1, ohne Sicherheitsabstand). fitModel bestimmt ihn neu, wenn
+     Höhendaten vorliegen: kleinstes Verhältnis Höhenwind zu T über alle foilbaren Abende (Schwellen aus tGrid ab tMin,
+     der kleinsten einstellbaren Schwelle), davon der Anteil margin. Unter minDays foilbaren Abenden oder wenn einer
+     davon bei stabiler Schichtung lag, gibt es keine Regel, die Prognose zählt dann wie bisher. */
+  hoehe:{f:1, minDays:4, tMin:10},
   /* Stand der Parameter: node eval/measure.cjs --fit (Entwicklungstage 2026-10-16 bis 2026-11-05) */
   fitted:["2026-10-16", "2026-11-05"],
   f:{
@@ -674,7 +681,7 @@ function nowcast(stations, St, now, lk){
   const crm = stations.crm;
   const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows, St) : null;
   const trusted = sig.filter(s=>isTrusted(s));
-  if(lk) lakeStorm(lk, St).forEach(x=>front.push(x));
+  if(lk) lakeStorm(lk, St, now).forEach(x=>front.push(x));
   const eOk = !!(e && e.ok && St.dirs.joran);
   /* Windsystem nach den Upwind-Stationen: Joran, wenn Regel E oder eine verlässliche Joran-Station ihn gerade meldet */
   const joran = !!St.dirs.joran && (eOk || trusted.some(s=>s.u.sys && s.u.sys.id==="joran"));
@@ -833,10 +840,13 @@ function calibrateStation(rows, up, St, days, truth, cha, rule){
    Startwert der Station gilt weiter. Eine Station, die bisher Push auslöst, bekommt
    höchstens ihren Startwert (nie eine höhere Schwelle). Erreicht kein Faktor den Recall, liegt er unter minF × Startwert oder liegt die
    Fehlalarmrate über maxFpr, ist der Faktor unbrauchbar: Eine Erweiterungsstation (extra) zählt dann nicht (rel 0). Eine
-   Station, die bisher Push auslöst, wird nie stummgeschaltet; sie behält Startwert und Push (Eintrag ohne f und rel). */
+   Station, die bisher Push auslöst, wird nie stummgeschaltet; sie behält Startwert und Push (Eintrag ohne f und rel).
+   Kopplung (H3) und Höhenwind (H4) werden aus denselben Tagen bestimmt (siehe MODEL); data.hoehe = Stundenwerte wie
+   fetchHoehe. opt.fest = true übernimmt stattdessen die hinterlegten Werte. */
 function fitModel(data, opt){
   const P = Object.assign({}, MODEL, opt||{}), St0 = data.St, [h0,h1] = WINS[St0.win], out = {};
   const dset = new Set(data.days), cha = data.S.cha || null;
+  const KP = P.kopplung || null, kRef = KP ? UPWIND.find(x=>x.abk===KP.ref) : null, kRows = kRef ? data.S[kRef.abk] : null, kSteps = {};
   const lastLE = (rows, t) => { let lo = 0, hi = rows.length-1, k = -1; while(lo<=hi){ const m = (lo+hi)>>1; if(rows[m].t<=t){ k = m; lo = m+1; } else hi = m-1; } return k; };
   const tr = {};
   P.tGrid.forEach(T=>{ const St = Object.assign({}, St0, {T}); tr[T] = {};
@@ -854,8 +864,13 @@ function fitModel(data, opt){
       const a = [rows[i-2], rows[i-1], r];
       if(r.t-a[0].t > 25*60000 || !a.every(inSec) || a[2].mean < a[0].mean-0.5) return;
       if(up.tl && cha){ const k = lastLE(cha, r.t); if(k>=2 && r.t-cha[k].t < 50*60000 && chaWest(cha.slice(k-2, k+1))) return; }
-      (steps[d] || (steps[d] = [])).push({t:r.t, s:sid(r), v:Math.round((a[0].mean+a[1].mean+a[2].mean)/3)});
+      const q = {t:r.t, s:sid(r), v:Math.round((a[0].mean+a[1].mean+a[2].mean)/3)};
+      /* Temperaturabnahme Bodenstation → Kammstation zu diesem Zeitpunkt, wie lapseRate */
+      if(KP && KP.st.includes(up.abk) && kRows && up.alt>kRef.alt){ const k = lastLE(kRows, r.t);
+        q.lp = k>=0 && r.t-kRows[k].t < 50*60000 && kRows[k].temp!=null && r.temp!=null ? (kRows[k].temp-r.temp)/((up.alt-kRef.alt)/1000) : null; }
+      (steps[d] || (steps[d] = [])).push(q);
     });
+    if(KP && KP.st.includes(up.abk)) kSteps[up.abk] = steps;
     const dom = (d, onset) => {                        /* System, das die Station in den 2 h vor Beginn mehrheitlich mass */
       const w = (all[d]||[]).filter(x=>x.t<=onset && x.t>=onset-2*3600e3); if(w.length<6) return null;
       const n = {}; w.forEach(x=>{ if(x.s) n[x.s] = (n[x.s]||0)+1; });
@@ -885,7 +900,31 @@ function fitModel(data, opt){
       (out[up.abk] || (out[up.abk] = {}))[s] = e;
     });
   });
-  return {active:true, kopplung:P.kopplung, hoehe:P.hoehe, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, minF:P.minF, tGrid:P.tGrid, minDays:P.minDays,
+  let kopplung = P.kopplung, hoehe = P.hoehe;
+  if(!P.fest){
+    /* H3: Grenze so, dass kein rechtzeitiges Kammsignal eines foilbaren Abends verloren geht */
+    if(KP){
+      const lows = [], kd = new Set();
+      Object.keys(kSteps).forEach(abk=>{ const up = UPWIND.find(x=>x.abk===abk), steps = kSteps[abk];
+        const ts = (T, s) => { const e = out[abk] && s ? out[abk][s] : null; return e && e.f ? Math.max(3, Math.round(T*e.f)) : Math.round(T*up.f); };
+        P.tGrid.forEach(T=>Object.keys(tr[T]).forEach(d=>{ const a = tr[T][d]; if(!a.ev) return;
+          const hit = (steps[d]||[]).filter(q=>q.t<=a.onset && q.s && q.v>=ts(T, q.s)); if(!hit.length) return;
+          kd.add(d); if(hit[0].lp==null) return;                  /* ohne Temperatur zählt das Signal ohnehin */
+          lows.push(hit[0].lp); })); });
+      const m = lows.length ? Math.floor(Math.min(KP.max!=null ? KP.max : Infinity, Math.min(...lows)*P.margin)*10)/10 : null;
+      kopplung = kd.size>=(KP.minDays||1) && m!=null && m>0 ? Object.assign({}, KP, {min:m, days:kd.size}) : null;
+    }
+    /* H4: kleinstes Verhältnis Höhenwind zu Schwelle über alle foilbaren Abende */
+    if(P.hoehe && data.hoehe){
+      const rs = [], hdays = new Set(); let stabil = false;
+      P.tGrid.filter(T=>T>=(P.hoehe.tMin||0)).forEach(T=>Object.keys(tr[T]).forEach(d=>{ if(!tr[T][d].ev) return;
+        const hd = hoeheDay(data.hoehe, d, St0); if(!hd || hd.coupled==null) return;
+        hdays.add(d); if(!hd.coupled) stabil = true; else rs.push(hd.v/T); }));
+      const f = rs.length ? Math.floor(Math.min(...rs)*P.margin*20+1e-9)/20 : null;
+      hoehe = !stabil && hdays.size>=(P.hoehe.minDays||1) && f>0 ? Object.assign({}, P.hoehe, {f, days:hdays.size}) : null;
+    }
+  }
+  return {active:true, kopplung, hoehe, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, minF:P.minF, tGrid:P.tGrid, minDays:P.minDays,
     fitted:data.days.length ? [data.days[0], data.days[data.days.length-1]] : null, f:out};
 }
 
