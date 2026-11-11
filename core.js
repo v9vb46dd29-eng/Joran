@@ -171,6 +171,37 @@ async function fetchEnsemble(){
   }
   throw lastErr || new Error("kein Ensemble");
 }
+/* Höhenwind (ICON-EU, Punkt Seemitte): Wind auf 850 hPa (rund 1500 m) und Temperatur dort und auf 2 m, je Stunde.
+   ICON-CH2 liefert im Archiv keine Druckflächen; ICON-EU ist deshalb auch die Grundlage der Auswertung (eval/hoehenwind.cjs). */
+async function fetchHoehe(){
+  const u = "https://api.open-meteo.com/v1/forecast" + `?latitude=${SPOTS[2].lat}&longitude=${SPOTS[2].lon}`
+    + "&hourly=wind_speed_850hPa,wind_direction_850hPa,temperature_850hPa,temperature_2m&models=icon_eu&wind_speed_unit=kn&timezone=Europe%2FZurich&forecast_days=4";
+  const j = await getJSON(u), h = j && j.hourly;
+  if(!h || !h.time || !h.wind_speed_850hPa) throw new Error("kein Höhenwind");
+  return h;
+}
+/* Höhenlage eines Tages: Mittel von 2 h vor dem Zeitfenster bis zu dessen Ende. lapse = Temperaturabnahme 2 m → 850 hPa in
+   K je km (850 hPa liegt rund 1.07 km über dem See); gekoppelt = durchmischte Luft, der Höhenwind kann bis auf den See. */
+const HOEHE = {dz:1.07, lapseMin:4};
+function hoeheDay(H, day, St){
+  if(!H || !H.time || !H.wind_speed_850hPa) return null;
+  const WD = H.wind_direction_850hPa || [], T2 = H.temperature_2m || [], T8 = H.temperature_850hPa || [];
+  const [h0,h1] = WINS[St.win], ix = [];
+  H.time.forEach((t,i)=>{ const hr = +t.slice(11,13); if(t.slice(0,10)===day && hr>=h0-2 && hr<h1 && H.wind_speed_850hPa[i]!=null) ix.push(i); });
+  if(ix.length<3) return null;
+  const avg = a => a.reduce((x,y)=>x+y,0)/a.length;
+  let x = 0, y = 0, nd = 0; ix.forEach(i=>{ const d = WD[i]; if(d!=null){ nd++; x += Math.cos(d*Math.PI/180); y += Math.sin(d*Math.PI/180); } });
+  const lp = ix.filter(i=>T2[i]!=null && T8[i]!=null).map(i=>(T2[i]-T8[i])/HOEHE.dz);
+  const lapse = lp.length ? avg(lp) : null;
+  return {v:avg(ix.map(i=>H.wind_speed_850hPa[i])), d:nd ? (Math.atan2(y,x)*180/Math.PI+360)%360 : null, lapse, coupled:lapse==null ? null : lapse>=HOEHE.lapseMin};
+}
+/* H4 (vorläufig, nicht aktiv): Die Prognose zählt nur, wenn der Höhenwind bei durchmischter Luft mindestens f × T erreicht.
+   Fehlen die Höhendaten, zählt die Prognose wie bisher. */
+function hoeheOk(hd, St){
+  const M = modelOf(St), P = M && M.hoehe;
+  if(!P || !hd || hd.coupled==null) return true;
+  return hd.coupled && hd.v>=P.f*St.T;
+}
 /* Joran-Zutaten (ICON-CH2): Druck Jurahochfläche minus See, Wind auf dem Chasseral-Kamm, je Stunde */
 async function fetchJura(){
   const P = [JURA, CREST, SPOTS[2], BES, NEUP];
@@ -245,7 +276,7 @@ function parseMeteobase(html){
   if(!mean) throw new Error("kein Windwert");
   const n = re => { const x = txt.match(re); return x ? parseFloat(x[1]) : null; };
   return {t:t.toISOString(), mean:mean.kn, dir:dir16(mean.dir), gust:gust?gust.kn:null,
-    steady:n(/Richtungstreue:\s*(\d+)\s*%/), air:n(/Lufttemperatur:\s*(-?[\d.]+)/), water:n(/Wassertemperatur:\s*(-?[\d.]+)/)};
+    steady:n(/Richtungstreue:\s*(\d+)\s*(?:%|&#0*37;|&percnt;)/), air:n(/Lufttemperatur:\s*(-?[\d.]+)/), water:n(/Wassertemperatur:\s*(-?[\d.]+)/)};
 }
 async function getText(url, ms){
   const ctl = new AbortController();
@@ -545,6 +576,9 @@ const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, minF:0.5, 
      bis zum Kamm um mindestens min K je km abnimmt. Bei stabiler Schichtung kommt der Höhenwind nicht bis auf den See.
      Fester Wert aus dem Lagebild der Entwicklungstage (eval/schichten.cjs), nicht je Block neu bestimmt. */
   kopplung:{min:4, ref:"crm", st:["cha"]},
+  /* Höhenwind in der Prognose (H4): Wind auf 850 hPa bei durchmischter Luft mindestens f × T. Fester Wert aus
+     eval/hoehenwind.cjs: Auf den Entwicklungstagen lag jeder foilbare Abend bei 10, 12 und 14 kn darüber. */
+  hoehe:{f:1.1},
   /* Stand der Parameter: node eval/measure.cjs --fit (Entwicklungstage 2026-10-16 bis 2026-11-05) */
   fitted:["2026-10-16", "2026-11-05"],
   f:{
@@ -851,7 +885,7 @@ function fitModel(data, opt){
       (out[up.abk] || (out[up.abk] = {}))[s] = e;
     });
   });
-  return {active:true, kopplung:P.kopplung, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, minF:P.minF, tGrid:P.tGrid, minDays:P.minDays,
+  return {active:true, kopplung:P.kopplung, hoehe:P.hoehe, minRecall:P.minRecall, maxFpr:P.maxFpr, margin:P.margin, minF:P.minF, tGrid:P.tGrid, minDays:P.minDays,
     fitted:data.days.length ? [data.days[0], data.days[data.days.length-1]] : null, f:out};
 }
 
@@ -895,6 +929,6 @@ const api = {SPOTS, JURA, CREST, BES, NEUP, JTYP, joranType, isExtra, LAKE, JORA
   getJSON, fetchModel, parseMeteobase, updateLake, fetchLake, fetchLakeNow, mergeLake, lakeRows, lakeNow, lakeDay, LAKE_COVER, joranCheck, fetchEnsemble, fetchJura, fetchHistory, fetchStation, fetchStations, fetchAll, parseSMN,
   evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare,
   frontCheck, lakeStorm, fresh, ruleE, stTs, stTrust, stRel, isTrusted, stSecFn, upwindNow, nowcast, lageHint, chaWest,
-  contingency, calibrate, CAL, MODEL, modelOf, fitModel, lapseRate, evOf, isEv, stationDayMax, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
+  contingency, calibrate, CAL, MODEL, modelOf, fitModel, lapseRate, fetchHoehe, hoeheDay, hoeheOk, HOEHE, evOf, isEv, stationDayMax, calibrateStation, describe, PUSH_FIELDS, pushCfg, sanitizeCfg, cleanId};
 if(typeof module!=="undefined" && module.exports) module.exports = api; else root.JoranCore = api;
 })(typeof self!=="undefined" ? self : this);

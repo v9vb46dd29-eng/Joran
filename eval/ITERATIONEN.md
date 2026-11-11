@@ -252,3 +252,32 @@ Build-Review-Loop; er steht noch aus.
 Die App kennt einen Korrekturfaktor je Windrichtung (`kDir`). `node eval/prognose.cjs --T 12 --bise 0.75 --offline`:
 FPR 0.50 → 0.06, aber Recall 1.00 → 0.80. Der Abend vom 17.10. (Nordlage, Ipsach 15 kn) ginge verloren, schon bei
 Faktor 0.85. Das widerspricht dem Vorrang verpasster Abende. Bei 10 und 14 kn bliebe der Recall bei 1.00.
+
+### H4: Höhenwind und Schichtung in der Prognose-Stufe (11.11.2026, vorläufig, nicht aktiv)
+
+Gebaut: `core.fetchHoehe` (ein Abruf ICON-EU, Punkt Seemitte), `core.hoeheDay` (Mittel von 2 h vor dem Zeitfenster bis
+zu dessen Ende), `core.hoeheOk` (Wind auf 850 hPa bei durchmischter Luft mindestens 1.1 × T). Die App zeigt den Höhenwind
+als Hinweis. Die Regel wirkt nur mit aktivem Modell; die Action ruft den Höhenwind nicht ab, der Push-Lauf wird nicht
+langsamer. `eval/measure.cjs` misst neu auch die Prognose-Stufe (Zeile «Prognose am Vortag»).
+
+Kosten: ein Abruf mehr je Refresh in der App. Nutzen: Lagebild für jede Windlage; in der Messung deutlich weniger
+Fehlalarme der Prognose. Der Faktor 1.1 ist fest und stammt aus allen Entwicklungstagen, der Gewinn ist also nicht
+unabhängig gemessen; die Höhendaten haben kurze Vorlaufzeit.
+
+| Kreuzvalidierung, Prognose am Vortag | Recall Baseline → neu | FPR Baseline → neu | Fälle EV/NEV |
+|---|---|---|---|
+| 10 kn | 1.00 → 1.00 | 0.78 → 0.22 | 7/9 |
+| 12 kn | 1.00 → 1.00 | 0.58 → 0.25 | 4/12 |
+| 14 kn | 1.00 → 1.00 | 0.50 → 0.25 | 4/12 |
+
+Dazu behoben: Die Richtungstreue der Seestationen wurde nie gespeichert, weil meteoBase das Prozentzeichen als `&#037;`
+schreibt. Ab jetzt steht sie im Archiv; sie wird für die Auswertung der Joran-Drehung gebraucht.
+
+Der Holdout wurde für H4 nicht gemessen: Für die Tage 6.–10.11. sind keine Höhendaten abgelegt, und es gab dort keinen
+foilbaren Abend.
+
+Reviewer (19539c4): **ANNEHMEN, H4 vorläufig.** Keine blockierenden Defekte; Push und Bewertung verhalten sich wie v16,
+der Holdout blieb unberührt. Der Faktor 1.1 ist knapp: Die Grenze liegt bei 13.2 kn, der schwächste foilbare Abend
+(17.10.) hatte 14 kn auf 850 hPa. Zeitlich geprüft liegt die FPR bei 0.42 statt 0.25. Vor dem Aktivieren je Block
+bestimmen und mit echten Vortagesläufen messen. Übernommene Hinweise: `hoeheDay` verträgt fehlende Felder, der Höhenwind
+wird im Browser zwischengespeichert, Texte zu «knapp», «sehr wahrscheinlich» und «Wann?» präzisiert.
