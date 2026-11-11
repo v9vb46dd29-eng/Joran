@@ -193,3 +193,62 @@ Bise oder Nordlage unter einer Inversion (am 17.10. meldete nur der Chasseral), 
 Weitere Höhenquelle: Modellwind auf 850 und 700 hPa über Open-Meteo (frei, ohne Schlüssel). Nutzen: Höhenwind als Prognose
 für den nächsten Tag statt nur als Messung. Kosten: ein zusätzlicher Abruf je Refresh. Am 10.11. nicht prüfbar, das
 Tageskontingent war erschöpft [OFFEN].
+
+## 11.11.2026: Höhenwind aus dem Modell und Prognose-Stufe (Auswertung, keine Modelländerung)
+
+Open-Meteo antwortete wieder. Alles auf den Entwicklungstagen (16.10.–5.11., 21 Tage), der Holdout bleibt unberührt.
+
+### Datenquellen: Kosten und Nutzen
+
+| Quelle | Befund | Entscheid |
+|---|---|---|
+| Open-Meteo Previous Runs, 10 m, 24 h Vorlauf (vier Modelle der App) | verfügbar, in `eval/data/prognose_vortag.json` abgelegt | genutzt: Prognose-Stufe ist jetzt messbar |
+| Wind auf 850/700 hPa von ICON-CH2 | im Archiv leer; Previous Runs kennt keine Druckflächen | nicht nutzbar |
+| Wind auf 850/700 hPa von ICON-EU und ECMWF IFS (Historical Forecast) | verfügbar, in `eval/data/hoehenwind_*.json` | genutzt für die Auswertung. Es sind aneinandergereihte jüngste Läufe, also eher zu günstig gegenüber einer echten Vortagesprognose |
+| In der App: ein Abruf mehr je Refresh (ICON-EU, Punkt Seemitte, 850 hPa und 2 m) | siehe H4 | noch nicht eingebaut |
+
+### Prognose-Stufe der App nachgespielt (`node eval/prognose.cjs --T 12 --offline`)
+
+| Schwelle | Recall | FPR |
+|---|---|---|
+| 10 kn | 1.00 (8/8) | 0.69 (9/13) |
+| 12 kn | 1.00 (5/5) | 0.50 (8/16) |
+| 14 kn | 1.00 (4/4) | 0.35 (6/17) |
+
+Die Prognose am Vortag kündigte jeden foilbaren Abend an. Alle acht Fehlalarme bei 12 kn fielen auf Bise-Tage (19.10. und
+29.10.–4.11.): Die Modelle sehen bei Bise mehr Wind auf dem See, als ankommt. Damit ist die Prognose-Stufe nicht mehr [OFFEN].
+
+### Höhenwind plus Schichtung (`node eval/hoehenwind.cjs --T 12`)
+
+Merkmal je Tag: Mittel 14–20 Uhr des Winds auf 850 hPa (rund 1500 m), gezählt nur bei durchmischter Luft
+(Temperaturabnahme 2 m → 850 hPa mindestens 4 K je km). Verglichen mit dem Modellwind auf 10 m und auf 700 hPa.
+
+| Merkmal (ICON-EU, 12 kn) | Grenze ohne verpassten Abend | FPR auf allen 21 Tagen | Zeitlich geprüft: Recall, FPR |
+|---|---|---|---|
+| Wind 10 m | 3.1 kn | 0.69 | 1.00, 0.83 |
+| Wind 850 hPa | 13.8 kn | 0.50 | 1.00, 0.75 |
+| Wind 700 hPa | 6.6 kn | 0.81 | 1.00, 0.92 |
+| Wind 850 hPa, nur gekoppelt | 13.8 kn | 0.25 | 1.00 (4/4), 0.42 (5/12) |
+
+Mit ECMWF IFS ergibt das gekoppelte Merkmal dieselben Werte (0.25 und 0.42). Bei 14 kn: FPR 0.12 auf allen Tagen.
+«Zeitlich geprüft» heisst: Grenze aus früheren Tagen (Blöcke wie in `eval/measure.cjs`), 90 % davon, gemessen auf späteren.
+
+- Der Wind auf 850 hPa trennt besser als der Modellwind auf 10 m, aber erst zusammen mit der Schichtung deutlich.
+- 700 hPa hilft nicht; diese Schicht liegt zu hoch über dem Jura.
+- Die verbleibenden Fehlalarme sind wieder Bise-Tage (30.10., 1. und 2.11. mit 24–34 kn auf 850 hPa, See 10–14 kn) und der
+  22.10. Bei West kommt rund 0.8 des 850-hPa-Winds in Ipsach an, bei Bise rund 0.4.
+
+### Kandidat H4 (noch nicht gebaut): Höhenwind und Schichtung in der Prognose-Stufe
+
+Die Prognose zählt einen Abend nur, wenn zusätzlich der Wind auf 850 hPa bei durchmischter Luft über einer Grenze liegt, die
+von der Windrichtung abhängt (West anders als Bise). Kosten: ein zusätzlicher Abruf je Refresh in App und Action (ICON-EU),
+ein Merkmal mehr in `core.summarize`, Messung der Prognose-Stufe in `eval/measure.cjs`. Nutzen nach der Auswertung: FPR der
+Prognose bei 12 kn von 0.50 auf rund 0.25, ohne verpassten Abend. Vorbehalt: 21 Tage, 5 Abende, kurze Vorlaufzeit der
+Archivdaten, kein Joran. Der Einbau ändert `core.summarize`, `index.html` und `push/check.cjs` und braucht den
+Build-Review-Loop; er steht noch aus.
+
+### Geprüft und nicht weiterverfolgt: Korrekturfaktor für Bise in der Prognose
+
+Die App kennt einen Korrekturfaktor je Windrichtung (`kDir`). `node eval/prognose.cjs --T 12 --bise 0.75 --offline`:
+FPR 0.50 → 0.06, aber Recall 1.00 → 0.80. Der Abend vom 17.10. (Nordlage, Ipsach 15 kn) ginge verloren, schon bei
+Faktor 0.85. Das widerspricht dem Vorrang verpasster Abende. Bei 10 und 14 kn bliebe der Recall bei 1.00.
