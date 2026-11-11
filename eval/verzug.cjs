@@ -25,7 +25,7 @@ const devBis = JSON.parse(fs.readFileSync(path.join(__dirname, "split.json"), "u
 const days = Object.keys(real).sort().filter(d=>d<=devBis);
 if(!days.length){ console.log("Keine Push-Zeiten in der Git-Geschichte gefunden (git fetch --depth=400 origin main)."); process.exit(0); }
 
-let K = C; try{ const f = path.join(require("os").tmpdir(), "joran-basis-core.js"); fs.writeFileSync(f, git(["show", "origin/baseline-2026-11-10:core.js"])); K = require(f); }catch(e){}
+let K = C; try{ K = M.coreAt("origin/baseline-2026-11-10"); }catch(e){}
 const St = C.merge(C.sanitizeCfg(JSON.parse(fs.readFileSync(path.join(ROOT, "users", user+".json"), "utf8"))));
 const per = M.lakeByDay(M.loadArchive([], true).lk);
 const S = {};

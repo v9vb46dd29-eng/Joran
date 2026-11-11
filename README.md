@@ -13,4 +13,9 @@ Die Seemessung (Vingelz, Ipsach, meteoBase.ch) holt die GitHub Action «Joran Pu
 
 Deine Einstellungen stehen öffentlich lesbar in `users/<name>.json`, dein ntfy-Thema nicht.
 
+## Code
+
+Rechenkern in Silos unter `core/` (Fassade `core.js`), Oberfläche unter `app/`, Push-Lauf unter `push/`, Messung des
+Prognosemodells unter `eval/`. Aufbau, Regeln und Prüfungen: [ARCHITEKTUR.md](ARCHITEKTUR.md).
+
 Wetterdaten: Open-Meteo.com (CC BY 4.0), MeteoSchweiz (OGD), meteoBase.ch (Seestationen).
