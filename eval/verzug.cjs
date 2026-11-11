@@ -20,7 +20,9 @@ git(["log", "--format=%H", "--", "push/state.json"]).split("\n").filter(Boolean)
   Object.keys((s && s.sent) || {}).forEach(k=>{ const m = k.match(/^(.+)\|live:(\d{4}-\d{2}-\d{2})$/); if(!m || m[1]!==user) return;
     const at = new Date(s.sent[k].at); if(!real[m[2]] || at<real[m[2]]) real[m[2]] = at; });
 });
-const days = Object.keys(real).sort();
+/* nur Entwicklungstage: Der Holdout wird auch hier nicht nachgespielt */
+const devBis = JSON.parse(fs.readFileSync(path.join(__dirname, "split.json"), "utf8")).devBis;
+const days = Object.keys(real).sort().filter(d=>d<=devBis);
 if(!days.length){ console.log("Keine Push-Zeiten in der Git-Geschichte gefunden (git fetch --depth=400 origin main)."); process.exit(0); }
 
 let K = C; try{ const f = path.join(require("os").tmpdir(), "joran-basis-core.js"); fs.writeFileSync(f, git(["show", "origin/baseline-2026-11-10:core.js"])); K = require(f); }catch(e){}

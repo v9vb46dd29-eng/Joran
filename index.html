@@ -316,7 +316,7 @@ ol.steps li{margin:3px 0}
 </div>
 </dialog>
 
-<script src="core.js?v=12"></script>
+<script src="core.js?v=13"></script>
 <script>
 "use strict";
 const C = window.JoranCore;
@@ -934,7 +934,7 @@ function renderHist(){
         <button class="tl" aria-pressed="${!!truth["tl:"+d]}" data-tl="1" title="Taubenlöchler: Wind aus Nord/Nordost in der Bielerbucht">TL</button></div></div>`;
   });
   h += `</div><div class="chips" style="margin-top:14px"><button class="btn2" id="exp">Markierungen kopieren</button><button class="btn2" id="imp">Markierungen einfügen</button>${loadG().token?`<button class="btn2" id="expM">Fürs Modell speichern</button>`:""}</div>
-    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, zählt nicht mit. «TL» = Taubenlöchler (Wind aus Nord oder Nordost in der Bucht), zusätzlich zu «Ja» markieren.${loadG().token?" «Fürs Modell speichern» legt die Markierungen im Repo ab (eval/truth.json).":""}</small>`;
+    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, zählt nicht mit. «TL» = Taubenlöchler (Wind aus Nord oder Nordost in der Bucht), zusätzlich zu «Ja» markieren.${loadG().token?" «Fürs Modell speichern» legt die Markierungen im Repo ab (eval/truth.json). Dort bleiben auch Tage stehen, die du hier wieder entfernst.":""}</small>`;
   el.innerHTML = h;
 
   el.querySelectorAll(".mk button").forEach(bt=>bt.addEventListener("click",()=>{
@@ -960,11 +960,12 @@ function renderHist(){
     try{
       const cur = await gh("contents/eval/truth.json");
       /* bereits abgelegte Tage bleiben, was hier markiert ist, geht vor */
-      let old = {}; if(cur){ try{ old = JSON.parse(unb64(cur.content)); }catch(e){} }
+      let old = {}; if(cur){ try{ old = JSON.parse(unb64(cur.content)); }catch(e){ throw new Error("eval/truth.json im Repo ist nicht lesbar. Bitte dort zuerst prüfen."); } }
       const all = Object.assign({}, old, tr), keys = Object.keys(all).sort();
       const body = {message:"Joran: Markierungen aus dem Rückblick", content:b64(JSON.stringify(Object.fromEntries(keys.map(k=>[k, all[k]])), null, 1)+"\n")};
       if(cur) body.sha = cur.sha;
-      await gh("contents/eval/truth.json", {method:"PUT", body:JSON.stringify(body)});
+      const res = await gh("contents/eval/truth.json", {method:"PUT", body:JSON.stringify(body)});
+      if(!res || !res.content) throw new Error("Repo nicht gefunden oder Token ohne Schreibrecht");
       em.textContent = `Gespeichert (${keys.length} Einträge)`;
     }catch(e){ em.disabled = false; em.textContent = "Fürs Modell speichern"; alert("Nicht gespeichert: "+(e.message||e)); }
   });

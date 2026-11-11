@@ -306,14 +306,17 @@ Nachspielen der Baseline trifft sie je nach angenommenem Verzug so:
 | 10 min | 11 von 18 | 0 min |
 | 20 min | 6 von 18 | 10 min |
 | 30 min | 5 von 18 | 20 min |
+| 40 min | 8 von 18 | 10 min |
 
 Die Action sieht also Werte, die rund 10 min alt sind. Seit dem 29.10. trifft das an allen sieben Tagen. Die Abweichungen
-davor fallen in die Zeit älterer App-Versionen. Standard im Messskript: `--verzug 10`.
+davor fallen in die Zeit älterer App-Versionen. Wirklich unterscheiden nur rund fünf Tage: Ein Push um 14:00 (erster
+Prüfschritt) passt zu fast jedem Verzug. Standard im Messskript: `--verzug 10`.
 
 ### Sturmsperre vom See
 
 Das Nachspielen prüft jetzt bei jedem Schritt die Seemessung gegen die eigenen Grenzen (`core.lakeStorm`), wie die Action.
-Dafür nimmt `lakeStorm` neu den Zeitpunkt entgegen; in der App ist das Ergebnis dasselbe. Auf den Entwicklungstagen griff
+Dafür nimmt `lakeStorm` neu einen Zeitpunkt entgegen. Nur das Messskript übergibt ihn; App und Action rufen die Funktion
+wie bisher auf und rechnen unverändert. Auf den Entwicklungstagen griff
 die Sperre an einem Tag: am 25.10. (Sturmlage) von 14:00 bis 14:20, der Push kam trotzdem rechtzeitig.
 
 ### H3 und H4 je Block bestimmt (`core.fitModel`)
@@ -346,7 +349,8 @@ Was sich gegenüber dem ersten Teil des Tages ändert:
 - H3 hält: Der Gewinn beim Live-Signal bleibt (0.75 → 0.67), auch wenn die Grenze je Block bestimmt wird.
 - H4 bei 12 kn: FPR 0.33 statt 0.25. Der tiefere Faktor lässt den 3.11. durch (12.9 kn auf 850 hPa, Bise).
 - Vorlauf 91 statt 101 min bei 12 kn: je 10 min Lieferverzug, dazu am 25.10. die Sturmsperre. Recall und FPR ändern sich
-  durch Verzug und Sperre nicht. Mit `--verzug 0 --ohne-sturm --fest` kommen die Zahlen vom Vormittag wieder heraus.
+  durch Verzug und Sperre nicht. Mit `--verzug 0 --ohne-sturm --fest` kommen beim Live-Signal die Zahlen vom Vormittag
+  wieder heraus (0.75 → 0.67, 101 min). Die Prognose bleibt bei 0.33, weil der hinterlegte Faktor jetzt 1.0 ist.
 - Die Kreuzvalidierung kann weiterhin nicht zeigen, ob H3 oder H4 einen Abend verpassen würden: Alle foilbaren Abende
   bei 12 kn liegen im ersten Testblock, und der hat keine Regel.
 
@@ -364,3 +368,18 @@ ab und behält bereits abgelegte Tage. Markierungen liegen noch keine vor; sie s
 
 Kürzere Texte bei Höhenwind, Legende und «Messung gegen Modell». Der Höhenwind nennt die Messung zwischen Cressier und
 Chasseral nur noch, wenn sie dem Modell widerspricht. Gedankenstriche in den sichtbaren Texten sind ersetzt.
+
+### Reviewer (4ede9d8): **ANNEHMEN, vorläufig.**
+
+Keine blockierenden Defekte. Die Zahlen oben sind nachgemessen. Mit inaktivem Modell 1'443'635 Vergleiche gegen v17 über
+22 Tage ohne Abweichung; Gegenrechnung der gefitteten Grenzen auf den Trainingstagen: kein Push verloren oder später, ab
+10 kn keine Prognose gesperrt. `push/`, `users/`, `.github/` und `archive/` sind unberührt. West 4, Bise 1 Ereignistage,
+also nicht aktivieren.
+
+Übernommene Hinweise: `nowcast` ruft `lakeStorm` wieder ohne Zeitpunkt auf (sonst hielte die Sturmsperre in der Action
+einige Sekunden länger als in v17); «Fürs Modell speichern» meldet einen fehlgeschlagenen Schreibversuch und überschreibt
+keine unlesbare Datei; `eval/verzug.cjs` spielt nur Entwicklungstage nach; zwei Sätze in diesem Log berichtigt.
+
+Offen bleibt: H4 hängt am Abend vom 17.10. (Verhältnis 1.15, der nächste liegt bei 1.53), H3 an zwei Abenden. Die feste
+Grenze «durchmischt ab 4 K je km» in H4 ist die Schwachstelle für schwache Abende: Bei 8 kn hätte sie den 19. und den
+29.10. gesperrt.

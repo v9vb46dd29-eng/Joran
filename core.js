@@ -681,7 +681,7 @@ function nowcast(stations, St, now, lk){
   const crm = stations.crm;
   const e = crm && !crm.err && fresh(crm.rows, now) ? ruleE(crm.rows, St) : null;
   const trusted = sig.filter(s=>isTrusted(s));
-  if(lk) lakeStorm(lk, St, now).forEach(x=>front.push(x));
+  if(lk) lakeStorm(lk, St).forEach(x=>front.push(x));     /* gegen die Uhr, wie bisher; now nur fürs Nachspielen */
   const eOk = !!(e && e.ok && St.dirs.joran);
   /* Windsystem nach den Upwind-Stationen: Joran, wenn Regel E oder eine verlässliche Joran-Station ihn gerade meldet */
   const joran = !!St.dirs.joran && (eOk || trusted.some(s=>s.u.sys && s.u.sys.id==="joran"));
