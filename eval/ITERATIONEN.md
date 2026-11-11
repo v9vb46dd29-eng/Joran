@@ -383,3 +383,41 @@ keine unlesbare Datei; `eval/verzug.cjs` spielt nur Entwicklungstage nach; zwei 
 Offen bleibt: H4 hängt am Abend vom 17.10. (Verhältnis 1.15, der nächste liegt bei 1.53), H3 an zwei Abenden. Die feste
 Grenze «durchmischt ab 4 K je km» in H4 ist die Schwachstelle für schwache Abende: Bei 8 kn hätte sie den 19. und den
 29.10. gesperrt.
+
+## 11.11.2026, dritter Teil: Aufbau in Silos (v19, keine Modelländerung)
+
+Auftrag von Simon: Architektur prüfen und bei Bedarf anpassen, feste Silos, ohne Einbusse bei der Qualität. Aufbau,
+Regeln und Begründung stehen in `ARCHITEKTUR.md`.
+
+- `core.js` ist in neun Silos unter `core/` zerlegt, `core.js` bleibt als Fassade mit denselben 95 Namen. Die zwei
+  Kreise in den Abhängigkeiten sind aufgelöst, die Parameter des Modells stehen allein in `core/modell.js`.
+- `index.html` enthält nur noch das Gerüst. Darstellung und Programm liegen unter `app/`.
+- Neu: `eval/aufbau.cjs` (prüft die Regeln) und `eval/gleich.cjs` (Gleichheitsprüfung gegen einen früheren Stand).
+- `push/`, `users/`, `.github/` und `archive/` sind unberührt. `push/check.cjs` lädt weiterhin `../core.js`.
+
+Nachweis, dass sich nichts ändert: Alle 95 öffentlichen Namen (72 Funktionen, 23 Konstanten) haben denselben Quelltext
+oder Wert wie in v18. 389'392 Ergebnisse auf den Entwicklungstagen stimmen überein, auch mit zugeschaltetem Modell. Die Messung bei 12 kn gibt Zeile
+für Zeile dieselbe Ausgabe. Die Seite zeigt in Chrome denselben Text wie v18 (Hauptansicht, alle aufklappbaren Teile,
+Einstellungsblatt), ohne Skriptfehler.
+
+Kosten: 19 Dateien beim ersten Laden statt 2; eine Version, die an allen Stellen gleich hochgezählt werden muss
+(`aufbau.cjs` prüft das). Nutzen: Eine Änderung braucht nur noch die betroffene Datei von 19 bis 279 Zeilen, und die
+Regeln des Aufbaus prüft ein Befehl.
+
+### Reviewer (7efec0f): **ANNEHMEN mit Auflagen.**
+
+Keine blockierenden Defekte in App, Push-Lauf oder Rechenkern. Unabhängig nachgewiesen: Alle 116 Deklarationen des alten
+`core.js` stehen genau einmal und mit gleichem Quelltext in einem Silo, dazugekommen sind nur Rahmen, Importe und
+`return`. Die Dateien unter `app/` ergeben verkettet Zeichen für Zeichen das alte Skript (57'737 Zeichen), `app.css` den
+alten Stilblock. Im Browser ohne Netz: kein Skriptfehler, gleiche Seite in neun Zuständen. `push/`, `users/`, `.github/`,
+`archive/` und `proxy/` sind unberührt.
+
+Auflage erfüllt: `eval/measure.cjs` erkennt lokale Änderungen jetzt auch unter `core/` (Stempel «+lokal»).
+
+Übernommene Hinweise: `eval/aufbau.cjs` prüft neu jeden geholten Namen gegen das `return` des Quell-Silos und verbietet
+Wege am `dep` vorbei; die Fassade meldet einen Namen in zwei Silos; `eval/gleich.cjs` vergleicht `nowcast` auch mit
+Seemessung und nennt seine Grenzen; Zahlen in der Doku berichtigt. Für den Übergang lädt die Fassade einmal neu, wenn
+eine Seite aus dem Zwischenspeicher sie noch ohne Silos lädt.
+
+Offen (in `ARCHITEKTUR.md` unter «Nächste Schritte»): sichtbare Meldung bei einem Skript, das nicht lädt; Parser an einen
+Ort; `gleich.cjs` deckt Datenabruf, Parser und Joran-Zweige kaum ab.

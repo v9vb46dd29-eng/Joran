@@ -1,13 +1,13 @@
 # Nächste Schritte
 
-Stand 11.11.2026 (v18). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.md`.
+Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.md`.
 
 ## Was läuft
 
 - Die Action archiviert die Seemessung täglich (Branch `live`, Ordner `archive`). Seit v17 wird auch die Richtungstreue
   gespeichert; vorher blieb sie wegen eines Lesefehlers leer.
 - Die App zeigt den Höhenwind (850 hPa, ICON-EU) mit Schichtung als Hinweis.
-- Vorbereitet, aber nicht aktiv (`MODEL.active = false` in `core.js`): Stationsfaktoren je Windsystem (Modell v2),
+- Vorbereitet, aber nicht aktiv (`MODEL.active = false` in `core/modell.js`): Stationsfaktoren je Windsystem (Modell v2),
   Kopplung der Luftschichten für Chasseral-Signale (H3), Höhenwind in der Prognose (H4).
 - Seit v18 bestimmt die Messung auch die Grenze von H3 und den Faktor von H4 je Block, rechnet mit 10 min Lieferverzug
   der Stationsdaten und mit der Sturmsperre vom See.
@@ -19,8 +19,8 @@ Stand 11.11.2026 (v18). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
    Die Tage 6.–10.11.2026 waren schon Holdout und dürfen in die Entwicklung wandern; der neue Holdout sind die jüngsten Tage.
 3. Archivprognosen und Höhenwind für den neuen Zeitraum nachladen (`eval/data/prognose_vortag.json` löschen und
    `node eval/prognose.cjs` laufen lassen; `eval/data/hoehenwind_icon_eu.json` über die Historical Forecast API erneuern).
-4. Parameter neu bestimmen (`node eval/measure.cjs --fit`): `f` in `core.MODEL.f` eintragen, `kopplung.min` und
-   `hoehe.f` in `core.MODEL.kopplung` und `core.MODEL.hoehe`. Messen bei 10, 12 und 14 kn. Den Lieferverzug mit
+4. Parameter neu bestimmen (`node eval/measure.cjs --fit`): alle Werte in `core/modell.js` eintragen (`MODEL.f`,
+   `MODEL.kopplung.min`, `MODEL.hoehe.f`, `MODEL.fitted`). Messen bei 10, 12 und 14 kn. Den Lieferverzug mit
    `node eval/verzug.cjs` nachprüfen (heute 10 min).
 5. Ereignistage je Windsystem zählen (letzte Zeile der Messung). Die Regel gilt je Windsystem einzeln (Entscheid
    11.11.2026). Liegen für West mindestens 10 vor: Aktivierung **nur für West** vorschlagen, mit Reviewer-Entscheid und
@@ -29,7 +29,8 @@ Stand 11.11.2026 (v18). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
    bleibt aus, bis es je Richtung belegt ist.
 6. H3 und H4 an den neuen Tagen prüfen: Hat die Kopplung einen foilbaren Abend gesperrt? Hält der Faktor auf 850 hPa?
    Die Zeile «H3/H4 je Block» zeigt, was die Daten je Block hergeben.
-7. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+7. Vor dem PR: `node eval/aufbau.cjs` und `node eval/selftest.cjs`. Version in `index.html` an allen Stellen hochzählen.
+8. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 

@@ -34,8 +34,7 @@ days.forEach(d=>{
 /* ---------- 1. Modell nicht aktiv = Baseline ---------- */
 let B = null;
 for(const ref of ["origin/baseline-2026-11-10", "baseline-2026-11-10"]){
-  try{ const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "joran-base-")), "core.js");
-    fs.writeFileSync(f, execFileSync("git", ["show", ref+":core.js"], {cwd:ROOT, encoding:"utf8", stdio:["ignore","pipe","ignore"]})); B = require(f); break; }catch(e){}
+  try{ B = M.coreAt(ref); break; }catch(e){}
 }
 if(B){
   let diff = 0, n = 0;

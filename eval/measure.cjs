@@ -13,14 +13,14 @@
      --T 12             Schwelle in kn (Standard: aus den Einstellungen)
      --kontrolle 14     Kontrollschwelle für die Akzeptanzregeln (Standard 14; bei --T 14 entfällt sie)
      --user NAME        Einstellungen aus users/NAME.json (Standard: simon)
-     --basis SPEC       core.js der Baseline: Datei oder git:REV (Standard: git:origin/baseline-2026-11-10)
-     --neu SPEC         core.js des gemessenen Stands (Standard: dieser Stand)
+     --basis SPEC       Rechenkern der Baseline: Datei core.js (mit core/ daneben) oder git:REV (Standard: git:origin/baseline-2026-11-10)
+     --neu SPEC         Rechenkern des gemessenen Stands (Standard: dieser Stand)
      --teil dev|holdout Entwicklungstage mit zeitlicher Kreuzvalidierung (Standard) oder Holdout;
                         «anpassung» misst die Entwicklungstage mit Parametern aus denselben Tagen (zu günstig, nur zur Einsicht)
      --offline          SwissMetNet nicht abrufen, nur Cache (eval/cache)
      --archive DIR      zusätzlicher Ordner mit Tagesdateien;  --no-git  Archiv im Branch origin/live nicht lesen
      --truth FILE       Markierungen (Standard: eval/truth.json, falls vorhanden)
-     --fit              Modellparameter aus den Entwicklungstagen ausgeben (für core.js) und beenden
+     --fit              Modellparameter aus den Entwicklungstagen ausgeben (für core/modell.js) und beenden
      --fest             Kopplung (H3) und Höhenwind (H4) nicht je Block bestimmen, sondern die hinterlegten Werte nehmen
      --verzug MIN       Lieferverzug der Upwind-Stationen: Beim Prüfschritt liegen nur Werte vor, die mindestens so alt
                         sind (Standard 10, bestimmt mit eval/verzug.cjs; 0 = wie vor dem 11.11.2026)
@@ -56,14 +56,17 @@ function parseArgs(argv){
 }
 const git = args => execFileSync("git", args, {cwd:ROOT, encoding:"utf8", stdio:["ignore","pipe","ignore"], maxBuffer:256<<20});
 const BASE_REFS = ["origin/baseline-2026-11-10", "baseline-2026-11-10"];
+/* Rechenkern eines Git-Stands in einen eigenen Ordner legen und laden: core.js und, falls vorhanden, die Silos unter core/ */
+function coreAt(rev){
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "joran-core-"));
+  fs.writeFileSync(path.join(dir, "core.js"), git(["show", rev+":core.js"]));
+  let ls = ""; try{ ls = git(["ls-tree", "-r", "--name-only", rev, "core/"]); }catch(e){}
+  ls.split("\n").filter(Boolean).forEach(f=>{ const q = path.join(dir, f); fs.mkdirSync(path.dirname(q), {recursive:true}); fs.writeFileSync(q, git(["show", rev+":"+f])); });
+  return require(path.join(dir, "core.js"));
+}
 function loadCore(spec){
   if(!spec) return {K:C, name:"dieser Stand"};
-  let file = spec;
-  if(spec.startsWith("git:")){
-    file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "joran-core-")), "core.js");
-    fs.writeFileSync(file, git(["show", spec.slice(4)+":core.js"]));
-  }
-  return {K:require(path.resolve(file)), name:spec};
+  return {K: spec.startsWith("git:") ? coreAt(spec.slice(4)) : require(path.resolve(spec)), name:spec};
 }
 function loadBase(spec){
   if(spec) return loadCore(spec);
@@ -439,11 +442,11 @@ async function main(){
   const pv = rd("prognose_vortag.json"), hw = rd("hoehenwind_icon_eu.json");
   const FC = pv ? {models:Object.fromEntries(pv.models.map(x=>[x.id, x.spots])), hoehe:hw ? hw.hourly : null} : null;
   const R = measureAll({per, S, marks, St, ctl:o.ctl, cores, split, teil:o.teil, FC, fest:o.fest, verzug:o.verzug, sturm:o.sturm});
-  let rev = "?"; try{ rev = git(["rev-parse","--short","HEAD"]).trim() + (git(["status","--porcelain","core.js","eval"]).trim() ? "+lokal" : ""); }catch(e){}
+  let rev = "?"; try{ rev = git(["rev-parse","--short","HEAD"]).trim() + (git(["status","--porcelain","core.js","core","eval"]).trim() ? "+lokal" : ""); }catch(e){}
   const KN = cores.neu.K;
   console.log(report(R, {rev, user:id, basis:cores.basis.name, neu:cores.neu.name, err, KB:cores.basis.K, KN, fitted:KN.MODEL && KN.MODEL.fitted}));
   console.log(`Archiv: ${nFiles} Tagesdateien; Markierungen: ${mk ? `${path.relative(ROOT, tf)} (foilbar ${mk.n.y}, ruhig ${mk.n.n}, zählt nicht ${mk.n.k}, Taubenlöchler ${mk.n.tl}, Windsystem ${mk.n.sys})` : "keine (nur automatische Wahrheit)"}`);
   if(o.json) fs.writeFileSync(o.json, JSON.stringify(R, (k,v)=>k==="leads"||k==="models"?undefined:v, 1)+"\n");
 }
 if(require.main===module) main().catch(e=>{ console.error(e.message||e); process.exitCode = 1; });
-module.exports = {VERZUG, checkMarks, measureAll, buildTruth, score, forecastStage, replay, folds, stepsOf, classify, loadArchive, lakeByDay, report};
+module.exports = {VERZUG, coreAt, checkMarks, measureAll, buildTruth, score, forecastStage, replay, folds, stepsOf, classify, loadArchive, lakeByDay, report};

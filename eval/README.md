@@ -9,14 +9,16 @@ git fetch origin live baseline-2026-11-10:refs/remotes/origin/baseline-2026-11-1
 node eval/measure.cjs --T 12              # Hauptmass, Kontrolle bei 14 kn, Entwicklungstage mit Kreuzvalidierung
 node eval/measure.cjs --T 14 --kontrolle 14
 node eval/measure.cjs --T 12 --teil holdout   # Schlussmessung, nur einmal nach der letzten Codeänderung
-node eval/measure.cjs --fit               # Modellparameter aus den Entwicklungstagen (für core.js), mit Kopplung und Höhenwind
+node eval/measure.cjs --fit               # Modellparameter aus den Entwicklungstagen (für core/modell.js), mit Kopplung und Höhenwind
 node eval/measure.cjs --T 12 --fest       # H3/H4 mit den hinterlegten Werten statt je Block bestimmt
 node eval/measure.cjs --T 12 --verzug 0 --ohne-sturm   # Nachspielen wie vor dem 11.11.2026
 node eval/verzug.cjs                      # Lieferverzug aus den echten Push-Zeiten bestimmen
 node eval/selftest.cjs                    # prüft Messskript und Modell mit synthetischen Daten
+node eval/aufbau.cjs                      # prüft die Regeln aus ARCHITEKTUR.md (Silos, Reihenfolge, Version)
+node eval/gleich.cjs                      # rechnet der Rechenkern wie origin/main? Für Umbauten ohne Verhaltensänderung
 ```
 
-Derselbe Befehl misst jeden Stand: `--neu git:REV` oder `--neu datei.js` misst ein anderes `core.js`, `--basis` ersetzt die
+Derselbe Befehl misst jeden Stand: `--neu git:REV` oder `--neu pfad/core.js` misst einen anderen Rechenkern, `--basis` ersetzt die
 Baseline (Standard: Branch `baseline-2026-11-10`). `--offline` nutzt nur den Cache.
 
 ## Daten
