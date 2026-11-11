@@ -88,6 +88,8 @@ ok("Zelle Cressier/West: Recall 1", neu.up.crm.cells.w.rec===1 && neu.up.crm.cel
   ok("H4 aktiv: durchmischt und stark genug zählt, stabil oder zu schwach nicht",
     C.hoeheOk(hd, Sm) && !C.hoeheOk(Object.assign({}, hd, {coupled:false}), Sm) && !C.hoeheOk(Object.assign({}, hd, {v:10}), Sm));
   ok("H4: fehlende Höhendaten sperren nichts", C.hoeheOk(null, Sm)===true);
+  const part = C.hoeheDay({time, wind_speed_850hPa:w}, "2026-06-10", St);
+  ok("Höhenwind: fehlende Felder brechen nichts", !!part && part.d===null && part.coupled===null && C.hoeheOk(part, Sm)===true);
   ok("Prognose-Stufe ohne Archivprognosen: nicht gemessen", M.forecastStage(C, St, T, days, null)===null);
 }
 const F = M.folds(days);

@@ -275,3 +275,9 @@ schreibt. Ab jetzt steht sie im Archiv; sie wird für die Auswertung der Joran-D
 
 Der Holdout wurde für H4 nicht gemessen: Für die Tage 6.–10.11. sind keine Höhendaten abgelegt, und es gab dort keinen
 foilbaren Abend.
+
+Reviewer (19539c4): **ANNEHMEN, H4 vorläufig.** Keine blockierenden Defekte; Push und Bewertung verhalten sich wie v16,
+der Holdout blieb unberührt. Der Faktor 1.1 ist knapp: Die Grenze liegt bei 13.2 kn, der schwächste foilbare Abend
+(17.10.) hatte 14 kn auf 850 hPa. Zeitlich geprüft liegt die FPR bei 0.42 statt 0.25. Vor dem Aktivieren je Block
+bestimmen und mit echten Vortagesläufen messen. Übernommene Hinweise: `hoeheDay` verträgt fehlende Felder, der Höhenwind
+wird im Browser zwischengespeichert, Texte zu «knapp», «sehr wahrscheinlich» und «Wann?» präzisiert.

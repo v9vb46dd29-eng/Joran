@@ -184,15 +184,16 @@ async function fetchHoehe(){
    K je km (850 hPa liegt rund 1.07 km über dem See); gekoppelt = durchmischte Luft, der Höhenwind kann bis auf den See. */
 const HOEHE = {dz:1.07, lapseMin:4};
 function hoeheDay(H, day, St){
-  if(!H || !H.time) return null;
+  if(!H || !H.time || !H.wind_speed_850hPa) return null;
+  const WD = H.wind_direction_850hPa || [], T2 = H.temperature_2m || [], T8 = H.temperature_850hPa || [];
   const [h0,h1] = WINS[St.win], ix = [];
   H.time.forEach((t,i)=>{ const hr = +t.slice(11,13); if(t.slice(0,10)===day && hr>=h0-2 && hr<h1 && H.wind_speed_850hPa[i]!=null) ix.push(i); });
   if(ix.length<3) return null;
   const avg = a => a.reduce((x,y)=>x+y,0)/a.length;
-  let x = 0, y = 0; ix.forEach(i=>{ const d = H.wind_direction_850hPa[i]; if(d!=null){ x += Math.cos(d*Math.PI/180); y += Math.sin(d*Math.PI/180); } });
-  const lp = ix.filter(i=>H.temperature_2m[i]!=null && H.temperature_850hPa[i]!=null).map(i=>(H.temperature_2m[i]-H.temperature_850hPa[i])/HOEHE.dz);
+  let x = 0, y = 0, nd = 0; ix.forEach(i=>{ const d = WD[i]; if(d!=null){ nd++; x += Math.cos(d*Math.PI/180); y += Math.sin(d*Math.PI/180); } });
+  const lp = ix.filter(i=>T2[i]!=null && T8[i]!=null).map(i=>(T2[i]-T8[i])/HOEHE.dz);
   const lapse = lp.length ? avg(lp) : null;
-  return {v:avg(ix.map(i=>H.wind_speed_850hPa[i])), d:(Math.atan2(y,x)*180/Math.PI+360)%360, lapse, coupled:lapse==null ? null : lapse>=HOEHE.lapseMin};
+  return {v:avg(ix.map(i=>H.wind_speed_850hPa[i])), d:nd ? (Math.atan2(y,x)*180/Math.PI+360)%360 : null, lapse, coupled:lapse==null ? null : lapse>=HOEHE.lapseMin};
 }
 /* H4 (vorläufig, nicht aktiv): Die Prognose zählt nur, wenn der Höhenwind bei durchmischter Luft mindestens f × T erreicht.
    Fehlen die Höhendaten, zählt die Prognose wie bisher. */

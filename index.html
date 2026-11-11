@@ -298,8 +298,8 @@ ol.steps li{margin:3px 0}
         <p class="ftr" style="margin:8px 0 0">Test: <a href="https://joran.rfjhvvs9p2.workers.dev/?url=https%3A%2F%2Fvingelz.meteobase.ch%2F" target="_blank" rel="noopener">Worker direkt öffnen</a> — muss die Vingelz-Seite zeigen.</p></details>
       <details><summary>Methode und Quellen</summary><div style="font-size:15px">
 <p><b>Prognose.</b> Vier Wettermodelle rechnen den Wind über dem See (ICON-CH1, ICON-CH2, ICON-D2, AROME). Je Stunde zählt der stärkste deiner Spots.</p>
-<p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen. <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines trifft, aber das stärkste liegt höchstens 3 kn unter deiner Schwelle. Ab übermorgen rechnet nur noch ICON-CH2.</p>
-<p><b>Wann?</b> Angezeigt werden die Stunden, in denen mindestens die Hälfte der Modelle deine Schwelle erreicht.</p>
+<p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen (und mindestens zwei). <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines hält die Schwelle lange genug, aber das stärkste liegt höchstens 3 kn darunter. Ab übermorgen rechnet nur noch ICON-CH2.</p>
+<p><b>Wann?</b> Angezeigt werden die Stunden, in denen mindestens die Hälfte der Modelle deine Schwelle erreicht. Gibt es keine, zählen Stunden mit einem einzelnen Modell («nur einzelne Modelle»).</p>
 <p><b>Am See jetzt.</b> Messwerte von Vingelz und Ipsach (meteoBase.ch), alle 10 Minuten. Die Kachel wird blau, wenn deine Schwelle erreicht ist. Im Tagesdiagramm stehen die Messwerte als Punkte.</p>
 <p><b>Wind kommt.</b> Messstationen in Anströmrichtung (SwissMetNet) zeigen den Wind oft 30 bis 90 Minuten früher. Eine Station meldet, wenn der Wind 30 Minuten lang aus der passenden Richtung kommt und stark genug ist. Für Joran gilt zusätzlich eine eigene Regel in Cressier.</p>
 <p><b>Höhenwind.</b> Wind auf rund 1500 m (ICON-EU). Er kommt nur bis auf den See, wenn die Luft durchmischt ist. Ist sie stabil geschichtet, bleibt er oben. Vorerst ein Hinweis, er ändert die Bewertung nicht.</p>
@@ -492,7 +492,7 @@ function verdictHTML(cur, hour, nc){
   if(s.top){
     const dn = dirOf(s.top.d);
     why = s.win ? `Ab ${S.T} kn von ${winTxt(s.win)}${s.win.consensus?"":" (nur einzelne Modelle)"}. ` : "";
-    if(s.level===1) why += `Kein Modell erreicht ${S.T} kn, das stärkste liegt höchstens 3 kn darunter. `;
+    if(s.level===1) why += `Kein Modell hält ${S.T} kn lange genug, das stärkste liegt höchstens 3 kn darunter. `;
     why += `${s.hits} von ${s.n} Modellen treffen. Stärkstes: ${r0(s.top.v)} kn ${dn?dn.name:card(s.top.d)} in ${spotName(s.top.spot)} um ${s.top.hr} Uhr (${s.topM.name}).`;
   } else why = "Kein Modell zeigt Wind aus deinen Richtungen.";
   if(cur.ens) why += ` Ensemble: ${cur.ens.hit} von ${cur.ens.n} Läufen erreichen die Schwelle.`;
@@ -592,9 +592,9 @@ function joranHTML(jc, cur, nc){
 /* Höhenwind auf 850 hPa und Schichtung: Hinweis zur Lage, ändert die Bewertung nicht */
 function hoeheHTML(cur){
   const hd = D.hoehe ? C.hoeheDay(D.hoehe, cur.day, S) : null; if(!hd) return "";
-  const dn = dirOf(hd.d), wo = dn ? dn.name : card(hd.d);
+  const dn = hd.d!=null ? dirOf(hd.d) : null, wo = hd.d==null ? "Wind" : dn ? dn.name : card(hd.d);
   let txt = hd.coupled==null ? "" : hd.coupled ? "Die Luft ist durchmischt: Der Wind kann bis auf den See kommen." : "Die Luft ist stabil geschichtet: Der Wind bleibt eher oben.";
-  if(hd.coupled && dn && dn.id==="bise") txt += " Bei Bise kommt am See etwa die Hälfte an.";
+  if(hd.coupled && dn && dn.id==="bise") txt += " Bei Bise kommt am See oft deutlich weniger an.";
   if(hd.coupled && dn && dn.id==="w") txt += " Bei West hat Ipsach meist deutlich mehr als Vingelz.";
   let now = "";
   if(cur.k===0){
@@ -975,7 +975,7 @@ let BUSY = false;
    die Messungen (Stationen, See) werden bei jedem Refresh immer frisch geholt. */
 const M_KEY = "joran.models.v1", M_MAX = 20*60000;
 function loadMCache(){ try{ const c = JSON.parse(localStorage.getItem(M_KEY)); if(c && c.models){ c.mt = new Date(c.mt); return c; } }catch(e){} return null; }
-function saveMCache(){ try{ localStorage.setItem(M_KEY, JSON.stringify({models:D.models, err:D.err, ens:D.ens, jura:D.jura, mt:D.mt})); }catch(e){} }
+function saveMCache(){ try{ localStorage.setItem(M_KEY, JSON.stringify({models:D.models, err:D.err, ens:D.ens, jura:D.jura, hoehe:D.hoehe, mt:D.mt})); }catch(e){} }
 let rT = null;
 /* Während des Ladens keine neue Bewertung aus halben Daten: alter Stand bleibt ausgegraut, nur der Fortschritt zählt hoch.
    Die Seekacheln (reine Messwerte) dürfen sofort erscheinen. */
