@@ -5,9 +5,13 @@
    2. Verhalten: Live-Signal, Seemessung, Prognose-Stufe, Höhenwind, Einstellungen und fitModel auf den echten Daten der
       Entwicklungstage (10-min-Schritte, mehrere Einstellungen), Ergebnis für Ergebnis verglichen.
    Aufruf: node eval/gleich.cjs [--alt REV] [--voll] [--erlaubt name,name]
-     --alt REV      Vergleichsstand (Standard: origin/main)
+     --alt REV      Vergleichsstand (Standard: origin/main; auf main selbst einen früheren Stand angeben)
      --voll         alle Einstellungsvarianten (dauert einige Minuten); sonst drei
-     --erlaubt …    öffentliche Namen, die sich mit Absicht geändert haben (zählen im Quelltextvergleich nicht)
+     --erlaubt …    öffentliche Namen, deren Quelltext sich mit Absicht geändert hat. Sie fallen nur aus dem
+                    Quelltextvergleich; rechnen sie anders, meldet der Verhaltensteil das weiterhin.
+   Grenzen: Innere Helfer werden nur über ihr Verhalten erfasst, nicht über ihren Quelltext. Nicht aufgerufen werden der
+   Datenabruf samt Parsern, joranCheck, ensShare, calibrate und joranType. Die Daten enthalten bisher nur West und Bise,
+   Joran-Zweige werden kaum erreicht. Wer dort umbaut, prüft zusätzlich von Hand.
    Braucht den Cache aus eval/measure.cjs und das Archiv (git fetch origin live). Der Holdout wird nicht gelesen.
    Ende mit Fehlercode 1, sobald etwas abweicht. */
 "use strict";
@@ -57,6 +61,7 @@ for(const v of V){
       const lkT = {st:Object.fromEntries(N.LAKE.map(L=>[L.id, {rows:lakeMs[L.id].filter(x=>x.ms<=ms && x.ms>ms-3*3600e3).map(x=>x.r)}]))};
       const a = O.nowcast(stn, StO, t, null), b = N.nowcast(stn, StN, t, null);
       bump("nowcast"+tag, J(a)===J(b), v.name+" "+t.toISOString());
+      bump("nowcast mit Seemessung"+tag, J(O.nowcast(stn, StO, t, lkT))===J(N.nowcast(stn, StN, t, lkT)), v.name+" "+t.toISOString());
       if(tag) continue;
       bump("lageHint", O.lageHint(a, O.lakeNow(lkT, StO, t, a.upSys))===N.lageHint(b, N.lakeNow(lkT, StN, t, b.upSys)), v.name+" "+t.toISOString());
       bump("lakeNow", J(O.lakeNow(lkT, StO, t, a.upSys))===J(N.lakeNow(lkT, StN, t, b.upSys)), v.name+" "+t.toISOString());

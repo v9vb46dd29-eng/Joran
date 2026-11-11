@@ -21,11 +21,19 @@ const SILOS = {
   einstellungen: "PUSH_FIELDS pushCfg sanitizeCfg cleanId",
 };
 const node = typeof module!=="undefined" && module.exports;
+/* Übergang von v18: Eine Seite aus dem Zwischenspeicher lädt diese Datei noch ohne Silos. Einmal neu laden holt die neue Seite. */
+if(!node && !root.Joran && root.location && root.sessionStorage){
+  let once = false; try{ once = !root.sessionStorage.getItem("joran.neu"); root.sessionStorage.setItem("joran.neu", "1"); }catch(e){}
+  if(once) root.location.reload();
+}
 const api = {};
 Object.keys(SILOS).forEach(s=>{
   const silo = node ? require("./core/"+s+".js") : root.Joran && root.Joran[s];
   if(!silo) throw new Error("Joran: Silo «"+s+"» fehlt (core/"+s+".js vor core.js laden)");
-  SILOS[s].split(/\s+/).forEach(n=>{ if(!(n in silo)) throw new Error("Joran: «"+n+"» fehlt im Silo «"+s+"»"); api[n] = silo[n]; });
+  SILOS[s].split(/\s+/).forEach(n=>{
+    if(!(n in silo)) throw new Error("Joran: «"+n+"» fehlt im Silo «"+s+"»");
+    if(n in api) throw new Error("Joran: «"+n+"» steht in zwei Silos");
+    api[n] = silo[n]; });
 });
 if(node) module.exports = api; else root.JoranCore = api;
 })(typeof self!=="undefined" ? self : this);

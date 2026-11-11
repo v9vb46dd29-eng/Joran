@@ -20,7 +20,7 @@
      --offline          SwissMetNet nicht abrufen, nur Cache (eval/cache)
      --archive DIR      zusätzlicher Ordner mit Tagesdateien;  --no-git  Archiv im Branch origin/live nicht lesen
      --truth FILE       Markierungen (Standard: eval/truth.json, falls vorhanden)
-     --fit              Modellparameter aus den Entwicklungstagen ausgeben (für core.js) und beenden
+     --fit              Modellparameter aus den Entwicklungstagen ausgeben (für core/modell.js) und beenden
      --fest             Kopplung (H3) und Höhenwind (H4) nicht je Block bestimmen, sondern die hinterlegten Werte nehmen
      --verzug MIN       Lieferverzug der Upwind-Stationen: Beim Prüfschritt liegen nur Werte vor, die mindestens so alt
                         sind (Standard 10, bestimmt mit eval/verzug.cjs; 0 = wie vor dem 11.11.2026)
@@ -442,7 +442,7 @@ async function main(){
   const pv = rd("prognose_vortag.json"), hw = rd("hoehenwind_icon_eu.json");
   const FC = pv ? {models:Object.fromEntries(pv.models.map(x=>[x.id, x.spots])), hoehe:hw ? hw.hourly : null} : null;
   const R = measureAll({per, S, marks, St, ctl:o.ctl, cores, split, teil:o.teil, FC, fest:o.fest, verzug:o.verzug, sturm:o.sturm});
-  let rev = "?"; try{ rev = git(["rev-parse","--short","HEAD"]).trim() + (git(["status","--porcelain","core.js","eval"]).trim() ? "+lokal" : ""); }catch(e){}
+  let rev = "?"; try{ rev = git(["rev-parse","--short","HEAD"]).trim() + (git(["status","--porcelain","core.js","core","eval"]).trim() ? "+lokal" : ""); }catch(e){}
   const KN = cores.neu.K;
   console.log(report(R, {rev, user:id, basis:cores.basis.name, neu:cores.neu.name, err, KB:cores.basis.K, KN, fitted:KN.MODEL && KN.MODEL.fitted}));
   console.log(`Archiv: ${nFiles} Tagesdateien; Markierungen: ${mk ? `${path.relative(ROOT, tf)} (foilbar ${mk.n.y}, ruhig ${mk.n.n}, zählt nicht ${mk.n.k}, Taubenlöchler ${mk.n.tl}, Windsystem ${mk.n.sys})` : "keine (nur automatische Wahrheit)"}`);
