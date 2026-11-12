@@ -30,7 +30,8 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
 6. H3 und H4 an den neuen Tagen prüfen: Hat die Kopplung einen foilbaren Abend gesperrt? Hält der Faktor auf 850 hPa?
    Die Zeile «H3/H4 je Block» zeigt, was die Daten je Block hergeben.
 7. Vor dem PR: `node eval/aufbau.cjs` und `node eval/selftest.cjs`. Version in `index.html` an allen Stellen hochzählen.
-8. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+8. `node eval/bucht.cjs` laufen lassen und die Tabelle zu H-B1 bis H-B7 in `eval/IDEEN.md` nachführen.
+9. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 
@@ -40,6 +41,7 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
 | Bise: eigener Faktor, Fehlalarme senken | 10 Bise- oder Nord-Abende (heute 1) | Sommer 2027 |
 | Joran: Faktoren, H3 im Sommer prüfen, Drehung Vingelz/Ipsach (`node eval/joran.cjs`) | 10 Joran-Episoden (heute 1) | Juni bis Juli 2027 |
 | Taubenlöchler | Markierungen `tl:` im Rückblick und Abende mit Nord/Bise am See | offen |
+| Bieler Bucht: Joran-Äste, Taubenloch, Nordlage, Seewind (H-B1 bis H-B7 in `eval/IDEEN.md`, `node eval/bucht.cjs`) | Joran-Episoden je Typ, Nordlage-Abende, Seemessung im Sommer | Sommer 2027 |
 | H4: Grenze je Windrichtung | mehr Abende je Richtung; echte Vortagesprognose auf 850 hPa | laufend |
 
 ## Offene Entscheide (Simon)
