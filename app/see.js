@@ -1,6 +1,6 @@
 /* Joran — Oberfläche «see». Karten «Am See jetzt»: Messung Vingelz und Ipsach.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
-   basis, see, live, einstellungen, push, rueckblick, start. Aufbau und Regeln: ARCHITEKTUR.md */
+   basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
 function ago(t){ const m = Math.round((Date.now()-t)/60000); return m<1 ? "gerade" : m<60 ? `vor ${m} min` : `vor ${Math.floor(m/60)} h ${m%60} min`; }
 function spark(rows){
@@ -36,6 +36,7 @@ function renderLake(){
     const names = (S_PROXY() ? ["eigenen Proxy"] : []).concat(["direkt","allorigins","codetabs","corsproxy"]);
     return `${L.name}: ${!d ? "–" : d.err ? "nicht erreichbar (" + (d.errs||[d.err]).map((e,i)=>names[i]+": "+e).join(", ") + ")" : "ok über " + names[LKNOW.via[L.id]]}`; }).join(" · ")
     + (LKERR ? ` · Verlauf (Branch live): ${LKERR}` : "");
+  wbUpdate();
 }
 /* Seemessung: aktueller Wert direkt über CORS-Proxy, Verlauf aus dem Branch «live» und aus dem eigenen Browser-Speicher */
 const L_KEY = "joran.lake.v1", P_KEY = "joran.proxy.v1";

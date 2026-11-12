@@ -1,6 +1,6 @@
 /* Joran — Oberfläche «push». Push für mehrere Nutzer: eigene Einstellungen speichern (GitHub-Formular oder Code), Verwaltung für den Repo-Besitz. Einziger Ort mit Zugriff auf die GitHub-API.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
-   basis, see, live, einstellungen, push, rueckblick, start. Aufbau und Regeln: ARCHITEKTUR.md */
+   basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
 /* Jeder Nutzer hat users/<name>.json. Mit Token (Repo-Besitz) wird direkt geschrieben,
    sonst über ein GitHub-Issue (nur die eigene Datei) oder per Code an die Besitzerin/den Besitzer. */

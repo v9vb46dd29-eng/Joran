@@ -1,5 +1,5 @@
 /* Joran — Silo «daten». Alles, was ins Netz geht: Open-Meteo (Modelle, Ensemble, Höhenwind, Jura, Archiv),
-   SwissMetNet (Upwind-Stationen), meteoBase (Seestationen), Messreihe aus dem Branch live. Einziger Ort mit fetch.
+   SwissMetNet (Upwind-Stationen), meteoBase (Seestationen), Messreihe aus dem Branch live, Windbild (data/windbild.json). Einziger Ort mit fetch.
    Hängt ab von: konstanten, see. Aufbau und Regeln: ARCHITEKTUR.md */
 (function(root, make){
   const dep = n => typeof module!=="undefined" && module.exports ? require("./"+n+".js") : root.Joran[n];
@@ -196,6 +196,12 @@ async function fetchLake(owner, repo){
   return getJSON(`https://raw.githubusercontent.com/${owner}/${repo}/live/lake.json?${Date.now()}`, 15000);
 }
 
+/* Windbild der Bieler Bucht: typische Werte je Lage. Die Datei liegt neben der Seite und kommt aus eval/ (data/windbild.json).
+   Nur im Browser; der Zusatz hält den Zwischenspeicher höchstens eine Stunde. */
+async function fetchWindbild(){
+  return getJSON("data/windbild.json?t=" + Math.floor(Date.now()/3600e3), 15000);
+}
+
 /* Alle Upwind-Stationen frisch holen (für jeden Refresh) */
 async function fetchStations(){
   const out = {};
@@ -215,5 +221,5 @@ async function fetchAll(St, opts){
 }
 
 return {getJSON, fetchModel, fetchEnsemble, fetchHoehe, fetchJura, fetchHistory, fetchStation, parseSMN, updateLake,
-  fetchLakeNow, fetchLake, fetchStations, fetchAll};
+  fetchLakeNow, fetchLake, fetchStations, fetchAll, fetchWindbild};
 });

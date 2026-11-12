@@ -1,6 +1,6 @@
 /* Joran — Oberfläche «live». Hauptansicht: Tagesauswahl, Urteil, Diagramm, Warnungen, Messung gegen Modell, Joran-Zutaten, Höhenwind, Modelle im Detail, Upwind-Stationen, Quellen und Diagnose.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
-   basis, see, live, einstellungen, push, rueckblick, start. Aufbau und Regeln: ARCHITEKTUR.md */
+   basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
 function renderLive(){
   const hour = localHourNow();
@@ -51,6 +51,7 @@ function renderLive(){
 
   $("#out").innerHTML = h;
   document.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",()=>{ SEL = +b.dataset.k; renderLive(); }));
+  wbUpdate();
 }
 
 const thrChip = () => `<button class="thrchip" data-open="sheet">Schwelle ${S.T} kn · ${esc(WINS[S.win][2])} ›</button>`;

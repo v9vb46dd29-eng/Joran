@@ -1,6 +1,6 @@
 /* Joran — Oberfläche «rueckblick». Rückblick: Tage markieren, Prognose und Stationen kalibrieren, Markierungen kopieren, einfügen und fürs Modell speichern.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
-   basis, see, live, einstellungen, push, rueckblick, start. Aufbau und Regeln: ARCHITEKTUR.md */
+   basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
 function histDays(){ const out = []; for(let k=1;k<=H.days;k++) out.push(localDay(-k)); return out; }
 function renderHist(){

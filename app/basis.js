@@ -1,6 +1,6 @@
 /* Joran — Oberfläche «basis». Grundlage der Oberfläche: Kurzformen aus dem Rechenkern, kleine Helfer, Speicher im Browser (Einstellungen, Markierungen, GitHub-Angaben), Gesamt-Rendern.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
-   basis, see, live, einstellungen, push, rueckblick, start. Aufbau und Regeln: ARCHITEKTUR.md */
+   basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
 const C = window.JoranCore;
 const {SPOTS, MODELS, DIRS, WINS, LEVELS, UPWIND, REGEL_E, DEF} = C;
