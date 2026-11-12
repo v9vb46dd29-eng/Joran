@@ -51,7 +51,7 @@ Jedes Silo hat denselben Rahmen aus fünf Zeilen. Er lädt die gebrauchten Silos
 | `einstellungen.js` | Einstellungsblatt | 19 |
 | `push.js` | Push für mehrere Nutzer, Verwaltung, GitHub-API | 159 |
 | `rueckblick.js` | Tage markieren, kalibrieren, Markierungen ablegen | 108 |
-| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht je Lage, Lage von heute, Wind von jetzt | 290 |
+| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht je Lage, Lage von heute, Wind von jetzt | 309 |
 | `start.js` | Daten holen, auffrischen, Bedienelemente verdrahten | 148 |
 
 Das sind klassische Skripte. Sie teilen sich ihre Namen und werden in dieser Reihenfolge geladen. Die Grenzen sind hier
