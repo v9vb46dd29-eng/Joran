@@ -155,7 +155,7 @@ function drawBase(){
   ctx.textBaseline = "middle"; ctx.textAlign = "center";
   const F = "-apple-system, BlinkMacSystemFont, system-ui, sans-serif";
   /* Namen nur, wo sie ganz ins Bild passen und weder ein Spot-Schild noch einen anderen Namen überdecken */
-  const used = badgePos().map(b=>[b.x-70, b.y-24, 140, 48]);
+  const used = badgePos().map(b=>[b.x-76, b.y-24, 152, 48]);
   LABELS.forEach(([n,lat,lon,zz,kind])=>{
     if(z<zz || (z===2 && kind==="peak")) return;
     const [x,y] = P([lat,lon]);
@@ -207,13 +207,15 @@ function dot(dir, kn){ return `<svg viewBox="-10 -10 20 20" aria-hidden="true"><
 function badgePos(){
   return C.LAKE.map(L=>{ let [x,y] = P(MARK[L.id]); if(x<0 || y<0 || x>W || y>Hh) return null;
     y += L.id==="vin" ? -24 : 24; x += L.id==="vin" ? -14 : 14;
-    return {L, x:Math.max(72, Math.min(W-72, x)), y:Math.max(24, Math.min(Hh-24, y))}; }).filter(Boolean);
+    return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(24, Math.min(Hh-24, y))}; }).filter(Boolean);
 }
 function badges(){
   const box = el.querySelector(".wbbadges"); let h = "";
   badgePos().forEach(({L, x, y})=>{
     const t = typ(L.id), n = jetzt(L.id); if(!t) return;
-    h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${dot(t.dir, t.kn)}<span><b>${L.name} ${t.m?"":"~"}${r0(t.kn)} kn</b><small>jetzt ${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</small></span></div>`;
+    /* gross der Wind von jetzt (Punkt und Pfeil dazu), klein der typische Wert der Lage */
+    const now = n ? dot(n.dir, n.mean) : `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`;
+    h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${now}<span><b>${L.name} ${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</b><small>typisch ${t.m?"":"~"}${r0(t.kn)} kn ${card(t.dir)}</small></span></div>`;
   });
   box.innerHTML = h;
 }
