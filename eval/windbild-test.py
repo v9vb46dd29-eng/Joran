@@ -100,12 +100,20 @@ with sync_playwright() as p:
        ['Signal Grenchen ohne Chasseral → Bise', {nc:sig('bise','Grenchen')}, 'bise',null,'Grenchen'],
        ['Signal ohne bekanntes System → weiter zur Prognose', {nc:sig(null,'Courtelary'), kammP:K(5,24)}, 'nord',null,'Prognose'],
        ['Signal mit System tl → weiter zur Prognose', {nc:sig('tl','Courtelary'), kammP:K(5,24)}, 'nord',null,'Prognose'],
-       // Messung zuletzt
+       // Messung auf dem Chasseral geht der Prognose vor (22.10.: gemessen Süd, Modell schwach aus Südwest)
+       ['Messung Chasseral S vor Prognose SW → Süd', {kammM:K(195,13), kammP:K(223,4.8), s:{top:{d:231,v:9.8}}}, 'sued',null,'Messung Chasseral'],
+       ['Messung Chasseral N vor Kammprognose O → Nordlage', {kammM:K(5,18), kammP:K(80,14)}, 'nord',null,'Messung Chasseral'],
+       ['Chasseral gemessen schwach → Prognose entscheidet', {kammM:K(195,6), kammP:K(250,14), mixP:true}, 'west','mix','Prognose, Wind auf dem Chasseral'],
+       ['Nordwest am See ohne Joran-Zeichen → kein Windbild', {s:{top:{d:310,v:9}}, monat:11}, null,null,'Prognose im Zeitfenster'],
+       ['Nordwest am See mit Joran-Zeichen → Joran', {s:{top:{d:310,v:9}}, monat:11, jc:jo}, 'joran','front','Prognose im Zeitfenster'],
+       // Seemessung zuletzt
        ['Messung Chasseral N, am See NO → Nordlage', {kammM:K(0,22), lake:lk(45,13)}, 'nord',null,'Messung Chasseral'],
+       ['Ältere Datei ohne Sektoren: Sektor am Boden', {kammM:K(0,22), s:{top:{d:60,v:9}}, _alt:true}, 'bise',null,'Prognose im Zeitfenster'],
        ['Seemessung West, Chasseral schwach', {kammM:K(250,5), lake:lk(250,9)}, 'west','mix','Seemessung Ipsach'],
        ['Seemessung zu schwach', {lake:lk(250,2)}, null,null,''],
        ['nichts', {}, null,null,''] ];
-      return T.map(([n,x,l,v,q])=>{ const r=WB.vorwahl(x); return [n, r.lage===l && r.vk===v && r.quelle.includes(q), JSON.stringify(r)]; }); }""")
+      const alt=[{id:'west',vars:[{key:'mix'}]},{id:'bise',vars:[{key:'mix'}]}];
+      return T.map(([n,x,l,v,q])=>{ const r=x._alt ? WB.vorwahl(x, alt, {}) : WB.vorwahl(x); return [n, r.lage===l && r.vk===v && r.quelle.includes(q), JSON.stringify(r)]; }); }""")
     for n,c,r in res: ok("Vorwahl: "+n, c, r)
     # Lage wählen, Variante, Ausschnitt, zurück
     pg.click(".wblagen button[data-t=joran]"); pg.wait_for_timeout(500)

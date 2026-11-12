@@ -8,8 +8,10 @@
    Stützpunkte oder die Vektorsumme zweier Varianten. Geschätzte Stützpunkte einer gerechneten Variante stehen dort als
    Faktor und Drehung zu einem gemessenen Bezug und wachsen so mit der Messung mit. Texte werden in der Vorlage gepflegt.
    Aufruf: node eval/windbild.cjs [--bis JJJJ-MM-TT] [--pruefen] [--trocken]
-     --pruefen   vergleicht je Chasseral-Sektor mit der Ausgabe von eval/schichten.cjs (Werte, Tage, kn, Anteil ab 12 kn)
-                 und prüft die geschriebene Datei; Fehlercode 1 bei Abweichung. Nur ohne --bis sinnvoll.
+     --pruefen   vergleicht je Chasseral-Sektor mit der Ausgabe von eval/schichten.cjs (Werte, Tage, kn, Anteil ab 12 kn),
+                 prüft die geschriebene Datei und spielt die Vorwahl der App (vorwahl in app/windbild.js) gegen das Archiv
+                 ab: Wählt sie aus der Messung die Lage, die die Daten der Zeile geben? Fehlercode 1 bei Abweichung.
+                 Nur ohne --bis sinnvoll.
      --trocken   schreibt nichts, zeigt nur die Tabelle
    Braucht den Branch «live» (git fetch origin live) und den Stationscache aus eval/measure.cjs. */
 "use strict";
@@ -41,7 +43,7 @@ for(const [t, c] of S.cha){
   const hr = C.localHour(dt); if(hr<8 || hr>=22) continue;
   const i = L.ips.get(t), v = L.vin.get(t), f = S.crm.get(t); if(!i || !v || !f) continue;
   const lapse = c.temp!=null && f.temp!=null ? (f.temp-c.temp)/1.163 : null; if(lapse==null) continue;
-  rows.push({day, cha:c, crm:f, gre:S.gre.get(t), coy:S.coy.get(t), neu:S.neu.get(t), ips:i, vin:v,
+  rows.push({t, day, cha:c, crm:f, gre:S.gre.get(t), coy:S.coy.get(t), neu:S.neu.get(t), ips:i, vin:v,
     kamm:c.mean<KAMM_MIN ? null : sec8(c.dir), schicht:lapse>=LAPSE ? "gemischt" : "stabil"});
 }
 if(!rows.length){ console.error("Keine Daten: zuerst git fetch origin live und node eval/measure.cjs --T 12 laufen lassen."); process.exit(1); }
@@ -64,7 +66,11 @@ function regel(V){
   const je = {}; all.forEach(r=>{ je[r.day] = (je[r.day]||0)+1; });
   const tage = Object.values(je).filter(n=>n>=TAG_WERTE).length, t = {}; MESS.forEach(id=>{ t[id] = typ(all, id); });
   const a = MESS.filter(id=>t[id]).map(id=>[id, t[id].dir, t[id].kn, 1]);
-  (V.schaetzung||[]).forEach(([p, ref, f, off])=>{ const r = t[ref]; if(r) a.push([p, Math.round(r.dir+off+360)%360, Math.round(Math.max(r.kn,0.5)*f*10)/10]); });
+  /* geschätzte Punkte: Faktor mal Bezug, höchstens so stark wie die stärkste Messung ihrer Höhenlage
+     (Bezug Chasseral: der Chasseral; sonst die stärkste Station unterhalb des Kamms) */
+  const unten = Math.max(...MESS.filter(id=>id!=="cha" && t[id]).map(id=>t[id].kn));
+  (V.schaetzung||[]).forEach(([p, ref, f, off])=>{ const r = t[ref]; if(!r) return;
+    a.push([p, Math.round(r.dir+off+360)%360, Math.round(Math.min(Math.max(r.kn,0.5)*f, ref==="cha" ? r.kn : unten)*10)/10]); });
   /* Anteil ab der Schwelle: Spanne über die Chasseral-Sektoren der Lage */
   const anteil = {}; SCHWELLEN.forEach(T=>{ anteil[T] = {}; SEE.forEach(id=>{ const p = groups.map(g=>share(g.a, id, T)); anteil[T][id] = [Math.min(...p), Math.max(...p)]; }); });
   return {status:tage>=MIN_TAGE ? "m" : "e", tage, werte:all.length, schicht:V.regel.schicht, anteil, a};
@@ -125,11 +131,33 @@ if(has("--pruefen")){
   ok("Stützpunkte plausibel (Richtung 0–359°, 0–60 kn)", vars.every(([,v])=>v.a.every(a=>a[1]>=0 && a[1]<360 && a[2]>=0 && a[2]<=60)));
   ok("Geschätztes ist nie als gemessen markiert: geschätzte Lagen ohne gemessene Seestation und ohne Anteil, gemessen nur an Stationen",
     vars.every(([,v])=>v.status!=="s" || (!v.anteil && v.a.every(a=>!a[3] || !SEE.includes(a[0])))) && vars.every(([,v])=>v.a.filter(a=>a[3]).every(a=>MESS.includes(a[0]))));
-  const hoch = vars.filter(([,v])=>v.werte).flatMap(([k,v])=>{ const mx = Math.max(...v.a.filter(a=>a[3]).map(a=>a[2])); return v.a.filter(a=>!a[3] && a[2]>mx+0.05).map(a=>`${k} ${a[0]} ${a[2]} > ${mx}`); });
-  ok("Kein geschätzter Stützpunkt liegt über dem stärksten gemessenen der Lage", hoch.length===0, hoch.join(", "));
+  /* geschätzte Punkte am See und im Flachland dürfen nicht über der stärksten Messung unterhalb des Jurakamms liegen;
+     Punkte mit Bezug Chasseral (Höhenlagen) nicht über dem Chasseral */
+  const bezug = {}; TPL.lagen.forEach(l=>l.vars.forEach(V=>(V.schaetzung||[]).forEach(z=>{ bezug[l.id+"."+V.key+"."+z[0]] = z[1]; })));
+  const hoch = vars.filter(([,v])=>v.werte).flatMap(([k,v])=>{ const m = id => (v.a.find(a=>a[0]===id)||[0,0,0])[2], unten = Math.max(...v.a.filter(a=>a[3] && a[0]!=="cha").map(a=>a[2]));
+    return v.a.filter(a=>!a[3]).filter(a=>a[2] > (bezug[k+"."+a[0]]==="cha" ? m("cha") : unten)+0.05).map(a=>`${k} ${a[0]} ${a[2]}`); });
+  ok("Kein geschätzter Stützpunkt liegt über der stärksten Messung seiner Höhenlage", hoch.length===0, hoch.join(", "));
   const sek = out.lagen.flatMap(l=>l.kamm);
   ok("Jeder Chasseral-Sektor gehört zu höchstens einer Lage, jede gerechnete Lage nennt ihre Sektoren", new Set(sek).size===sek.length && out.lagen.every(l=>l.kamm.length || !l.vars.some(v=>v.werte)), sek.join(", "));
   ok("Anteil fällt mit steigender Schwelle nicht", vars.filter(([,v])=>v.anteil).every(([,v])=>SEE.every(id=>SCHWELLEN.slice(1).every(T=>v.anteil[T][id][1]<=v.anteil[T-1][id][1] && v.anteil[T][id][0]<=v.anteil[T-1][id][0]))));
+  /* Vorwahl der App gegen das Archiv: Funktion aus app/windbild.js herauslösen (sie ist rein) und je Zeile so füttern, wie
+     heute() es mit Messwerten tut: Chasseral als Mittel der letzten drei Zehnminutenwerte, Seestationen als frische Werte.
+     Die Prognose fehlt im Archiv; sie kommt in der App erst zum Zug, wenn der Chasseral unter kammMin misst oder fehlt. */
+  const src = fs.readFileSync(path.join(ROOT, "app", "windbild.js"), "utf8");
+  const i0 = src.indexOf("/* ---------- Lage von heute ---------- */"), i1 = src.indexOf("function heute(){");
+  let app = null; try{ app = new Function("dirOf", "DATA", src.slice(i0, i1)+"; return {vorwahl, mittel};")(C.dirOf, out); }catch(e){ ok("vorwahl aus app/windbild.js gelesen", false, e.message); }
+  if(app){
+    const soll = r => { if(!r.kamm) return null; const l = out.lagen.find(z=>z.kamm.includes(r.kamm)); return l && l.vars.some(v=>v.werte) ? l.id : null; };
+    const hit = {}, all = {};
+    rows.forEach(r=>{ const want = soll(r); if(!want) return;
+      const letzte = [0,1,2].map(k=>S.cha.get(r.t-k*600e3)).filter(Boolean).map(c=>({kn:c.mean, dir:c.dir}));
+      const lake = C.LAKE.map(Lk=>({fresh:true, L:Lk, last:r[Lk.id]}));
+      const got = app.vorwahl({kammM:app.mittel(letzte), mixM:r.schicht==="gemischt", lake, monat:+r.day.slice(5,7)}, out.lagen, out.regeln);
+      all[want] = (all[want]||0)+1; if(got.lage===want) hit[want] = (hit[want]||0)+1; });
+    Object.keys(all).forEach(id=>{ const p = Math.round(100*(hit[id]||0)/all[id]);
+      ok(`Vorwahl aus der Messung trifft die Lage ${id} (${p} % von ${all[id]} Werten, verlangt 80 %)`, p>=80); });
+    ok("Vorwahl gegen das Archiv für West, Süd, Bise und Nordlage geprüft", ["west","sued","bise","nord"].every(id=>all[id]>0), Object.keys(all).join(", "));
+  }
   console.log(fail ? `\n${fail} Prüfung(en) nicht bestanden` : "\nWindbild stimmt mit eval/schichten.cjs überein");
   process.exitCode = fail ? 1 : 0;
 }

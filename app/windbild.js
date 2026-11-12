@@ -61,18 +61,22 @@ const BODEN = {w:"west", s:"sued", bise:"bise", n:"nord", joran:"joran"};
    x = {nc: Ergebnis von nowcast (nur im Zeitfenster übergeben), kammP: {kn, dir} Chasseral in der Prognose im Zeitfenster,
         kammM: {kn, dir} Chasseral jetzt gemessen, mixP / mixM: Luft durchmischt laut Prognose / Messung (true, false, null),
         s: Ergebnis von summarize für heute, lake: Ergebnis von lakeNow, jc: Ergebnis von joranCheck, monat: 1–12}
-   Reihenfolge der Quellen: Upwind-Signal, sonst Prognose, sonst Messung. */
+   Reihenfolge der Quellen: Upwind-Signal, Messung auf dem Chasseral, Prognose, Seemessung. Die Messung geht der Prognose vor:
+   ICON-CH2 sagt auf dem Chasseral im Mittel nur halb so viel Wind voraus, wie gemessen wird, und zeigt bei Süd Südwest.
+   eval/windbild.cjs --pruefen spielt diese Funktion gegen das Archiv ab. */
 function vorwahl(x, lagen, regeln){
   lagen = lagen || (DATA && DATA.lagen) || [];
   const R = Object.assign({kammMin:10}, regeln || (DATA && DATA.regeln) || {});
-  const stark = k => !!(k && k.dir!=null && k.kn>=R.kammMin);
+  /* ohne Sektoren in der Datei (ältere Fassung im Zwischenspeicher) zählt nur der Sektor am Boden */
+  const stark = k => !!(k && k.dir!=null && k.kn>=R.kammMin) && lagen.some(z=>(z.kamm||[]).length);
   const nc = x.nc, joranOk = !!(nc && nc.eOk) || !!(x.jc && x.jc.crestOk && (x.jc.dpOk || x.jc.bnOk));
   const ohne = (quelle, was) => ({lage:null, quelle, grund:`Heute ${was}: Dafür gibt es noch kein Windbild.`});
   const vonKamm = (k, quelle, mix) => { const sek = sec8(k.dir), l = lagen.find(z=>(z.kamm||[]).includes(sek));
     if(!l) return ohne(quelle, `${SEKNAME[sek]} auf dem Jura`);
     if(l.id==="joran" && !joranOk) return ohne(quelle, `${SEKNAME[sek]} auf dem Jura, ohne Zeichen für Joran`);
     return {lage:l.id, quelle, mix}; };
-  const vonBoden = (d, quelle, mix) => !d ? null : BODEN[d.id] ? {lage:BODEN[d.id], quelle, mix} : ohne(quelle, d.name);
+  const vonBoden = (d, quelle, mix) => !d ? null : !BODEN[d.id] ? ohne(quelle, d.name)
+    : BODEN[d.id]==="joran" && !joranOk ? ohne(quelle, "Nordwest am See, ohne Zeichen für Joran") : {lage:BODEN[d.id], quelle, mix};
   let r = null;
   if(nc && nc.eOk) r = {lage:"joran", quelle:"Upwind-Signal (Cressier)", mix:x.mixM};
   else if(nc && (nc.trusted||[]).length){
@@ -80,9 +84,9 @@ function vorwahl(x, lagen, regeln){
     if(stark(x.kammM)) r = vonKamm(x.kammM, q, x.mixM);
     else if(t.u && t.u.sys && BODEN[t.u.sys.id]) r = {lage:BODEN[t.u.sys.id], quelle:q, mix:x.mixM};
   }
+  if(!r && stark(x.kammM)) r = vonKamm(x.kammM, "Messung Chasseral", x.mixM);
   if(!r && stark(x.kammP)) r = vonKamm(x.kammP, "Prognose, Wind auf dem Chasseral", x.mixP);
   if(!r && x.s && x.s.top && x.s.top.d!=null && x.s.top.v>=3) r = vonBoden(dirOf(x.s.top.d), "Prognose im Zeitfenster", x.mixP);
-  if(!r && stark(x.kammM)) r = vonKamm(x.kammM, "Messung Chasseral", x.mixM);
   if(!r){
     const f = (x.lake||[]).filter(z=>z.fresh && z.last && z.last.dir!=null && z.last.mean>=3).sort((a,b)=>b.last.mean-a.last.mean)[0];
     if(f) r = vonBoden(dirOf(f.last.dir), `Seemessung ${f.L.name}`, x.mixM);
@@ -272,7 +276,7 @@ function panel(){
   const rows = C.LAKE.map(L=>{ const t = typ(L.id), n = jetzt(L.id);
     return `<tr><td><b>${L.name}</b></td><td class="n">${knTxt(t, t && !t.m)}</td><td class="n">${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</td>${Tk!=null?`<td class="n">${an(L.id)}</td>`:""}</tr>`; }).join("");
   const dat = d => d ? d.split("-").reverse().map(Number).join(".") : "";
-  const fuss = V.werte ? `Typisch: Median der Messwerte von 8 bis 22 Uhr, ${dat(DATA.von).replace(/\.\d{4}$/, ".")}–${dat(DATA.bis)}.`
+  const fuss = V.werte || V.anteil ? `Typisch: Median der Messwerte von 8 bis 22 Uhr, ${dat(DATA.von).replace(/\.\d{4}$/, ".")}–${dat(DATA.bis)}.`
     : V.status==="s" ? "Schätzung, von Hand gesetzt." : "Aus einzelnen Tagen, von Hand gesetzt.";
   const html = `<span class="wbstatus ${status[0]}">${status[1]}</span>
     <p><b>${esc(l.name)}${l.vars.length>1 ? ": "+esc(V.label) : ""}.</b> ${esc(V.text)}</p>
