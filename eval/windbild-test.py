@@ -65,7 +65,8 @@ with sync_playwright() as p:
     # A: West, hell
     b,pg,i,errs,tm=run(p,"west-hell","light",240,16,{"ips":(17,235),"vin":(8,240)}, kamm=(250,20))
     print(i["today"].replace("\n"," | ")); print(i["badges"].replace("\n"," | "))
-    ok("A Version v20", "v20" in i["ver"], i["ver"])
+    want="v"+re.search(r"app/windbild\.js\?v=(\d+)", open(os.path.join(ROOT,"index.html"),encoding="utf8").read()).group(1)
+    ok("A Kopfzeile zeigt die Version der Dateien ("+want+")", want in i["ver"], i["ver"])
     ok("A Vorwahl West aus der Prognose (Chasseral)", i["pressed"]==["west"] and "Prognose, Wind auf dem Chasseral" in i["today"], i)
     ok("A Wind von jetzt neben typisch", "17 kn SW" in i["panel"] and "8 kn WSW" in i["panel"] and "Ipsach 17 kn SW" in i["badges"] and re.search(r"typisch \d+ kn [NOSW]+", i["badges"]) is not None, i["panel"])
     ok("A Anteil für die eingestellte Schwelle (14 kn), ohne Hinweis auf eine andere", "Zeit ab 14 kn" in i["panel"] and re.search(r"\d+(–\d+)? %", i["panel"]) is not None and "erst für" not in i["panel"], i["panel"])
