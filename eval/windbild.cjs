@@ -21,7 +21,8 @@ const split = JSON.parse(fs.readFileSync(path.join(__dirname, "split.json"), "ut
 const bis = arg("--bis", split.devBis), VON = "2026-10-16";
 const OUT = path.join(ROOT, "data", "windbild.json"), TPL = JSON.parse(fs.readFileSync(path.join(__dirname, "windbild.vorlage.json"), "utf8"));
 const SCHWELLEN = []; for(let t=10; t<=30; t++) SCHWELLEN.push(t);
-const LAPSE = 4, KAMM_MIN = 10, MIN_WERTE = 12, MIN_TAGE = 4;      /* wie eval/schichten.cjs; ab MIN_TAGE Tagen gilt eine Lage als gemessen */
+const LAPSE = 4, KAMM_MIN = 10, MIN_WERTE = 12;                    /* wie eval/schichten.cjs */
+const MIN_TAGE = 4, TAG_WERTE = 6;                                 /* ein Tag zählt ab einer Stunde Messwerten in der Lage; ab MIN_TAGE Tagen gilt sie als gemessen */
 const LAND = ["cha","crm","gre","coy","neu"], SEE = C.LAKE.map(x=>x.id), MESS = LAND.concat(SEE);
 
 /* ---------- Daten: gleiche Auswahl wie eval/schichten.cjs ---------- */
@@ -60,12 +61,13 @@ function regel(V){
   groups.forEach(g=>sektoren.push({kamm:g.k, schicht:V.regel.schicht, n:g.a.length, tage:new Set(g.a.map(r=>r.day)).size,
     ips:med(g.a.map(r=>r.ips.mean)), ipsT:share(g.a,"ips",12), vin:med(g.a.map(r=>r.vin.mean)), vinT:share(g.a,"vin",12)}));
   const all = groups.flatMap(g=>g.a); if(!all.length) return null;
-  const tage = new Set(all.map(r=>r.day)).size, t = {}; MESS.forEach(id=>{ t[id] = typ(all, id); });
+  const je = {}; all.forEach(r=>{ je[r.day] = (je[r.day]||0)+1; });
+  const tage = Object.values(je).filter(n=>n>=TAG_WERTE).length, t = {}; MESS.forEach(id=>{ t[id] = typ(all, id); });
   const a = MESS.filter(id=>t[id]).map(id=>[id, t[id].dir, t[id].kn, 1]);
   (V.schaetzung||[]).forEach(([p, ref, f, off])=>{ const r = t[ref]; if(r) a.push([p, Math.round(r.dir+off+360)%360, Math.round(Math.max(r.kn,0.5)*f*10)/10]); });
   /* Anteil ab der Schwelle: Spanne über die Chasseral-Sektoren der Lage */
   const anteil = {}; SCHWELLEN.forEach(T=>{ anteil[T] = {}; SEE.forEach(id=>{ const p = groups.map(g=>share(g.a, id, T)); anteil[T][id] = [Math.min(...p), Math.max(...p)]; }); });
-  return {status:tage>=MIN_TAGE ? "m" : "e", tage, werte:all.length, anteil, a};
+  return {status:tage>=MIN_TAGE ? "m" : "e", tage, werte:all.length, schicht:V.regel.schicht, anteil, a};
 }
 function summe(x, y){
   const m = {}, add = ([p,d,s]) => { const r = d*Math.PI/180, o = m[p] || (m[p] = {u:0, v:0, n:0}); o.u += -s*Math.sin(r); o.v += -s*Math.cos(r); o.n++; };
@@ -75,17 +77,19 @@ function summe(x, y){
 const days = [...new Set(rows.map(r=>r.day))].sort();
 const out = {stand:C.localDay(0), von:days[0], bis:days[days.length-1], tage:days.length,
   quelle:"Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
-  format:"a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+  format:"kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+  regeln:{kammMin:KAMM_MIN, lapseMin:LAPSE, tagWerte:TAG_WERTE},
   lagen:[]};
 const done = {};
-TPL.lagen.forEach(l=>{ const Lg = {id:l.id, name:l.name, vars:[]};
+TPL.lagen.forEach(l=>{ const Lg = {id:l.id, name:l.name, kamm:l.kamm || [...new Set(l.vars.flatMap(V=>V.regel ? V.regel.kamm : []))], vars:[]};
   l.vars.forEach(V=>{ const o = {key:V.key}; if(V.label) o.label = V.label;
     let r = null;
     if(V.regel) r = regel(V);
     else if(V.fest) r = {status:V.status, tage:V.tage, a:V.a};
     else if(V.summe){ const [x, y] = V.summe.map(k=>done[k]); if(x && y) r = {status:"s", tage:0, a:summe(x.a, y.a)}; }
     if(!r){ console.log(`${l.id}.${V.key}: keine Daten, Variante fehlt in der Ausgabe`); return; }
-    Object.assign(o, {status:r.status, tage:r.tage, text:V.text}); if(r.anteil) o.anteil = r.anteil; o.a = r.a;
+    Object.assign(o, {status:r.status, tage:r.tage}); if(r.werte){ o.werte = r.werte; o.schicht = r.schicht; }
+    o.text = V.text; if(r.anteil) o.anteil = r.anteil; o.a = r.a;
     done[l.id+"."+V.key] = o; Lg.vars.push(o);
     const at = id => { const z = o.a.find(q=>q[0]===id); return z ? `${z[2].toFixed(1).padStart(5)} ${C.card(z[1]).padEnd(3)}` : "    –    "; };
     table.push(`${(l.id+"."+V.key).padEnd(15)} ${V.regel ? "gerechnet" : V.fest ? "fest     " : "Summe    "} ${r.status}  ${String(r.tage).padStart(3)}  ${String(r.werte||"").padStart(5)} | ${at("cha")} | ${at("crm")} | ${at("ips")} ${r.anteil ? (r.anteil[12].ips.join("–")+" %").padStart(9) : "         "} | ${at("vin")} ${r.anteil ? (r.anteil[12].vin.join("–")+" %").padStart(9) : ""}`); });
@@ -119,7 +123,12 @@ if(has("--pruefen")){
   ok("Jede Variante der Vorlage steht in der Ausgabe", vars.length===TPL.lagen.reduce((n,l)=>n+l.vars.length,0));
   ok("Jede Variante hat Stützpunkte für Vingelz und Ipsach", vars.every(([,v])=>SEE.every(id=>v.a.some(a=>a[0]===id))), vars.filter(([,v])=>!SEE.every(id=>v.a.some(a=>a[0]===id))).map(x=>x[0]).join(", "));
   ok("Stützpunkte plausibel (Richtung 0–359°, 0–60 kn)", vars.every(([,v])=>v.a.every(a=>a[1]>=0 && a[1]<360 && a[2]>=0 && a[2]<=60)));
-  ok("Geschätztes ist nie als gemessen markiert", vars.every(([,v])=>v.status!=="s" || v.a.every(a=>!a[3]) || !v.anteil) && vars.filter(([,v])=>v.anteil).every(([,v])=>v.a.filter(a=>a[3]).every(a=>MESS.includes(a[0]))));
+  ok("Geschätztes ist nie als gemessen markiert: geschätzte Lagen ohne gemessene Seestation und ohne Anteil, gemessen nur an Stationen",
+    vars.every(([,v])=>v.status!=="s" || (!v.anteil && v.a.every(a=>!a[3] || !SEE.includes(a[0])))) && vars.every(([,v])=>v.a.filter(a=>a[3]).every(a=>MESS.includes(a[0]))));
+  const hoch = vars.filter(([,v])=>v.werte).flatMap(([k,v])=>{ const mx = Math.max(...v.a.filter(a=>a[3]).map(a=>a[2])); return v.a.filter(a=>!a[3] && a[2]>mx+0.05).map(a=>`${k} ${a[0]} ${a[2]} > ${mx}`); });
+  ok("Kein geschätzter Stützpunkt liegt über dem stärksten gemessenen der Lage", hoch.length===0, hoch.join(", "));
+  const sek = out.lagen.flatMap(l=>l.kamm);
+  ok("Jeder Chasseral-Sektor gehört zu höchstens einer Lage, jede gerechnete Lage nennt ihre Sektoren", new Set(sek).size===sek.length && out.lagen.every(l=>l.kamm.length || !l.vars.some(v=>v.werte)), sek.join(", "));
   ok("Anteil fällt mit steigender Schwelle nicht", vars.filter(([,v])=>v.anteil).every(([,v])=>SEE.every(id=>SCHWELLEN.slice(1).every(T=>v.anteil[T][id][1]<=v.anteil[T-1][id][1] && v.anteil[T][id][0]<=v.anteil[T-1][id][0]))));
   console.log(fail ? `\n${fail} Prüfung(en) nicht bestanden` : "\nWindbild stimmt mit eval/schichten.cjs überein");
   process.exitCode = fail ? 1 : 0;

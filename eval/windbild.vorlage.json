@@ -1,5 +1,5 @@
 {
- "hinweis": "Vorlage für eval/windbild.cjs. regel = gerechnet aus dem Archiv (Lage nach Chasseral, Schichtung Cressier–Chasseral). schaetzung = [Ort, Bezug, Faktor zur Stärke des Bezugs, Grad zur Richtung des Bezugs]: wächst mit der Messung mit. fest = von Hand gesetzte Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen], bis eine Regel sie ablöst. summe = Vektorsumme zweier Varianten. Texte hier pflegen.",
+ "hinweis": "Vorlage für eval/windbild.cjs. regel = gerechnet aus dem Archiv (Lage nach Chasseral, Schichtung Cressier–Chasseral). schaetzung = [Ort, Bezug, Faktor zur Stärke des Bezugs, Grad zur Richtung des Bezugs]: wächst mit der Messung mit. kamm (je Lage) = Sektoren auf dem Chasseral, bei denen die App die Lage vorwählt, wenn keine Regel sie nennt. fest = von Hand gesetzte Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen], bis eine Regel sie ablöst. summe = Vektorsumme zweier Varianten. Texte hier pflegen.",
  "lagen": [
   {
    "id": "west",
@@ -63,18 +63,19 @@
    "vars": [
     {
      "key": "mix",
-     "text": "Nordwind auf dem Jura, am Jurasüdfuss fast still. In die Bucht kommt trotzdem Wind, vermutlich durchs Taubenloch.",
+     "text": "Nordwind auf dem Jura, am Jurasüdfuss weht wenig. In die Bucht kommt trotzdem Wind aus Nordost, vermutlich durchs Taubenloch.",
      "regel": {
       "kamm": ["N"],
       "schicht": "gemischt"
      },
-     "schaetzung": [["son","cha",0.4,-20],["pery","cha",0.36,-90],["frin","cha",0.44,-20],["tlx","cha",0.48,10],["biel","ips",0.85,3],["nid","ips",0.85,3],["bayN","ips",0.85,6],["bay","ips",0.85,8],["sutz","ips",0.69,3],["split","vin",1.17,-10],["alf","vin",0.83,-10],["tus","vin",0.67,-10],["twa","ips",0.31,8],["lig","ips",0.23,-2],["neuv","ips",0.23,-12],["mor","ips",0.54,3],["mag","cha",0.24,-10],["twb","cha",0.2,-10],["pla","cha",0.32,-10],["val","cha",0.24,70],["seel","crm",2.5,5],["erl","crm",1.5,0],["lus","ips",0.23,-2],["hag","crm",2,20]]
+     "schaetzung": [["son","cha",0.4,-20],["pery","cha",0.36,-90],["frin","cha",0.44,-20],["tlx","cha",0.48,10],["biel","ips",0.85,3],["nid","ips",0.85,3],["bayN","ips",0.85,6],["bay","ips",0.85,8],["sutz","ips",0.69,3],["split","vin",1.17,-10],["alf","vin",0.83,-10],["tus","vin",0.67,-10],["twa","ips",0.31,8],["lig","ips",0.23,-2],["neuv","ips",0.23,-12],["mor","ips",0.54,3],["mag","cha",0.24,-10],["twb","cha",0.2,-10],["pla","cha",0.32,-10],["val","cha",0.24,70],["seel","ips",0.38,3],["erl","ips",0.23,-2],["lus","ips",0.23,-2],["hag","ips",0.31,18]]
     }
    ]
   },
   {
    "id": "joran",
    "name": "Joran",
+   "kamm": ["NW"],
    "vars": [
     {
      "key": "abend",

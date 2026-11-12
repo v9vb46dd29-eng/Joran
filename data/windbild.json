@@ -4,17 +4,28 @@
  "bis": "2026-11-05",
  "tage": 21,
  "quelle": "Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
- "format": "a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+ "format": "kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+ "regeln": {
+  "kammMin": 10,
+  "lapseMin": 4,
+  "tagWerte": 6
+ },
  "lagen": [
   {
    "id": "west",
    "name": "West/Südwest",
+   "kamm": [
+    "SW",
+    "W"
+   ],
    "vars": [
     {
      "key": "mix",
      "label": "Durchmischt",
      "status": "m",
      "tage": 6,
+     "werte": 245,
+     "schicht": "gemischt",
      "text": "Der Wind folgt dem See nach Nordosten. Ipsach bekommt ihn voll, Vingelz liegt im Windschatten des Jurahangs.",
      "anteil": {
       "10": {"vin":[24,62],"ips":[76,88]},
@@ -44,8 +55,10 @@
     {
      "key": "stab",
      "label": "Inversion",
-     "status": "m",
-     "tage": 4,
+     "status": "e",
+     "tage": 2,
+     "werte": 113,
+     "schicht": "stabil",
      "text": "Auf dem Jura weht es, am See fast nichts. Der Wind bleibt über der kalten Luft am Boden.",
      "anteil": {
       "10": {"vin":[0,0],"ips":[0,0]},
@@ -77,11 +90,16 @@
   {
    "id": "sued",
    "name": "Süd",
+   "kamm": [
+    "S"
+   ],
    "vars": [
     {
      "key": "mix",
-     "status": "m",
-     "tage": 4,
+     "status": "e",
+     "tage": 3,
+     "werte": 86,
+     "schicht": "gemischt",
      "text": "Der Südwind dreht am See auf Südwest. Ipsach liegt vorne, Vingelz bekommt mehr ab als bei West.",
      "anteil": {
       "10": {"vin":[64,64],"ips":[69,69]},
@@ -113,11 +131,17 @@
   {
    "id": "bise",
    "name": "Bise",
+   "kamm": [
+    "O",
+    "NO"
+   ],
    "vars": [
     {
      "key": "mix",
      "status": "m",
-     "tage": 9,
+     "tage": 8,
+     "werte": 396,
+     "schicht": "gemischt",
      "text": "Die Bise zieht dem Jurasüdfuss entlang auf den See. Zum Foilen ist sie oft knapp zu schwach.",
      "anteil": {
       "10": {"vin":[25,38],"ips":[17,20]},
@@ -149,12 +173,17 @@
   {
    "id": "nord",
    "name": "Nordlage",
+   "kamm": [
+    "N"
+   ],
    "vars": [
     {
      "key": "mix",
      "status": "e",
-     "tage": 3,
-     "text": "Nordwind auf dem Jura, am Jurasüdfuss fast still. In die Bucht kommt trotzdem Wind, vermutlich durchs Taubenloch.",
+     "tage": 2,
+     "werte": 52,
+     "schicht": "gemischt",
+     "text": "Nordwind auf dem Jura, am Jurasüdfuss weht wenig. In die Bucht kommt trotzdem Wind aus Nordost, vermutlich durchs Taubenloch.",
      "anteil": {
       "10": {"vin":[2,2],"ips":[44,44]},
       "11": {"vin":[0,0],"ips":[44,44]},
@@ -178,13 +207,16 @@
       "29": {"vin":[0,0],"ips":[0,0]},
       "30": {"vin":[0,0],"ips":[0,0]}
      },
-     "a": [["cha",6,24.5,1],["crm",60,4.6,1],["gre",96,4.3,1],["coy",105,6.2,1],["neu",59,2.7,1],["vin",65,6.4,1],["ips",39,7.8,1],["son",346,9.8],["pery",276,8.8],["frin",346,10.8],["tlx",16,11.8],["biel",42,6.6],["nid",42,6.6],["bayN",45,6.6],["bay",47,6.6],["sutz",42,5.4],["split",55,7.5],["alf",55,5.3],["tus",55,4.3],["twa",47,2.4],["lig",37,1.8],["neuv",27,1.8],["mor",42,4.2],["mag",356,5.9],["twb",356,4.9],["pla",356,7.8],["val",76,5.9],["seel",65,11.5],["erl",60,6.9],["lus",37,1.8],["hag",80,9.2]]
+     "a": [["cha",6,24.5,1],["crm",60,4.6,1],["gre",96,4.3,1],["coy",105,6.2,1],["neu",59,2.7,1],["vin",65,6.4,1],["ips",39,7.8,1],["son",346,9.8],["pery",276,8.8],["frin",346,10.8],["tlx",16,11.8],["biel",42,6.6],["nid",42,6.6],["bayN",45,6.6],["bay",47,6.6],["sutz",42,5.4],["split",55,7.5],["alf",55,5.3],["tus",55,4.3],["twa",47,2.4],["lig",37,1.8],["neuv",27,1.8],["mor",42,4.2],["mag",356,5.9],["twb",356,4.9],["pla",356,7.8],["val",76,5.9],["seel",42,3],["erl",37,1.8],["lus",37,1.8],["hag",57,2.4]]
     }
    ]
   },
   {
    "id": "joran",
    "name": "Joran",
+   "kamm": [
+    "NW"
+   ],
    "vars": [
     {
      "key": "abend",
@@ -207,6 +239,7 @@
   {
    "id": "thermik",
    "name": "Thermik",
+   "kamm": [],
    "vars": [
     {
      "key": "tag",
