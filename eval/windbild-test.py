@@ -115,6 +115,21 @@ with sync_playwright() as p:
       const alt=[{id:'west',vars:[{key:'mix'}]},{id:'bise',vars:[{key:'mix'}]}];
       return T.map(([n,x,l,v,q])=>{ const r=x._alt ? WB.vorwahl(x, alt, {}) : WB.vorwahl(x); return [n, r.lage===l && r.vk===v && r.quelle.includes(q), JSON.stringify(r)]; }); }""")
     for n,c,r in res: ok("Vorwahl: "+n, c, r)
+    # Messung heisst «jetzt», Prognose «heute»; ohne Chasseral ist die Wahl als unsicher gekennzeichnet
+    res=pg.evaluate("""()=>{ const K=(dir,kn)=>({dir,kn}), lk=(d,kn)=>[{fresh:true,L:{name:'Ipsach'},last:{dir:d,mean:kn}}];
+      const sig=(id,n)=>({eOk:false,trusted:[{up:{name:n},u:{sys:{id}}}]});
+      const T=[
+       ['Messung Chasseral → jetzt, sicher', {kammM:K(195,13), kammFehlt:false}, 'messung', false],
+       ['Prognose bei schwachem Chasseral → heute, sicher', {kammM:K(195,6), kammP:K(250,14), kammFehlt:false}, 'prognose', false],
+       ['Prognose ohne Chasseral → heute, unsicher', {kammP:K(223,14), kammFehlt:true}, 'prognose', true],
+       ['Seeprognose ohne Chasseral → heute, unsicher', {s:{top:{d:231,v:9.8}}, kammFehlt:true}, 'prognose', true],
+       ['Seemessung ohne Chasseral → jetzt, unsicher', {lake:lk(250,9), kammFehlt:true}, 'messung', true],
+       ['Signal Grenchen ohne Chasseral → jetzt, unsicher', {nc:sig('bise','Grenchen'), kammFehlt:true}, 'messung', true],
+       ['Signal Grenchen mit Chasseral → jetzt, sicher, Quelle nennt die Messung', {nc:sig('bise','Grenchen'), kammM:K(10,25), kammFehlt:false}, 'messung', false],
+       ['Regel E ohne Chasseral → jetzt, sicher', {nc:{eOk:true,trusted:[]}, monat:7, kammFehlt:true}, 'messung', false],
+       ['Kein Windbild ohne Chasseral → unsicher', {s:{top:{d:135,v:9}}, kammFehlt:true}, 'prognose', true] ];
+      return T.map(([n,x,a,u])=>{ const r=WB.vorwahl(x); return [n, r.art===a && r.unsicher===u && (!n.includes('Quelle nennt') || r.quelle.startsWith('Messung Chasseral')), JSON.stringify(r)]; }); }""")
+    for n,c,r in res: ok("Vorwahl: "+n, c, r)
     # Lage wählen, Variante, Ausschnitt, zurück
     pg.click(".wblagen button[data-t=joran]"); pg.wait_for_timeout(500)
     j=pg.evaluate("()=>({est:!document.querySelector('.wbest').hidden, vars:document.querySelector('.wbvars').innerText, panel:document.querySelector('.wbpanel').innerText, back:!!document.querySelector('.wbback')})")

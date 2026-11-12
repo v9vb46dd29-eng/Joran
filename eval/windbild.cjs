@@ -157,6 +157,21 @@ if(has("--pruefen")){
     Object.keys(all).forEach(id=>{ const p = Math.round(100*(hit[id]||0)/all[id]);
       ok(`Vorwahl aus der Messung trifft die Lage ${id} (${p} % von ${all[id]} Werten, verlangt 80 %)`, p>=80); });
     ok("Vorwahl gegen das Archiv für West, Süd, Bise und Nordlage geprüft", ["west","sued","bise","nord"].every(id=>all[id]>0), Object.keys(all).join(", "));
+    /* Vorbehalt: Eingabe und Soll stammen aus derselben Messung auf dem Chasseral. Die Quoten oben zeigen, was Mittelung und
+       Sektorgrenzen kosten, nicht, ob die Lage bis zum Abend hält. Signal, Prognose und Joran-Zeichen fehlen im Archiv.
+       Fall ohne Chasseral (Station fällt aus): Es bleibt nur die Seemessung. Verlangt ist, dass die App jede solche Wahl
+       als unsicher kennzeichnet; die Trefferquote steht zur Information da. */
+    const hitO = {}, allO = {}; let offen = 0, messung = 0, n = 0;
+    rows.forEach(r=>{ const want = soll(r); if(!want) return; n++;
+      const lake = C.LAKE.map(Lk=>({fresh:true, L:Lk, last:r[Lk.id]}));
+      const got = app.vorwahl({kammFehlt:true, mixM:null, lake, monat:+r.day.slice(5,7)}, out.lagen, out.regeln);
+      if((got.lage || got.quelle) && !got.unsicher) offen++;
+      const mit = app.vorwahl({kammM:{kn:r.cha.mean, dir:r.cha.dir}, kammFehlt:false, lake, monat:+r.day.slice(5,7)}, out.lagen, out.regeln);
+      if(mit.art==="messung" && !mit.unsicher) messung++;
+      allO[want] = (allO[want]||0)+1; if(got.lage===want) hitO[want] = (hitO[want]||0)+1; });
+    ok(`Ohne Chasseral ist jede Vorwahl als unsicher gekennzeichnet (${n} Werte)`, offen===0, `${offen} ohne Kennzeichen`);
+    ok("Mit Chasseral gilt die Vorwahl als Messung von jetzt und nicht als unsicher", messung===n, `${messung} von ${n}`);
+    console.log("     ohne Chasseral, nur Seemessung: " + Object.keys(allO).map(id=>`${id} ${Math.round(100*(hitO[id]||0)/allO[id])} %`).join(", ") + " (Information, keine Vorgabe)");
   }
   console.log(fail ? `\n${fail} Prüfung(en) nicht bestanden` : "\nWindbild stimmt mit eval/schichten.cjs überein");
   process.exitCode = fail ? 1 : 0;
