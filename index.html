@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Joran · Wingfoil Bielersee</title>
-<link rel="stylesheet" href="app/app.css?v=21">
+<link rel="stylesheet" href="app/app.css?v=22">
 </head>
 <body>
 
@@ -29,7 +29,7 @@
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v21</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v22</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -93,7 +93,7 @@
 <p><b>Höhenwind.</b> Wind auf rund 1500 m (ICON-EU). Er kommt nur bis auf den See, wenn die Luft durchmischt ist. Ist sie stabil geschichtet, bleibt er oben. Vorerst ein Hinweis, er ändert die Bewertung nicht.</p>
 <p><b>Joran.</b> Der Front-Joran kommt mit einer Kaltfront von Westen, zu jeder Jahreszeit. Der Abend-Joran entsteht nach warmen, ruhigen Tagen von Mai bis August. Zwei Zeichen sprechen für Joran: Nordwestwind auf dem Chasseral und steigender Druck über dem Jura. Am See teilt sich der Joran oft: Ipsach hat Wind, Vingelz liegt im Windschatten.</p>
 <p><b>Nordlage und Taubenlöchler.</b> Bei Nordwind auf dem Jura kommt Wind aus Nord bis Nordost in die Bucht, vermutlich durchs Taubenloch. Am Jurasüdfuss bleibt es dabei oft still. Die Station Courtelary gibt ein Zeichen dafür. Wie verlässlich es ist, wird noch geprüft.</p>
-<p><b>Windbild.</b> Die Karte zeigt, wie der Wind bei einer Lage typischerweise über See und Bucht weht. Welche Lage heute gilt, bestimmt der Wind auf dem Chasseral: Am See kommt er oft gedreht an. Gemessen ist er nur an den Stationen, dazwischen ist die Fläche geschätzt. Lagen ohne Messung sind als «geschätzt» markiert. Die Zahlen kommen aus der Seemessung und werden bei jeder Modellprüfung neu gerechnet.</p>
+<p><b>Windbild.</b> Die Karte zeigt, wie der Wind bei einer Lage typischerweise über See und Bucht weht. Welche Lage heute gilt, bestimmt der Wind auf dem Chasseral, zuerst die Messung, dann die Prognose: Am See kommt er oft gedreht an. Gemessen ist er nur an den Stationen, dazwischen ist die Fläche geschätzt. Lagen ohne Messung sind als «geschätzt» markiert. Die Zahlen kommen aus der Seemessung und werden bei jeder Modellprüfung neu gerechnet.</p>
 <p><b>Sturm.</b> Über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) oder bei einer Böenfront warnt Joran, auch wenn sonst alles passt.</p>
 <p><b>Push.</b> Zwischen 6 und 21 Uhr prüft ein Programm auf GitHub alle 10 Minuten dieselben Regeln mit deinen Einstellungen und schickt die Nachricht über ntfy.</p>
 <p><b>Wie gut ist das?</b> Die Seemessung wird jeden Tag gespeichert und mit Prognose und Signalen verglichen. Dabei gilt: lieber ein Fehlalarm als ein verpasster Abend. Ein genaueres Modell mit eigenen Schwellen je Station und Windlage und mit Höhenwind ist vorbereitet, aber noch nicht aktiv. Es braucht mehr Windtage. Details stehen im Repo unter <code>eval/METHODE.md</code> und <code>eval/ITERATIONEN.md</code>.</p>
@@ -107,23 +107,23 @@
 
 <!-- Rechenkern: Silos in der Reihenfolge ihrer Abhängigkeit, dann die Fassade. Oberfläche: Reihenfolge wie aufgeführt.
      Bei jeder Änderung die Version an allen Dateien und in der Kopfzeile gleich hochzählen (node eval/aufbau.cjs prüft das). -->
-<script src="core/konstanten.js?v=21"></script>
-<script src="core/helfer.js?v=21"></script>
-<script src="core/modell.js?v=21"></script>
-<script src="core/see.js?v=21"></script>
-<script src="core/prognose.js?v=21"></script>
-<script src="core/messung.js?v=21"></script>
-<script src="core/kalibrierung.js?v=21"></script>
-<script src="core/daten.js?v=21"></script>
-<script src="core/einstellungen.js?v=21"></script>
-<script src="core.js?v=21"></script>
-<script src="app/basis.js?v=21"></script>
-<script src="app/see.js?v=21"></script>
-<script src="app/live.js?v=21"></script>
-<script src="app/einstellungen.js?v=21"></script>
-<script src="app/push.js?v=21"></script>
-<script src="app/rueckblick.js?v=21"></script>
-<script src="app/windbild.js?v=21"></script>
-<script src="app/start.js?v=21"></script>
+<script src="core/konstanten.js?v=22"></script>
+<script src="core/helfer.js?v=22"></script>
+<script src="core/modell.js?v=22"></script>
+<script src="core/see.js?v=22"></script>
+<script src="core/prognose.js?v=22"></script>
+<script src="core/messung.js?v=22"></script>
+<script src="core/kalibrierung.js?v=22"></script>
+<script src="core/daten.js?v=22"></script>
+<script src="core/einstellungen.js?v=22"></script>
+<script src="core.js?v=22"></script>
+<script src="app/basis.js?v=22"></script>
+<script src="app/see.js?v=22"></script>
+<script src="app/live.js?v=22"></script>
+<script src="app/einstellungen.js?v=22"></script>
+<script src="app/push.js?v=22"></script>
+<script src="app/rueckblick.js?v=22"></script>
+<script src="app/windbild.js?v=22"></script>
+<script src="app/start.js?v=22"></script>
 </body>
 </html>
