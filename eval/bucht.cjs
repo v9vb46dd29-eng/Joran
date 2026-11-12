@@ -2,7 +2,7 @@
 /* Joran — Wind in der Bieler Bucht: Hypothesen von Simon (12.11.2026) prüfen. Auswertung, kein Modell.
    Aufruf: node eval/bucht.cjs [--bis JJJJ-MM-TT]   Standard: nur Entwicklungstage aus eval/split.json.
    Braucht den Branch «live» (Seearchiv) und den Stationscache aus eval/measure.cjs (crm, cha, coy, gre, neu).
-   Hypothesen H-B1 bis H-B7 und Prüffragen: eval/IDEEN.md, Abschnitt «Bieler Bucht». */
+   Hypothesen H-B1 bis H-B8 und Prüffragen: eval/IDEEN.md, Abschnitt «Bieler Bucht». */
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), C = require(path.join(ROOT, "core.js")), M = require("./measure.cjs");
