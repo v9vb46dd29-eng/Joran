@@ -51,7 +51,7 @@ Jedes Silo hat denselben Rahmen aus fünf Zeilen. Er lädt die gebrauchten Silos
 | `einstellungen.js` | Einstellungsblatt | 19 |
 | `push.js` | Push für mehrere Nutzer, Verwaltung, GitHub-API | 159 |
 | `rueckblick.js` | Tage markieren, kalibrieren, Markierungen ablegen | 108 |
-| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht je Lage, Lage von heute, Wind von jetzt | 309 |
+| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht je Lage, Lage von heute, Wind von jetzt | 311 |
 | `start.js` | Daten holen, auffrischen, Bedienelemente verdrahten | 148 |
 
 Das sind klassische Skripte. Sie teilen sich ihre Namen und werden in dieser Reihenfolge geladen. Die Grenzen sind hier
@@ -84,7 +84,8 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 | Text oder Anzeige der Hauptansicht | `app/live.js` |
 | Rückblick, Markierungen | `app/rueckblick.js` |
 | Windbild: Karte, Vorwahl der Lage, Texte der Sektion | `app/windbild.js` |
-| Windbild: Zahlen und Stützpunkte je Lage | `data/windbild.json` (ab Phase 3 aus `eval/windbild.cjs`) |
+| Windbild: Zahlen und Stützpunkte je Lage | nie von Hand: `node eval/windbild.cjs` schreibt `data/windbild.json` |
+| Windbild: Texte, geschätzte Lagen, Faktoren der geschätzten Stützpunkte | `eval/windbild.vorlage.json` |
 | Farben, Abstände | `app/app.css` |
 | Wann welcher Push kommt | `push/check.cjs` |
 
@@ -99,6 +100,8 @@ Zeile in der Fassade und ein `<script>` in `index.html`.
 | `node eval/selftest.cjs` | Modell und Messskript mit künstlichen Daten | immer |
 | `node eval/gleich.cjs` | rechnet der Kern wie `origin/main`? Quelltext und rund 390'000 Ergebnisse auf echten Daten | bei Umbauten, die nichts ändern sollen |
 | `node eval/measure.cjs --T 12` | Recall, FPR, Vorlauf gegen die Baseline | bei Modelländerungen, mit Reviewer |
+| `node eval/windbild.cjs --pruefen` | `data/windbild.json` neu rechnen, Abgleich mit `eval/schichten.cjs` | bei jeder Modellprüfung und nach Änderungen an Skript oder Vorlage |
+| `python3 eval/windbild-test.py` | Sektion «Windbild» im Browser (390×844, hell und dunkel, künstliche Daten) | bei Änderungen an `app/windbild.js`; braucht Python-Playwright und Chrome |
 
 Ändert sich der Quelltext eines öffentlichen Namens mit Absicht, nennt man ihn: `node eval/gleich.cjs --erlaubt nowcast`.
 Rechnet er auch anders, meldet die Prüfung das weiterhin, und alles andere muss gleich bleiben. Ihre Grenzen stehen im

@@ -238,7 +238,7 @@ function panel(){
     <p><b>${esc(l.name)}${l.vars.length>1 ? ": "+esc(V.label) : ""}.</b> ${esc(V.text)}</p>
     <div class="tw"><table><tr><th>Spot</th><th class="n">typisch</th><th class="n">jetzt</th>${Tk!=null?`<th class="n">Zeit ab ${Tk} kn</th>`:""}</tr>${rows}</table></div>
     <p>${besser()}</p>
-    <small>${Tk!=null && Tk!==S.T ? `Der Anteil ist erst für ${Tk} kn gerechnet, nicht für deine ${S.T} kn. ` : ""}Typisch: Mittel bei dieser Lage. Stand ${esc(DATA.stand.split("-").reverse().join("."))}.</small>`;
+    <small>${Tk!=null && Tk!==S.T ? `Der Anteil ist erst für ${Tk} kn gerechnet, nicht für deine ${S.T} kn. ` : ""}Typisch: mittlerer Wert von 8 bis 22 Uhr. Stand ${esc(DATA.stand.split("-").reverse().join("."))}.</small>`;
 }
 function head(){
   const h = HEUTE, hl = h.lage ? DATA.lagen.find(l=>l.id===h.lage) : null;
