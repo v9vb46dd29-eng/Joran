@@ -66,6 +66,7 @@ jobs:
         # Ein einzelner Commit im Branch «live», jedes Mal ersetzt — keine Commit-Flut in main.
         # Der Commit enthält lake.json und den Ordner archive (neu nachgeführt oder unverändert übernommen).
         if: always() && (github.event_name == 'schedule' || format('{0}', inputs.test) != 'true')
+        timeout-minutes: 2
         run: |
           f="$RUNNER_TEMP/lake.json"
           [ -s "$f" ] || exit 0
@@ -80,9 +81,11 @@ jobs:
           blob=$(git hash-object -w "$f")
           tree=$( { [ -n "$arch" ] && printf "040000 tree %s\tarchive\n" "$arch"; printf "100644 blob %s\tlake.json\n" "$blob"; } | git mktree)
           commit=$(git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit-tree "$tree" -m "Joran: Messreihe Seestationen")
-          # GitHub lehnt Pushes vereinzelt ohne Grund ab («remote rejected … (failed)») — darum bis zu drei Versuche.
-          for i in 1 2 3; do
+          # GitHub lehnt Pushes vereinzelt ab («remote rejected … (Internal Server Error)»), oft für einige Sekunden.
+          # Darum vier Versuche mit wachsender Pause. Klappt keiner, nur eine Warnung: Der nächste Lauf holt die
+          # Messreihe aus «live» und meteoBase neu und veröffentlicht sie vollständig, es geht nichts verloren.
+          for w in 5 15 30 0; do
             git push -q --force-with-lease="refs/heads/live:$base" origin "$commit:refs/heads/live" && exit 0
-            sleep 5
+            sleep $w
           done
-          exit 1
+          echo "::warning::Messreihe nicht veröffentlicht (GitHub lehnt den Push ab). Der nächste Lauf holt das nach."
