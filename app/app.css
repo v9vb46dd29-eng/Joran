@@ -213,3 +213,47 @@ ol.steps{padding-left:20px;margin:6px 0}
 ol.steps li{margin:3px 0}
 @media (max-width:420px){ .days .kn{font-size:19px} .lk .lv{font-size:34px} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Windbild: Karte der Bieler Bucht je Lage */
+.wb .skel{background:var(--card);border-radius:var(--r);padding:14px 16px;color:var(--muted);font-size:15px}
+.wbtoday{font-size:15px;margin:0 4px 8px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-height:24px}
+.wbtoday .btn2{padding:6px 12px;min-height:44px;margin-left:auto}
+.wblagen{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.wblagen::-webkit-scrollbar{display:none}
+.wblagen .chip{flex:0 0 auto;min-height:44px;background:var(--card);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.wblagen .chip.today::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--orange);flex:none}
+.wbbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin:4px 0 8px}
+.wbseg{display:inline-flex;background:var(--fill);border-radius:10px;padding:2px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.wbseg[hidden]{display:none}
+.wbseg::-webkit-scrollbar{display:none}
+.wbseg button{border:0;background:none;min-height:40px;padding:0 12px;border-radius:8px;font-size:14px;white-space:nowrap;cursor:pointer;position:relative}
+.wbseg button::after{content:"";position:absolute;inset:-2px 0}
+.wbseg button[aria-pressed=true]{background:var(--card);font-weight:600;box-shadow:0 1px 3px #0002}
+.wbseg button i{font-style:normal;font-size:11px;color:var(--muted);font-weight:400}
+.wbviews{margin-left:auto}
+.wbmap{position:relative;width:100%;aspect-ratio:5/4;border-radius:var(--r);overflow:hidden;background:var(--card);touch-action:manipulation}
+@media (max-width:520px){.wbmap{aspect-ratio:1/1}}
+.wbmap canvas{position:absolute;inset:0;width:100%;height:100%}
+.wbbadge{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--card) 92%,transparent);
+  color:var(--ink);border:.5px solid var(--sep);border-radius:14px;padding:3px 10px 3px 5px;white-space:nowrap;pointer-events:none;box-shadow:0 1px 4px #0003}
+.wbbadge svg{width:20px;height:20px;flex:none}
+.wbbadge b{display:block;font-size:13px;font-weight:600;line-height:1.15}
+.wbbadge small{display:block;font-size:11px;line-height:1.15;color:var(--ink2)}
+.wbtip{position:absolute;pointer-events:none;background:var(--card);color:var(--ink);border-radius:8px;padding:4px 9px;font-size:13px;
+  transform:translate(-50%,calc(-100% - 10px));white-space:nowrap;display:none;box-shadow:0 1px 6px #0004}
+.wbnote{position:absolute;left:8px;bottom:6px;font-size:11px;padding:1px 6px;border-radius:6px;background:color-mix(in srgb,var(--card) 80%,transparent);color:var(--ink);pointer-events:none}
+.wbest{position:absolute;right:8px;top:8px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:10px;background:var(--orange);color:#000;pointer-events:none}
+.wbest[hidden]{display:none}
+.wbleg{display:flex;align-items:center;gap:10px;margin:8px 4px 0;font-size:12px;color:var(--muted)}
+.wbscale{position:relative;flex:1;height:26px}
+.wbramp{height:9px;border-radius:5px}
+.wbticks{position:relative;height:14px}
+.wbticks span{position:absolute;transform:translateX(-50%);top:2px}
+.wbticks span:first-child{transform:none}
+.wbticks span:last-child{transform:translateX(-100%)}
+.wbthr{position:absolute;top:-3px;width:2px;height:15px;background:var(--ink)}
+.wbpanel p{margin:.5em 0}
+.wbpanel small{display:block;margin-top:6px;font-size:12px}
+.wbstatus{display:inline-block;font-size:12px;font-weight:600;border-radius:10px;padding:3px 10px}
+.wbstatus.m{background:color-mix(in srgb,var(--jura) 18%,transparent);color:var(--ink)}
+.wbstatus.e,.wbstatus.s{background:color-mix(in srgb,var(--orange) 24%,transparent);color:var(--ink)}

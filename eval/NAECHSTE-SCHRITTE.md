@@ -31,7 +31,10 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
    Die Zeile «H3/H4 je Block» zeigt, was die Daten je Block hergeben.
 7. Vor dem PR: `node eval/aufbau.cjs` und `node eval/selftest.cjs`. Version in `index.html` an allen Stellen hochzählen.
 8. `node eval/bucht.cjs` laufen lassen und die Tabelle zu H-B1 bis H-B8 in `eval/IDEEN.md` nachführen.
-9. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+9. `node eval/windbild.cjs --pruefen` laufen lassen: rechnet `data/windbild.json` für die Sektion «Windbild» neu (nach
+   Schritt 2, damit der neue Holdout ungelesen bleibt) und vergleicht mit `eval/schichten.cjs`. Die Datei kommt in den PR.
+   Hat eine Lage aus der Vorlage (`eval/windbild.vorlage.json`, «fest») inzwischen genug Tage, dort eine Regel eintragen.
+10. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 

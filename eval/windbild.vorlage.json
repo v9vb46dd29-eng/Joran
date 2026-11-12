@@ -1,0 +1,136 @@
+{
+ "hinweis": "Vorlage für eval/windbild.cjs. regel = gerechnet aus dem Archiv (Lage nach Chasseral, Schichtung Cressier–Chasseral). schaetzung = [Ort, Bezug, Faktor zur Stärke des Bezugs, Grad zur Richtung des Bezugs]: wächst mit der Messung mit. fest = von Hand gesetzte Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen], bis eine Regel sie ablöst. summe = Vektorsumme zweier Varianten. Texte hier pflegen.",
+ "lagen": [
+  {
+   "id": "west",
+   "name": "West/Südwest",
+   "vars": [
+    {
+     "key": "mix",
+     "label": "Durchmischt",
+     "text": "Der Wind folgt dem See nach Nordosten. Ipsach bekommt ihn voll, Vingelz liegt im Windschatten des Jurahangs.",
+     "regel": {
+      "kamm": ["SW","W"],
+      "schicht": "gemischt"
+     },
+     "schaetzung": [["neuv","ips",0.78,0],["lig","ips",0.89,0],["twa","ips",0.94,0],["sutz","ips",0.94,0],["mor","ips",0.89,0],["bay","ips",0.78,0],["alf","vin",1.11,2],["tus","vin",1.33,0],["nid","ips",0.61,-5],["biel","ips",0.39,5],["mag","cha",0.25,0],["seel","crm",0.91,10],["erl","crm",0.82,5],["lus","ips",0.67,0],["pla","cha",0.6,-5],["val","cha",0.45,0],["son","cha",0.45,5],["pery","cha",0.4,15],["hag","crm",0.82,10],["twb","cha",0.5,-5]]
+    },
+    {
+     "key": "stab",
+     "label": "Inversion",
+     "text": "Auf dem Jura weht es, am See fast nichts. Der Wind bleibt über der kalten Luft am Boden.",
+     "regel": {
+      "kamm": ["SW","W"],
+      "schicht": "stabil"
+     },
+     "schaetzung": [["neuv","ips",1,0],["lig","ips",1,0],["twa","ips",1.25,0],["sutz","ips",1,0],["mor","ips",1,0],["bay","ips",1,0],["alf","vin",0.75,0],["tus","vin",0.75,0],["nid","ips",0.75,-5],["biel","ips",0.5,5],["mag","cha",0.2,0],["seel","crm",1,5],["erl","crm",1.5,0],["lus","ips",1,0],["pla","cha",0.4,-5],["val","cha",0.27,0],["son","cha",0.27,5],["pery","cha",0.2,15],["hag","crm",1,5],["twb","cha",0.27,-5]]
+    }
+   ]
+  },
+  {
+   "id": "sued",
+   "name": "Süd",
+   "vars": [
+    {
+     "key": "mix",
+     "text": "Der Südwind dreht am See auf Südwest. Ipsach liegt vorne, Vingelz bekommt mehr ab als bei West.",
+     "regel": {
+      "kamm": ["S"],
+      "schicht": "gemischt"
+     },
+     "schaetzung": [["neuv","ips",0.81,5],["lig","ips",0.94,5],["twa","ips",0.94,2],["sutz","ips",1,0],["mor","ips",0.94,0],["bay","ips",0.81,0],["alf","vin",0.91,0],["tus","vin",1,0],["nid","ips",0.63,-5],["biel","ips",0.44,-10],["mag","cha",0.27,10],["seel","crm",1.22,-20],["erl","crm",1,-15],["lus","ips",0.75,-5],["pla","cha",0.48,10],["val","cha",0.36,10],["son","cha",0.36,10],["pery","cha",0.3,15],["hag","crm",1.11,-20],["twb","cha",0.39,15]]
+    }
+   ]
+  },
+  {
+   "id": "bise",
+   "name": "Bise",
+   "vars": [
+    {
+     "key": "mix",
+     "text": "Die Bise zieht dem Jurasüdfuss entlang auf den See. Zum Foilen ist sie oft knapp zu schwach.",
+     "regel": {
+      "kamm": ["O","NO"],
+      "schicht": "gemischt"
+     },
+     "schaetzung": [["biel","ips",1.25,10],["nid","ips",1,5],["bay","ips",1.13,5],["alf","vin",1,0],["tus","vin",1.06,0],["twa","ips",1.25,5],["lig","ips",1.25,5],["neuv","ips",1.25,10],["sutz","ips",1,0],["mor","ips",1,0],["seel","crm",0.8,5],["hag","crm",0.9,10],["erl","crm",0.9,5],["lus","ips",1.13,10],["pla","cha",0.58,-15],["val","cha",0.53,-5],["son","cha",0.53,-5],["pery","cha",0.53,-10],["mag","cha",0.53,-20],["twb","cha",0.53,-20],["frin","cha",0.47,-35]]
+    }
+   ]
+  },
+  {
+   "id": "nord",
+   "name": "Nordlage",
+   "vars": [
+    {
+     "key": "mix",
+     "text": "Nordwind auf dem Jura, am Jurasüdfuss fast still. In die Bucht kommt trotzdem Wind, vermutlich durchs Taubenloch.",
+     "regel": {
+      "kamm": ["N"],
+      "schicht": "gemischt"
+     },
+     "schaetzung": [["son","cha",0.4,-20],["pery","cha",0.36,-90],["frin","cha",0.44,-20],["tlx","cha",0.48,10],["biel","ips",0.85,3],["nid","ips",0.85,3],["bayN","ips",0.85,6],["bay","ips",0.85,8],["sutz","ips",0.69,3],["split","vin",1.17,-10],["alf","vin",0.83,-10],["tus","vin",0.67,-10],["twa","ips",0.31,8],["lig","ips",0.23,-2],["neuv","ips",0.23,-12],["mor","ips",0.54,3],["mag","cha",0.24,-10],["twb","cha",0.2,-10],["pla","cha",0.32,-10],["val","cha",0.24,70],["seel","crm",2.5,5],["erl","crm",1.5,0],["lus","ips",0.23,-2],["hag","crm",2,20]]
+    }
+   ]
+  },
+  {
+   "id": "joran",
+   "name": "Joran",
+   "vars": [
+    {
+     "key": "abend",
+     "label": "Abend-Joran",
+     "text": "Nach warmen, ruhigen Tagen fällt am Abend kühle Luft über den Jura. Der Wind teilt sich Richtung Ipsach und Nidau, Vingelz liegt im Windschatten.",
+     "fest": true,
+     "status": "s",
+     "tage": 0,
+     "a": [["crm",300,12],["cha",320,14],["mag",330,9],["twb",330,10],["pla",320,12],["alf",330,9],["tus",325,9],["split",315,12],["ips",320,14],["sutz",320,14],["bayN",265,12],["nid",250,10],["bay",290,13],["biel",240,5],["vin",0,3],["twa",320,10],["lig",315,9],["neuv",310,8],["mor",320,10],["seel",320,8],["erl",310,6],["lus",315,7],["hag",320,7],["coy",250,3],["val",250,3],["son",250,3],["pery",270,3],["neu",300,8],["gre",270,2]]
+    },
+    {
+     "key": "front",
+     "label": "Front-Joran",
+     "text": "Kommt mit einer Kaltfront von Westen. Meist zieht ein kräftiger Ast über den See, Vingelz ist weniger abgedeckt.",
+     "fest": true,
+     "status": "e",
+     "tage": 1,
+     "a": [["cha",300,46,1],["crm",290,19,1],["ips",285,15,1],["vin",235,9,1],["gre",250,15,1],["coy",250,12,1],["alf",300,15],["tus",300,16],["split",290,14],["twa",295,17],["lig",290,16],["neuv",285,16],["sutz",290,17],["mor",290,16],["bay",280,14],["bayN",270,12],["nid",270,11],["biel",265,8],["mag",300,14],["pla",290,20],["val",255,12],["son",260,12],["pery",275,10],["seel",290,13],["erl",285,14],["lus",290,14],["neu",280,16],["hag",290,13],["twb",300,17]]
+    }
+   ]
+  },
+  {
+   "id": "thermik",
+   "name": "Thermik",
+   "vars": [
+    {
+     "key": "tag",
+     "label": "Tag",
+     "text": "An heissen, ruhigen Tagen strömt die Luft vom See gegen Stadt und Jurahang. Das gibt nur wenige Knoten.",
+     "fest": true,
+     "status": "s",
+     "tage": 0,
+     "a": [["crm",100,3,1],["gre",100,2,1],["neu",160,3,1],["cha",250,2],["bay",230,3],["bayN",230,3.5],["nid",225,4],["biel",220,3],["ips",250,3],["vin",195,3],["split",225,3],["alf",165,2],["tus",165,2],["twa",230,3],["lig",225,2.5],["neuv",230,2],["sutz",265,2],["mor",280,2],["seel",330,2],["hag",330,2],["lus",0,2],["erl",20,2],["mag",170,2],["twb",160,2],["pla",160,1.5],["tlx",190,2],["frin",180,2],["pery",95,2],["son",80,2],["val",70,2],["coy",70,2]]
+    },
+    {
+     "key": "abend",
+     "label": "Abend",
+     "text": "Am Abend kehrt es um: Kühle Luft fliesst von den Hängen und aus dem Taubenloch auf den See.",
+     "fest": true,
+     "status": "e",
+     "tage": 2,
+     "a": [["neu",0,3,1],["crm",20,2,1],["gre",25,2,1],["vin",20,3.5,1],["ips",60,3,1],["cha",250,2],["bay",40,3],["bayN",45,3],["nid",50,3],["biel",35,3],["split",30,2.5],["alf",340,2],["tus",340,2],["mag",340,2.5],["twb",340,2],["pla",340,1.5],["tlx",20,3],["frin",345,2.5],["pery",270,2],["son",255,2],["val",250,2],["coy",250,2],["twa",330,2],["lig",330,1.5],["neuv",320,1.5],["sutz",80,1.5],["mor",100,1.5],["seel",150,1.5],["hag",150,1.5],["lus",180,1.5],["erl",200,1.5]]
+    },
+    {
+     "key": "west",
+     "label": "Tag + West",
+     "text": "Weht schon West, zieht der Seewind in dieselbe Richtung. Am Ostende der Bucht könnte es ein paar Knoten mehr geben.",
+     "summe": ["west.mix","thermik.tag"]
+    },
+    {
+     "key": "bise",
+     "label": "Tag + Bise",
+     "text": "Der Seewind zieht gegen die Bise. Am Nachmittag könnte sie in der Bucht schwächer ankommen.",
+     "summe": ["bise.mix","thermik.tag"]
+    }
+   ]
+  }
+ ]
+}

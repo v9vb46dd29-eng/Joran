@@ -16,6 +16,7 @@ node eval/verzug.cjs                      # Lieferverzug aus den echten Push-Zei
 node eval/selftest.cjs                    # prüft Messskript und Modell mit synthetischen Daten
 node eval/aufbau.cjs                      # prüft die Regeln aus ARCHITEKTUR.md (Silos, Reihenfolge, Version)
 node eval/gleich.cjs                      # rechnet der Rechenkern wie origin/main? Für Umbauten ohne Verhaltensänderung
+node eval/windbild.cjs --pruefen          # rechnet data/windbild.json (Sektion «Windbild») neu, Abgleich mit eval/schichten.cjs
 ```
 
 Derselbe Befehl misst jeden Stand: `--neu git:REV` oder `--neu pfad/core.js` misst einen anderen Rechenkern, `--basis` ersetzt die

@@ -1,6 +1,6 @@
 # Aufbau der App
 
-Stand v19 (11.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
+Stand v20 (12.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
 Repo liegen, die Action und die Auswertung laden denselben Rechenkern mit `require`.
 
 ## Wozu der Umbau
@@ -28,10 +28,10 @@ Reihenfolge ist die der Abhängigkeit: Ein Silo darf nur Silos brauchen, die wei
 | `prognose` | Modellprognose auswerten: Stufe, Ensemble, Joran-Zutaten, Höhenwind | konstanten, helfer, modell | 141 |
 | `messung` | Live-Signal: Upwind-Regel, Regel E, Böenfront, Kopplung, `nowcast` | konstanten, helfer, modell, see | 185 |
 | `kalibrierung` | Parameter aus der Vergangenheit bestimmen (`fitModel`, Rückblick) | alle oben | 220 |
-| `daten` | Alles, was ins Netz geht (Open-Meteo, SwissMetNet, meteoBase) | konstanten, see | 219 |
+| `daten` | Alles, was ins Netz geht (Open-Meteo, SwissMetNet, meteoBase, `data/windbild.json`) | konstanten, see | 225 |
 | `einstellungen` | Push-Einstellungen prüfen (`users/<name>.json`) | konstanten, helfer | 40 |
 
-`core.js` ist nur noch die Fassade. Sie führt die 95 öffentlichen Namen auf (72 Funktionen, 23 Konstanten) und fasst sie zu einem Objekt zusammen
+`core.js` ist nur noch die Fassade. Sie führt die 96 öffentlichen Namen auf (73 Funktionen, 23 Konstanten) und fasst sie zu einem Objekt zusammen
 (`JoranCore` im Browser, `require("./core.js")` in Node). `push/`, `eval/` und die Oberfläche kennen nur die Fassade.
 Für sie hat sich nichts geändert.
 
@@ -51,6 +51,7 @@ Jedes Silo hat denselben Rahmen aus fünf Zeilen. Er lädt die gebrauchten Silos
 | `einstellungen.js` | Einstellungsblatt | 19 |
 | `push.js` | Push für mehrere Nutzer, Verwaltung, GitHub-API | 159 |
 | `rueckblick.js` | Tage markieren, kalibrieren, Markierungen ablegen | 108 |
+| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht je Lage, Lage von heute, Wind von jetzt | 311 |
 | `start.js` | Daten holen, auffrischen, Bedienelemente verdrahten | 148 |
 
 Das sind klassische Skripte. Sie teilen sich ihre Namen und werden in dieser Reihenfolge geladen. Die Grenzen sind hier
@@ -65,7 +66,7 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 2. Nur `daten` geht ins Netz. Der Rechenkern kennt weder Seite noch Browser-Speicher.
 3. Action, Auswertung und Oberfläche brauchen nur die Fassade, nie ein Silo direkt.
 4. `index.html` lädt die Silos in der Reihenfolge der Fassade, danach `core.js`, danach `app/`, `start.js` zuletzt.
-5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=19`, «v19»). Bei jeder Änderung an allen Stellen
+5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=20`, «v20»). Bei jeder Änderung an allen Stellen
    gleich hochzählen, sonst mischt der Browser alte und neue Dateien.
 6. Nur `app/push.js` spricht mit der GitHub-API. Wetterdaten holt die Oberfläche nur über den Rechenkern.
 7. `MODEL.active` ist `false`, bis Simon eine Aktivierung mergt.
@@ -82,6 +83,9 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 | Neue Datenquelle, anderer Abruf | `core/daten.js` |
 | Text oder Anzeige der Hauptansicht | `app/live.js` |
 | Rückblick, Markierungen | `app/rueckblick.js` |
+| Windbild: Karte, Vorwahl der Lage, Texte der Sektion | `app/windbild.js` |
+| Windbild: Zahlen und Stützpunkte je Lage | nie von Hand: `node eval/windbild.cjs` schreibt `data/windbild.json` |
+| Windbild: Texte, geschätzte Lagen, Faktoren der geschätzten Stützpunkte | `eval/windbild.vorlage.json` |
 | Farben, Abstände | `app/app.css` |
 | Wann welcher Push kommt | `push/check.cjs` |
 
@@ -96,6 +100,8 @@ Zeile in der Fassade und ein `<script>` in `index.html`.
 | `node eval/selftest.cjs` | Modell und Messskript mit künstlichen Daten | immer |
 | `node eval/gleich.cjs` | rechnet der Kern wie `origin/main`? Quelltext und rund 390'000 Ergebnisse auf echten Daten | bei Umbauten, die nichts ändern sollen |
 | `node eval/measure.cjs --T 12` | Recall, FPR, Vorlauf gegen die Baseline | bei Modelländerungen, mit Reviewer |
+| `node eval/windbild.cjs --pruefen` | `data/windbild.json` neu rechnen, Abgleich mit `eval/schichten.cjs` | bei jeder Modellprüfung und nach Änderungen an Skript oder Vorlage |
+| `python3 eval/windbild-test.py` | Sektion «Windbild» im Browser (390×844, hell und dunkel, künstliche Daten) | bei Änderungen an `app/windbild.js`; braucht Python-Playwright und Chrome |
 
 Ändert sich der Quelltext eines öffentlichen Namens mit Absicht, nennt man ihn: `node eval/gleich.cjs --erlaubt nowcast`.
 Rechnet er auch anders, meldet die Prüfung das weiterhin, und alles andere muss gleich bleiben. Ihre Grenzen stehen im
@@ -104,7 +110,7 @@ Kopf des Skripts: Datenabruf, Parser und Joran-Zweige deckt sie kaum ab.
 ## Bewusst nicht gemacht
 
 - **Kein Build, kein Bundler, kein TypeScript.** Die App läuft so, wie sie im Repo liegt, und das soll so bleiben. Der
-  Preis: Beim ersten Laden holt der Browser 19 Dateien statt 2. GitHub Pages liefert sie parallel und hält sie im
+  Preis: Beim ersten Laden holt der Browser 21 Dateien statt 2. GitHub Pages liefert sie parallel und hält sie im
   Zwischenspeicher. Fällt eine einzelne Datei aus, bleibt die Seite heute stumm stehen.
 - **Keine festen Grenzen in der Oberfläche.** Dafür bräuchte es Module mit `import`. Das lohnt sich erst, wenn die
   Oberfläche weiter wächst oder Tests bekommt.

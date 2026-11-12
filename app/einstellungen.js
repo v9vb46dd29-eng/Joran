@@ -1,6 +1,6 @@
 /* Joran — Oberfläche «einstellungen». Einstellungsblatt: Schwelle, Zeitfenster, Richtungen, Spots, Grenzen.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
-   basis, see, live, einstellungen, push, rueckblick, start. Aufbau und Regeln: ARCHITEKTUR.md */
+   basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
 function chipGroup(el, items, isOn, onClick){
   el.innerHTML = items.map(it=>`<button class="chip" aria-pressed="${isOn(it)}" data-v="${esc(it.v)}">${esc(it.t)}</button>`).join("");

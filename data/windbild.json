@@ -1,0 +1,246 @@
+{
+ "stand": "2026-11-12",
+ "von": "2026-10-16",
+ "bis": "2026-11-05",
+ "tage": 21,
+ "quelle": "Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
+ "format": "a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+ "lagen": [
+  {
+   "id": "west",
+   "name": "West/Südwest",
+   "vars": [
+    {
+     "key": "mix",
+     "label": "Durchmischt",
+     "status": "m",
+     "tage": 6,
+     "text": "Der Wind folgt dem See nach Nordosten. Ipsach bekommt ihn voll, Vingelz liegt im Windschatten des Jurahangs.",
+     "anteil": {
+      "10": {"vin":[24,62],"ips":[76,88]},
+      "11": {"vin":[18,48],"ips":[75,86]},
+      "12": {"vin":[15,44],"ips":[74,85]},
+      "13": {"vin":[13,40],"ips":[74,85]},
+      "14": {"vin":[11,38],"ips":[72,84]},
+      "15": {"vin":[11,36],"ips":[68,80]},
+      "16": {"vin":[11,32],"ips":[67,76]},
+      "17": {"vin":[9,25],"ips":[62,65]},
+      "18": {"vin":[7,19],"ips":[52,56]},
+      "19": {"vin":[4,15],"ips":[44,47]},
+      "20": {"vin":[2,8],"ips":[36,36]},
+      "21": {"vin":[0,2],"ips":[28,33]},
+      "22": {"vin":[0,2],"ips":[16,31]},
+      "23": {"vin":[0,2],"ips":[10,27]},
+      "24": {"vin":[0,1],"ips":[6,27]},
+      "25": {"vin":[0,0],"ips":[5,27]},
+      "26": {"vin":[0,0],"ips":[5,26]},
+      "27": {"vin":[0,0],"ips":[5,24]},
+      "28": {"vin":[0,0],"ips":[2,21]},
+      "29": {"vin":[0,0],"ips":[0,19]},
+      "30": {"vin":[0,0],"ips":[0,15]}
+     },
+     "a": [["cha",236,19.7,1],["crm",236,10.7,1],["gre",242,10.3,1],["coy",246,8.2,1],["neu",246,10.7,1],["vin",249,9.1,1],["ips",244,17.9,1],["neuv",244,14],["lig",244,15.9],["twa",244,16.8],["sutz",244,16.8],["mor",244,15.9],["bay",244,14],["alf",251,10.1],["tus",249,12.1],["nid",239,10.9],["biel",249,7],["mag",236,4.9],["seel",246,9.7],["erl",241,8.8],["lus",244,12],["pla",231,11.8],["val",236,8.9],["son",241,8.9],["pery",251,7.9],["hag",246,8.8],["twb",231,9.9]]
+    },
+    {
+     "key": "stab",
+     "label": "Inversion",
+     "status": "m",
+     "tage": 4,
+     "text": "Auf dem Jura weht es, am See fast nichts. Der Wind bleibt über der kalten Luft am Boden.",
+     "anteil": {
+      "10": {"vin":[0,0],"ips":[0,0]},
+      "11": {"vin":[0,0],"ips":[0,0]},
+      "12": {"vin":[0,0],"ips":[0,0]},
+      "13": {"vin":[0,0],"ips":[0,0]},
+      "14": {"vin":[0,0],"ips":[0,0]},
+      "15": {"vin":[0,0],"ips":[0,0]},
+      "16": {"vin":[0,0],"ips":[0,0]},
+      "17": {"vin":[0,0],"ips":[0,0]},
+      "18": {"vin":[0,0],"ips":[0,0]},
+      "19": {"vin":[0,0],"ips":[0,0]},
+      "20": {"vin":[0,0],"ips":[0,0]},
+      "21": {"vin":[0,0],"ips":[0,0]},
+      "22": {"vin":[0,0],"ips":[0,0]},
+      "23": {"vin":[0,0],"ips":[0,0]},
+      "24": {"vin":[0,0],"ips":[0,0]},
+      "25": {"vin":[0,0],"ips":[0,0]},
+      "26": {"vin":[0,0],"ips":[0,0]},
+      "27": {"vin":[0,0],"ips":[0,0]},
+      "28": {"vin":[0,0],"ips":[0,0]},
+      "29": {"vin":[0,0],"ips":[0,0]},
+      "30": {"vin":[0,0],"ips":[0,0]}
+     },
+     "a": [["cha",234,15.3,1],["crm",196,0.8,1],["gre",232,2.5,1],["coy",145,1.9,1],["neu",164,1.7,1],["vin",191,1.9,1],["ips",198,2.3,1],["neuv",198,2.3],["lig",198,2.3],["twa",198,2.9],["sutz",198,2.3],["mor",198,2.3],["bay",198,2.3],["alf",191,1.4],["tus",191,1.4],["nid",193,1.7],["biel",203,1.2],["mag",234,3.1],["seel",201,0.8],["erl",196,1.2],["lus",198,2.3],["pla",229,6.1],["val",234,4.1],["son",239,4.1],["pery",249,3.1],["hag",201,0.8],["twb",229,4.1]]
+    }
+   ]
+  },
+  {
+   "id": "sued",
+   "name": "Süd",
+   "vars": [
+    {
+     "key": "mix",
+     "status": "m",
+     "tage": 4,
+     "text": "Der Südwind dreht am See auf Südwest. Ipsach liegt vorne, Vingelz bekommt mehr ab als bei West.",
+     "anteil": {
+      "10": {"vin":[64,64],"ips":[69,69]},
+      "11": {"vin":[58,58],"ips":[64,64]},
+      "12": {"vin":[38,38],"ips":[63,63]},
+      "13": {"vin":[29,29],"ips":[62,62]},
+      "14": {"vin":[28,28],"ips":[60,60]},
+      "15": {"vin":[22,22],"ips":[59,59]},
+      "16": {"vin":[14,14],"ips":[53,53]},
+      "17": {"vin":[8,8],"ips":[47,47]},
+      "18": {"vin":[3,3],"ips":[36,36]},
+      "19": {"vin":[0,0],"ips":[28,28]},
+      "20": {"vin":[0,0],"ips":[24,24]},
+      "21": {"vin":[0,0],"ips":[17,17]},
+      "22": {"vin":[0,0],"ips":[14,14]},
+      "23": {"vin":[0,0],"ips":[7,7]},
+      "24": {"vin":[0,0],"ips":[3,3]},
+      "25": {"vin":[0,0],"ips":[2,2]},
+      "26": {"vin":[0,0],"ips":[0,0]},
+      "27": {"vin":[0,0],"ips":[0,0]},
+      "28": {"vin":[0,0],"ips":[0,0]},
+      "29": {"vin":[0,0],"ips":[0,0]},
+      "30": {"vin":[0,0],"ips":[0,0]}
+     },
+     "a": [["cha",195,32.8,1],["crm",234,8.7,1],["gre",239,8,1],["coy",239,12.3,1],["neu",247,9,1],["vin",238,10.9,1],["ips",240,15.9,1],["neuv",245,12.9],["lig",245,14.9],["twa",242,14.9],["sutz",240,15.9],["mor",240,14.9],["bay",240,12.9],["alf",238,9.9],["tus",238,10.9],["nid",235,10],["biel",230,7],["mag",205,8.9],["seel",214,10.6],["erl",219,8.7],["lus",235,11.9],["pla",205,15.7],["val",205,11.8],["son",205,11.8],["pery",210,9.8],["hag",214,9.7],["twb",210,12.8]]
+    }
+   ]
+  },
+  {
+   "id": "bise",
+   "name": "Bise",
+   "vars": [
+    {
+     "key": "mix",
+     "status": "m",
+     "tage": 9,
+     "text": "Die Bise zieht dem Jurasüdfuss entlang auf den See. Zum Foilen ist sie oft knapp zu schwach.",
+     "anteil": {
+      "10": {"vin":[25,38],"ips":[17,20]},
+      "11": {"vin":[19,34],"ips":[10,11]},
+      "12": {"vin":[11,28],"ips":[5,6]},
+      "13": {"vin":[8,16],"ips":[3,3]},
+      "14": {"vin":[6,10],"ips":[2,3]},
+      "15": {"vin":[4,6],"ips":[0,1]},
+      "16": {"vin":[3,4],"ips":[0,0]},
+      "17": {"vin":[1,1],"ips":[0,0]},
+      "18": {"vin":[0,1],"ips":[0,0]},
+      "19": {"vin":[0,0],"ips":[0,0]},
+      "20": {"vin":[0,0],"ips":[0,0]},
+      "21": {"vin":[0,0],"ips":[0,0]},
+      "22": {"vin":[0,0],"ips":[0,0]},
+      "23": {"vin":[0,0],"ips":[0,0]},
+      "24": {"vin":[0,0],"ips":[0,0]},
+      "25": {"vin":[0,0],"ips":[0,0]},
+      "26": {"vin":[0,0],"ips":[0,0]},
+      "27": {"vin":[0,0],"ips":[0,0]},
+      "28": {"vin":[0,0],"ips":[0,0]},
+      "29": {"vin":[0,0],"ips":[0,0]},
+      "30": {"vin":[0,0],"ips":[0,0]}
+     },
+     "a": [["cha",88,22,1],["crm",52,9.3,1],["gre",70,9.5,1],["coy",64,9.7,1],["neu",63,9.3,1],["vin",53,8,1],["ips",57,7.6,1],["biel",67,9.5],["nid",62,7.6],["bay",62,8.6],["alf",53,8],["tus",53,8.5],["twa",62,9.5],["lig",62,9.5],["neuv",67,9.5],["sutz",57,7.6],["mor",57,7.6],["seel",57,7.4],["hag",62,8.4],["erl",57,8.4],["lus",67,8.6],["pla",73,12.8],["val",83,11.7],["son",83,11.7],["pery",78,11.7],["mag",68,11.7],["twb",68,11.7],["frin",53,10.3]]
+    }
+   ]
+  },
+  {
+   "id": "nord",
+   "name": "Nordlage",
+   "vars": [
+    {
+     "key": "mix",
+     "status": "e",
+     "tage": 3,
+     "text": "Nordwind auf dem Jura, am Jurasüdfuss fast still. In die Bucht kommt trotzdem Wind, vermutlich durchs Taubenloch.",
+     "anteil": {
+      "10": {"vin":[2,2],"ips":[44,44]},
+      "11": {"vin":[0,0],"ips":[44,44]},
+      "12": {"vin":[0,0],"ips":[31,31]},
+      "13": {"vin":[0,0],"ips":[25,25]},
+      "14": {"vin":[0,0],"ips":[15,15]},
+      "15": {"vin":[0,0],"ips":[4,4]},
+      "16": {"vin":[0,0],"ips":[2,2]},
+      "17": {"vin":[0,0],"ips":[2,2]},
+      "18": {"vin":[0,0],"ips":[0,0]},
+      "19": {"vin":[0,0],"ips":[0,0]},
+      "20": {"vin":[0,0],"ips":[0,0]},
+      "21": {"vin":[0,0],"ips":[0,0]},
+      "22": {"vin":[0,0],"ips":[0,0]},
+      "23": {"vin":[0,0],"ips":[0,0]},
+      "24": {"vin":[0,0],"ips":[0,0]},
+      "25": {"vin":[0,0],"ips":[0,0]},
+      "26": {"vin":[0,0],"ips":[0,0]},
+      "27": {"vin":[0,0],"ips":[0,0]},
+      "28": {"vin":[0,0],"ips":[0,0]},
+      "29": {"vin":[0,0],"ips":[0,0]},
+      "30": {"vin":[0,0],"ips":[0,0]}
+     },
+     "a": [["cha",6,24.5,1],["crm",60,4.6,1],["gre",96,4.3,1],["coy",105,6.2,1],["neu",59,2.7,1],["vin",65,6.4,1],["ips",39,7.8,1],["son",346,9.8],["pery",276,8.8],["frin",346,10.8],["tlx",16,11.8],["biel",42,6.6],["nid",42,6.6],["bayN",45,6.6],["bay",47,6.6],["sutz",42,5.4],["split",55,7.5],["alf",55,5.3],["tus",55,4.3],["twa",47,2.4],["lig",37,1.8],["neuv",27,1.8],["mor",42,4.2],["mag",356,5.9],["twb",356,4.9],["pla",356,7.8],["val",76,5.9],["seel",65,11.5],["erl",60,6.9],["lus",37,1.8],["hag",80,9.2]]
+    }
+   ]
+  },
+  {
+   "id": "joran",
+   "name": "Joran",
+   "vars": [
+    {
+     "key": "abend",
+     "label": "Abend-Joran",
+     "status": "s",
+     "tage": 0,
+     "text": "Nach warmen, ruhigen Tagen fällt am Abend kühle Luft über den Jura. Der Wind teilt sich Richtung Ipsach und Nidau, Vingelz liegt im Windschatten.",
+     "a": [["crm",300,12],["cha",320,14],["mag",330,9],["twb",330,10],["pla",320,12],["alf",330,9],["tus",325,9],["split",315,12],["ips",320,14],["sutz",320,14],["bayN",265,12],["nid",250,10],["bay",290,13],["biel",240,5],["vin",0,3],["twa",320,10],["lig",315,9],["neuv",310,8],["mor",320,10],["seel",320,8],["erl",310,6],["lus",315,7],["hag",320,7],["coy",250,3],["val",250,3],["son",250,3],["pery",270,3],["neu",300,8],["gre",270,2]]
+    },
+    {
+     "key": "front",
+     "label": "Front-Joran",
+     "status": "e",
+     "tage": 1,
+     "text": "Kommt mit einer Kaltfront von Westen. Meist zieht ein kräftiger Ast über den See, Vingelz ist weniger abgedeckt.",
+     "a": [["cha",300,46,1],["crm",290,19,1],["ips",285,15,1],["vin",235,9,1],["gre",250,15,1],["coy",250,12,1],["alf",300,15],["tus",300,16],["split",290,14],["twa",295,17],["lig",290,16],["neuv",285,16],["sutz",290,17],["mor",290,16],["bay",280,14],["bayN",270,12],["nid",270,11],["biel",265,8],["mag",300,14],["pla",290,20],["val",255,12],["son",260,12],["pery",275,10],["seel",290,13],["erl",285,14],["lus",290,14],["neu",280,16],["hag",290,13],["twb",300,17]]
+    }
+   ]
+  },
+  {
+   "id": "thermik",
+   "name": "Thermik",
+   "vars": [
+    {
+     "key": "tag",
+     "label": "Tag",
+     "status": "s",
+     "tage": 0,
+     "text": "An heissen, ruhigen Tagen strömt die Luft vom See gegen Stadt und Jurahang. Das gibt nur wenige Knoten.",
+     "a": [["crm",100,3,1],["gre",100,2,1],["neu",160,3,1],["cha",250,2],["bay",230,3],["bayN",230,3.5],["nid",225,4],["biel",220,3],["ips",250,3],["vin",195,3],["split",225,3],["alf",165,2],["tus",165,2],["twa",230,3],["lig",225,2.5],["neuv",230,2],["sutz",265,2],["mor",280,2],["seel",330,2],["hag",330,2],["lus",0,2],["erl",20,2],["mag",170,2],["twb",160,2],["pla",160,1.5],["tlx",190,2],["frin",180,2],["pery",95,2],["son",80,2],["val",70,2],["coy",70,2]]
+    },
+    {
+     "key": "abend",
+     "label": "Abend",
+     "status": "e",
+     "tage": 2,
+     "text": "Am Abend kehrt es um: Kühle Luft fliesst von den Hängen und aus dem Taubenloch auf den See.",
+     "a": [["neu",0,3,1],["crm",20,2,1],["gre",25,2,1],["vin",20,3.5,1],["ips",60,3,1],["cha",250,2],["bay",40,3],["bayN",45,3],["nid",50,3],["biel",35,3],["split",30,2.5],["alf",340,2],["tus",340,2],["mag",340,2.5],["twb",340,2],["pla",340,1.5],["tlx",20,3],["frin",345,2.5],["pery",270,2],["son",255,2],["val",250,2],["coy",250,2],["twa",330,2],["lig",330,1.5],["neuv",320,1.5],["sutz",80,1.5],["mor",100,1.5],["seel",150,1.5],["hag",150,1.5],["lus",180,1.5],["erl",200,1.5]]
+    },
+    {
+     "key": "west",
+     "label": "Tag + West",
+     "status": "s",
+     "tage": 0,
+     "text": "Weht schon West, zieht der Seewind in dieselbe Richtung. Am Ostende der Bucht könnte es ein paar Knoten mehr geben.",
+     "a": [["cha",237,21.6],["crm",222,8.8],["gre",234,8.8],["coy",245,6.2],["neu",231,11.3],["vin",236,11.1],["ips",245,20.9],["neuv",242,15.9],["lig",241,18.3],["twa",242,19.7],["sutz",246,18.7],["mor",248,17.6],["bay",242,16.9],["alf",240,10.4],["tus",240,12.5],["nid",235,14.8],["biel",240,9.7],["mag",218,6],["seel",257,10.1],["erl",251,7.4],["lus",253,11.3],["pla",224,12.4],["val",232,7],["son",236,7],["pery",243,6.1],["hag",258,9.2],["twb",221,10.7]]
+    },
+    {
+     "key": "bise",
+     "label": "Tag + Bise",
+     "status": "s",
+     "tage": 0,
+     "text": "Der Seewind zieht gegen die Bise. Am Nachmittag könnte sie in der Bucht schwächer ankommen.",
+     "a": [["cha",90,20.1],["crm",63,11.5],["gre",75,11.3],["coy",65,11.7],["neu",81,9.4],["vin",71,5.9],["ips",49,4.7],["biel",78,7],["nid",79,4],["bay",68,5.7],["alf",67,7.5],["tus",66,8],["twa",67,6.6],["lig",68,7.1],["neuv",71,7.6],["sutz",48,5.9],["mor",44,6.3],["seel",42,7.8],["hag",49,8.6],["erl",50,10.1],["lus",56,9.6],["pla",80,13],["val",81,13.7],["son",83,13.7],["pery",80,13.6],["mag",78,11.5],["twb",78,11.8],["frin",63,9.2]]
+    }
+   ]
+  }
+ ]
+}

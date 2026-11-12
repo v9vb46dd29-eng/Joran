@@ -1,6 +1,6 @@
 /* Joran — Oberfläche «start». Abläufe und Start: Daten holen und auffrischen, Zwischenspeicher, Bedienelemente verdrahten, erste Anzeige. Muss als letzte Datei geladen werden.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
-   basis, see, live, einstellungen, push, rueckblick, start. Aufbau und Regeln: ARCHITEKTUR.md */
+   basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
 /* Refresh: Modelle und ALLE Messstationen (Upwind + See) frisch laden, erst dann auswerten */
 function liveStatus(){
