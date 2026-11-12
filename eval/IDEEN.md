@@ -60,7 +60,7 @@ danach eine Hypothese für das Modell formulieren und durch den Build-Review-Loo
 | H-B4 | 17.10., 16–18 Uhr: Chasseral 23–28 kn N, Grenchen 2–6 kn, Cressier 1–3 kn, Ipsach 11–15 kn NNO (Böen bis 24 kn), Vingelz 4–7 kn NO/ONO. Am 28.10. dasselbe Bild schwächer. Courtelary dabei O bis OSO, also talaufwärts. | passt, 2 Tage |
 | H-B5 | Die Regel schlug an 7 von 21 Entwicklungstagen an (81 Zehnminutenwerte). 79 davon fielen auf Wind aus S bis NNW auf dem Chasseral, keiner auf den Nordlage-Abend vom 17.10. | passt |
 | H-B6 | Keine Seemessung im Sommer (Archiv ab 15.10.). Landstationen an 31 ruhigen, heissen Sommertagen 2026: Neuchâtel tagsüber SO bis SSO vom See her, nachts N; Cressier und Grenchen tagsüber O bis OSO, im Mittel 4–5 kn. 2026 fiel kein Bise-Tag auf einen heissen Sommertag. | plausibel, offen |
-| H-B8 | Keine Messung am Schluchtausgang seit 1982. Vorsicht beim Vergleich: Die Studie mass in 3 m Höhe mit mechanischen Windschreibern, die schwachen Wind eher unterschätzen, und gewichtete den Winter stärker als den Sommer. | offen |
+| H-B8 | Keine Messung am Schluchtausgang seit 1982. Courtelary (`node eval/courtelary.cjs`, Stundenwerte erst ab März 2015 in den OGD-Daten): An 352 ruhigen, heissen Sommertagen 2015–2026 weht tagsüber bis 20 Uhr Talwind aus NNO bis ONO (5–6 kn), ab 21–22 Uhr der Talabwind aus SW (Mittel 2 kn, talabwärts 1.3 kn). Trend 22–04 Uhr: +0.13 kn je 10 Jahre bei einem Standardfehler von 0.17, also keine erkennbare Verstärkung seit 2015. Zum Zeitraum vor 2015 sagt Courtelary nichts. Vorsicht beim Vergleich mit 1988: 3 m Höhe, mechanische Windschreiber, Winter stärker gewichtet. | seit 2015 keine Verstärkung, zu 1988 offen |
 | H-B7 | Dieselben 31 Sommertage, 19–21 Uhr: Neuchâtel, Cressier und Grenchen drehen auf N bis NNO, im Mittel 4–5 kn. Am See nur zwei ruhige Abende (18.10., 5.11.; 19–23 Uhr, Chasseral unter 10 kn): Vingelz und Ipsach 3–4 kn, 87 % bzw. 79 % der Werte ab 2 kn aus N bis O. | passt in der Richtung, schwach |
 
 Zu H-B3 und H-B5: Weht es in Courtelary kräftig talabwärts, bekommt Vingelz manchmal schwachen Wind aus NO, Ipsach
@@ -97,10 +97,11 @@ Das kostet Geld und braucht Simons Entscheid.
    Sommernachmittagen gegenüber Herbst (heute 1.7). Bei Bise: Seewind am Nachmittag gegenüber dem Morgen, Sommer gegen
    Winter. Am Abend: Drehen Vingelz und Ipsach auf N bis O, wie stark, und kommt das mit dem Taubenloch-Ast zusammen?
 
-5. H-B8: Courtelary misst seit 1981 automatisch. Trend des Talwinds talabwärts (220–280°) an ruhigen Sommerabenden
-   1981 bis heute aus den OGD-Langzeitreihen von MeteoSchweiz, als Hinweis auf den Antrieb im Tal. Am See: ruhige
-   Sommerabende ab 2027 in Vingelz und Ipsach (N bis O) mit den Werten von 1980–82 am Taubenloch vergleichen, nur in
-   der Richtung, nicht im Betrag (andere Orte, andere Geräte).
+5. H-B8: `node eval/courtelary.cjs` jedes Jahr nach dem Sommer laufen lassen (Trend des Talabwinds seit 2015).
+   Courtelary liegt oberhalb von Sonceboz; am Schluchtausgang kann es anders aussehen. Am See: ruhige Sommerabende ab
+   2027 in Vingelz und Ipsach (N bis O) mit den Werten von 1980–82 am Taubenloch vergleichen, nur in der Richtung,
+   nicht im Betrag (andere Orte, andere Geräte). Längere Reihen in der Region mit Stundenwind: Chasseral ab 1980,
+   Grenchen und Cressier ab 1990; sie zeigen aber nicht den Talwind.
 
 Visualisiert in der Karte «Wind in der Bieler Bucht» (Artefakt in Claude), Joran mit Varianten Abend- und Front-Joran,
 Nordlage mit Weg durchs Taubenloch, Thermik mit Seewind am Tag und Landwind am Abend (geschätzt).
