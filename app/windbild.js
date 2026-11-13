@@ -28,6 +28,22 @@ const STAT = {crm:[47.0476,7.0591], cha:[47.1318,7.0544], neu:[47.0001,6.9533], 
 /* Nur zur Anzeige im Ausschnitt Region, kein Upwind-Signal: Am Westende des Neuenburgersees (Yverdon, Estavayer) gibt es keine
    öffentliche Station mit Wind; am nächsten liegt Mathod in der Orbe-Ebene, 7 km südwestlich von Yverdon. */
 const ANZEIGE = [{abk:"mah", name:"Mathod", voll:"Mathod (Orbe-Ebene bei Yverdon)"}];
+/* La Neuveville: Live misst dort nur Windfinder, ohne offene Schnittstelle. Angezeigt wird darum das Modellmittel der vier
+   Modelle der App (Seezelle vor dem Hafen), immer als «Modell» gekennzeichnet. Es richtet die Karte nicht aus. */
+const NEUV = {ll:[47.063,7.100], name:"La Neuveville", voll:"La Neuveville (Modell, keine öffentliche Messung)"};
+let NEUV_D = null;
+function holeNeuv(){
+  const e = NEUV_D; if(e && (e.busy || Date.now()-e.at<30*60000)) return;
+  NEUV_D = Object.assign(e || {}, {busy:true});
+  C.fetchPunkt(NEUV.ll[0], NEUV.ll[1], 2).then(d=>{ NEUV_D = {d, at:Date.now()}; }).catch(err=>{ NEUV_D = {d:e && e.d, err:err.message||"Fehler", at:Date.now()}; })
+    .then(()=>{ if(ST.view!=="bucht"){ drawn = ""; update(); } });
+}
+/* Modellmittel an La Neuveville für eine Stunde (h Stunden ab jetzt) */
+function neuvAm(h){
+  const d = NEUV_D && NEUV_D.d; if(!d) return null;
+  const i = d.idx[stundeKey(h||0).key]; if(i==null) return null;
+  return mittel(Object.values(d.m).filter(x=>x.ws[i]!=null && x.wd[i]!=null).map(x=>({kn:x.ws[i], dir:x.wd[i]})));
+}
 const EXTRA = {};
 function holeExtra(){
   ANZEIGE.forEach(a=>{ const e = EXTRA[a.abk]; if(e && (e.busy || Date.now()-e.at<10*60000)) return;
@@ -407,18 +423,22 @@ function badgePos(){
 }
 /* Ausschnitt Region: alle Upwind-Stationen, Mathod und die Seestationen mit dem Wind von jetzt (im Regler: nur Ipsach aus
    Messung und Modell). Ausschnitt See: der Chasseral mit dem Wind von jetzt. Nur gemessene Werte, keine typischen.
+   Ausnahme La Neuveville in See und Region: Modellmittel, als «Modell» gekennzeichnet (auch im Regler, für die gewählte Stunde).
    Ein Signal ist hervorgehoben. Beschriftung rechts, sonst links, sonst nur die Zahl. */
 const KURZ = {fre:"Bullet", cdf:"Chaux-de-Fonds", brl:"La Brévine", vin:"Vingelz", ips:"Ipsach"};
 function statPos(){
   if(ST.view==="bucht" || !W) return [];
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
   const vor = !ST.full && ST.h>0;
-  if(ST.view==="see"){ if(vor) return [];
-    const L1 = [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}]; return platziere(L1); }
+  holeNeuv();
+  const nv = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell"};
+  if(ST.view==="see"){
+    const L1 = vor ? [nv] : [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}, nv]; return platziere(L1); }
   if(!vor) holeExtra();
   const L = vor ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}))
     .concat(ANZEIGE.map(a=>({id:a.abk, name:a.name, ll:STAT[a.abk], w:station(a.abk), sig:"", voll:a.voll})));
   if(vor){ const m = BILD.ref.ips; L.push({id:"ips", name:"Ipsach", ll:MARK.ips, w:m ? {kn:m.kn, dir:m.dir} : null, sig:"", voll:"Ipsach (Messung und Modell)", modell:true}); }
+  L.push(nv);
   return platziere(L);
 }
 function platziere(L){
@@ -428,7 +448,7 @@ function platziere(L){
   /* Signale zuerst beschriften, dann in der Reihenfolge der Stationsliste (Cressier, Chasseral, Neuchâtel, …) */
   out.slice().sort((a,b)=>(b.sig?1:0)-(a.sig?1:0)).forEach(s=>{
     const kn = s.w ? (s.modell ? "~" : "") + r0(s.w.kn) : "–";
-    for(const txt of [`${s.name} ${kn}`, String(kn)]){
+    for(const txt of (s.tag ? [`${s.name} ${kn} ${s.tag}`, `${s.name} ${kn}`, `${kn} ${s.tag}`] : []).concat([`${s.name} ${kn}`, String(kn)])){
       const tw = txt.length*7.2+14, at = [[s.x+13, s.y-9], [s.x-13-tw, s.y-9], [s.x-tw/2, s.y+13], [s.x-tw/2, s.y-31]];
       const b = at.map(o=>[o[0], o[1], tw, 18]).find(fits);
       if(b){ used.push(b); Object.assign(s, {lx:b[0], ly:b[1], txt}); break; }
@@ -440,8 +460,9 @@ function badges(){
   const box = el.querySelector(".wbbadges"); let h = "";
   const grau = `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`;
   statPos().forEach(s=>{
-    h += `<div class="wbst${s.sig ? " "+s.sig : ""}" style="left:${s.x}px;top:${s.y}px">${s.w ? dot(s.w.dir, s.w.kn) : grau}</div>`;
-    if(s.lx!=null) h += `<div class="wbstl${s.sig ? " "+s.sig : ""}" style="left:${s.lx}px;top:${s.ly}px">${esc(s.txt)}</div>`;
+    const k = (s.sig ? " "+s.sig : "") + (s.tag ? " mod" : "");
+    h += `<div class="wbst${k}" style="left:${s.x}px;top:${s.y}px" title="${esc(s.voll||s.name)}">${s.w ? dot(s.w.dir, s.w.kn) : grau}</div>`;
+    if(s.lx!=null) h += `<div class="wbstl${k}" style="left:${s.lx}px;top:${s.ly}px">${esc(s.txt)}</div>`;
   });
   /* Ausschnitt Bucht: Der Chasseral liegt ausserhalb, sein Wind von jetzt steht in der Ecke */
   if(ST.view==="bucht" && !(!ST.full && ST.h>0)){ const c = station("cha");
