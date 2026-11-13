@@ -24,6 +24,8 @@ const bis = arg("--bis", split.devBis), VON = "2026-10-16";
 const OUT = path.join(ROOT, "data", "windbild.json"), TPL = JSON.parse(fs.readFileSync(path.join(__dirname, "windbild.vorlage.json"), "utf8"));
 const SCHWELLEN = []; for(let t=10; t<=30; t++) SCHWELLEN.push(t);
 const LAPSE = 4, KAMM_MIN = 10, MIN_WERTE = 12;                    /* wie eval/schichten.cjs */
+/* Kammprognose ICON-CH2 mal diesen Faktor (Median Prognose/Messung 0.49, eval/windbild-stunde.cjs) */
+const KAMM_FAKTOR = 2;
 const MIN_TAGE = 4, TAG_WERTE = 6;                                 /* ein Tag zählt ab einer Stunde Messwerten in der Lage; ab MIN_TAGE Tagen gilt sie als gemessen */
 const LAND = ["cha","crm","gre","coy","neu"], SEE = C.LAKE.map(x=>x.id), MESS = LAND.concat(SEE);
 
@@ -83,8 +85,8 @@ function summe(x, y){
 const days = [...new Set(rows.map(r=>r.day))].sort();
 const out = {stand:C.localDay(0), von:days[0], bis:days[days.length-1], tage:days.length,
   quelle:"Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
-  format:"kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
-  regeln:{kammMin:KAMM_MIN, lapseMin:LAPSE, tagWerte:TAG_WERTE},
+  format:"kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; die Kammprognose zählt mal regeln.kammFaktor; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+  regeln:{kammMin:KAMM_MIN, lapseMin:LAPSE, tagWerte:TAG_WERTE, kammFaktor:KAMM_FAKTOR},
   lagen:[]};
 const done = {};
 TPL.lagen.forEach(l=>{ const Lg = {id:l.id, name:l.name, kamm:l.kamm || [...new Set(l.vars.flatMap(V=>V.regel ? V.regel.kamm : []))], vars:[]};
@@ -105,6 +107,10 @@ console.log(`Windbild — ${days.length} Tage (${days[0]} bis ${days[days.length
 console.log("Variante        Herkunft  St Tage  Werte | Chasseral | Cressier  | Ipsach     ab 12 kn | Vingelz    ab 12 kn");
 table.forEach(t=>console.log(t));
 
+/* Regler: wie lange die Messung von jetzt hält und wie oft die Prognose trifft (eval/lage-vorlauf.cjs --schreiben) */
+const VL = path.join(__dirname, "data", "vorlauf.json");
+if(fs.existsSync(VL)){ const v = JSON.parse(fs.readFileSync(VL, "utf8")); out.vorlauf = {stand:v.stand, von:v.von, bis:v.bis, jahre:v.jahre, leads:v.leads, fort:v.fort, prog:v.prog, tau:v.tau}; }
+else console.log("Hinweis: eval/data/vorlauf.json fehlt (node eval/lage-vorlauf.cjs --schreiben). Der Regler zeigt dann keine Quote.");
 /* kompakt schreiben: eine Zeile je Stützpunktliste und je Schwelle */
 const text = JSON.stringify(out, null, 1)
   .replace(/\[\s+("[a-zA-Z]+"),\s+([\d.]+),\s+([\d.]+)(?:,\s+(1))?\s+\]/g, (m,a,b,c,d)=>`[${a},${b},${c}${d?",1":""}]`)
@@ -139,6 +145,7 @@ if(has("--pruefen")){
   ok("Kein geschätzter Stützpunkt liegt über der stärksten Messung seiner Höhenlage", hoch.length===0, hoch.join(", "));
   const sek = out.lagen.flatMap(l=>l.kamm);
   ok("Jeder Chasseral-Sektor gehört zu höchstens einer Lage, jede gerechnete Lage nennt ihre Sektoren", new Set(sek).size===sek.length && out.lagen.every(l=>l.kamm.length || !l.vars.some(v=>v.werte)), sek.join(", "));
+  ok("Kennzahlen für den Regler vorhanden (vorlauf, aus eval/lage-vorlauf.cjs)", !!(out.vorlauf && out.vorlauf.leads && out.vorlauf.prog && out.vorlauf.tau>0));
   ok("Anteil fällt mit steigender Schwelle nicht", vars.filter(([,v])=>v.anteil).every(([,v])=>SEE.every(id=>SCHWELLEN.slice(1).every(T=>v.anteil[T][id][1]<=v.anteil[T-1][id][1] && v.anteil[T][id][0]<=v.anteil[T-1][id][0]))));
   /* Vorwahl der App gegen das Archiv: Funktion aus app/windbild.js herauslösen (sie ist rein) und je Zeile so füttern, wie
      heute() es mit Messwerten tut: Chasseral als Mittel der letzten drei Zehnminutenwerte, Seestationen als frische Werte.

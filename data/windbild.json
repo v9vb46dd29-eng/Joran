@@ -1,14 +1,15 @@
 {
- "stand": "2026-11-12",
+ "stand": "2026-11-13",
  "von": "2026-10-16",
  "bis": "2026-11-05",
  "tage": 21,
  "quelle": "Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
- "format": "kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+ "format": "kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; die Kammprognose zählt mal regeln.kammFaktor; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
  "regeln": {
   "kammMin": 10,
   "lapseMin": 4,
-  "tagWerte": 6
+  "tagWerte": 6,
+  "kammFaktor": 2
  },
  "lagen": [
   {
@@ -125,6 +126,81 @@
       "30": {"vin":[0,0],"ips":[0,0]}
      },
      "a": [["cha",195,32.8,1],["crm",234,8.7,1],["gre",239,8,1],["coy",239,12.3,1],["neu",247,9,1],["vin",238,10.9,1],["ips",240,15.9,1],["neuv",245,12.9],["lig",245,14.9],["twa",242,14.9],["sutz",240,15.9],["mor",240,14.9],["bay",240,12.9],["alf",238,9.9],["tus",238,10.9],["nid",235,10],["biel",230,7],["mag",205,8.9],["seel",214,10.6],["erl",219,8.7],["lus",235,11.9],["pla",205,15.7],["val",205,11.8],["son",205,11.8],["pery",210,9.8],["hag",214,9.7],["twb",210,12.8]]
+    }
+   ]
+  },
+  {
+   "id": "suedost",
+   "name": "Südost",
+   "kamm": [
+    "SO"
+   ],
+   "vars": [
+    {
+     "key": "mix",
+     "label": "Durchmischt",
+     "status": "e",
+     "tage": 3,
+     "werte": 111,
+     "schicht": "gemischt",
+     "text": "Südost auf dem Jura, oft vor einer Front. Am See kommt er als schwacher Nordost an, wie eine schwache Bise. Zum Foilen reicht es selten.",
+     "anteil": {
+      "10": {"vin":[0,0],"ips":[0,0]},
+      "11": {"vin":[0,0],"ips":[0,0]},
+      "12": {"vin":[0,0],"ips":[0,0]},
+      "13": {"vin":[0,0],"ips":[0,0]},
+      "14": {"vin":[0,0],"ips":[0,0]},
+      "15": {"vin":[0,0],"ips":[0,0]},
+      "16": {"vin":[0,0],"ips":[0,0]},
+      "17": {"vin":[0,0],"ips":[0,0]},
+      "18": {"vin":[0,0],"ips":[0,0]},
+      "19": {"vin":[0,0],"ips":[0,0]},
+      "20": {"vin":[0,0],"ips":[0,0]},
+      "21": {"vin":[0,0],"ips":[0,0]},
+      "22": {"vin":[0,0],"ips":[0,0]},
+      "23": {"vin":[0,0],"ips":[0,0]},
+      "24": {"vin":[0,0],"ips":[0,0]},
+      "25": {"vin":[0,0],"ips":[0,0]},
+      "26": {"vin":[0,0],"ips":[0,0]},
+      "27": {"vin":[0,0],"ips":[0,0]},
+      "28": {"vin":[0,0],"ips":[0,0]},
+      "29": {"vin":[0,0],"ips":[0,0]},
+      "30": {"vin":[0,0],"ips":[0,0]}
+     },
+     "a": [["cha",118,18.1,1],["crm",45,8,1],["gre",71,8.4,1],["coy",63,9.3,1],["neu",60,7,1],["vin",42,5.8,1],["ips",54,6,1],["biel",64,7.5],["nid",59,6],["bay",59,6.8],["alf",42,5.8],["tus",42,6.1],["twa",59,7.5],["lig",59,7.5],["neuv",64,7.5],["sutz",54,6],["mor",54,6],["seel",50,6.4],["hag",55,7.2],["erl",50,7.2],["lus",64,6.8],["pla",103,10.5],["val",113,9.6],["son",113,9.6],["pery",108,9.6],["mag",98,9.6],["twb",98,9.6],["frin",83,8.5]]
+    },
+    {
+     "key": "stab",
+     "label": "Inversion",
+     "status": "e",
+     "tage": 2,
+     "werte": 25,
+     "schicht": "stabil",
+     "text": "Oben Südost, unten kalte Luft: Am See bleibt es meist ruhig.",
+     "anteil": {
+      "10": {"vin":[0,0],"ips":[4,4]},
+      "11": {"vin":[0,0],"ips":[0,0]},
+      "12": {"vin":[0,0],"ips":[0,0]},
+      "13": {"vin":[0,0],"ips":[0,0]},
+      "14": {"vin":[0,0],"ips":[0,0]},
+      "15": {"vin":[0,0],"ips":[0,0]},
+      "16": {"vin":[0,0],"ips":[0,0]},
+      "17": {"vin":[0,0],"ips":[0,0]},
+      "18": {"vin":[0,0],"ips":[0,0]},
+      "19": {"vin":[0,0],"ips":[0,0]},
+      "20": {"vin":[0,0],"ips":[0,0]},
+      "21": {"vin":[0,0],"ips":[0,0]},
+      "22": {"vin":[0,0],"ips":[0,0]},
+      "23": {"vin":[0,0],"ips":[0,0]},
+      "24": {"vin":[0,0],"ips":[0,0]},
+      "25": {"vin":[0,0],"ips":[0,0]},
+      "26": {"vin":[0,0],"ips":[0,0]},
+      "27": {"vin":[0,0],"ips":[0,0]},
+      "28": {"vin":[0,0],"ips":[0,0]},
+      "29": {"vin":[0,0],"ips":[0,0]},
+      "30": {"vin":[0,0],"ips":[0,0]}
+     },
+     "a": [["cha",130,11.3,1],["crm",38,6.8,1],["gre",65,8.7,1],["coy",62,8.2,1],["neu",55,7,1],["vin",35,5.5,1],["ips",49,6.8,1],["biel",59,8.5],["nid",54,6.8],["bay",54,7.7],["alf",35,5.5],["tus",35,5.8],["twa",54,8.5],["lig",54,8.5],["neuv",59,8.5],["sutz",49,6.8],["mor",49,6.8],["seel",43,5.4],["hag",48,6.1],["erl",43,6.1],["lus",59,7.7],["pla",115,6.6],["val",125,6],["son",125,6],["pery",120,6],["mag",110,6],["twb",110,6],["frin",95,5.3]]
     }
    ]
   },
@@ -275,5 +351,102 @@
     }
    ]
   }
- ]
+ ],
+ "vorlauf": {
+  "stand": "2026-11-13",
+  "von": "2026-10-16",
+  "bis": "2026-11-05",
+  "jahre": "2010–2026-11-13",
+  "leads": [
+   1,
+   2,
+   3,
+   4,
+   6,
+   9,
+   12,
+   18,
+   24
+  ],
+  "fort": {
+   "west": [
+    82,
+    78,
+    75,
+    72,
+    68,
+    64,
+    60,
+    58,
+    54
+   ],
+   "joran": [
+    82,
+    78,
+    74,
+    71,
+    65,
+    57,
+    50,
+    41,
+    33
+   ],
+   "sued": [
+    60,
+    52,
+    47,
+    42,
+    36,
+    34,
+    30,
+    26,
+    23
+   ],
+   "bise": [
+    87,
+    84,
+    81,
+    79,
+    75,
+    69,
+    65,
+    59,
+    58
+   ],
+   "nord": [
+    74,
+    68,
+    63,
+    59,
+    53,
+    44,
+    36,
+    29,
+    26
+   ],
+   "suedost": [
+    71,
+    60,
+    50,
+    42,
+    32,
+    23,
+    19,
+    14,
+    16
+   ]
+  },
+  "prog": [
+   74,
+   75,
+   76,
+   76,
+   76,
+   75,
+   73,
+   72,
+   77
+  ],
+  "tau": 2.5
+ }
 }

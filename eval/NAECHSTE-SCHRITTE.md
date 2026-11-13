@@ -37,8 +37,14 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
 10. `node eval/windbild-stunde.cjs` laufen lassen (vorher `eval/data/stunde_prognose.json` löschen): Lage je Stunde
     aus der Prognose (Regler im Windbild) gegen die Messung Chasseral. Stand 13.11.2026 (16.10.–5.11.): Bise 94 %,
     West 65 %, Nordlage 60 %, Süd 0 % (als West). Trifft Süd inzwischen, «West oder Süd» in `stunde()` aufheben.
-    Probeweise `--kamm 2.5` (ICON-CH2 liefert am Kamm rund die Hälfte): hebt West auf 83 %, Süd bleibt bei 0 %.
-11. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+    Seit v26 rechnet die App die Kammprognose mal `regeln.kammFaktor` (2). `--kamm F` multipliziert zusätzlich: `--kamm 1.25` entspricht Faktor 2,5.
+11. `node eval/lage-vorlauf.cjs --schreiben`, danach nochmals `node eval/windbild.cjs --pruefen` (übernimmt die Quoten in
+    `data/windbild.json`). Prüfen: Schlägt die Mischregel des Reglers weiterhin Messung und Prognose allein? Passt τ noch
+    (13.11.2026: 2,5 h)? Erkennt «max(Mischung, Modell)» an Ipsach ab 12 kn mindestens so viele Stunden wie das Modell?
+12. `node eval/regel-e.cjs`, danach `node eval/joran-prognose.cjs`. Das zweite Skript hängt die Läufe von ICON-CH2 an
+    `eval/data/joran_prognose.json` an. Das Archiv der API reicht nur 92 Tage zurück: spätestens alle drei Monate laufen
+    lassen, sonst entsteht eine Lücke. Joran-Typ aus den Markierungen (`jt:` im Rückblick) mit `joranType` vergleichen.
+13. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 
@@ -49,6 +55,8 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
 | Joran: Faktoren, H3 im Sommer prüfen, Drehung Vingelz/Ipsach (`node eval/joran.cjs`) | 10 Joran-Episoden (heute 1) | Juni bis Juli 2027 |
 | Taubenlöchler | Markierungen `tl:` im Rückblick und Abende mit Nord/Bise am See | offen |
 | Bieler Bucht: Joran-Äste, Taubenloch, Nordlage, Seewind (H-B1 bis H-B8 in `eval/IDEEN.md`, `node eval/bucht.cjs`) | Joran-Episoden je Typ, Nordlage-Abende, Seemessung im Sommer | Sommer 2027 |
+| Joran in der Prognose: Kamm-Schwelle und Druckzeichen kalibrieren (`node eval/joran-prognose.cjs`) | 15–20 Abende mit Regel E im Archiv der Läufe (heute 7) | Sommer 2027 |
+| Südost: eigene Werte am See statt der Schätzung (heute 3 Tage) | 4 Tage Südost auf dem Chasseral | laufend |
 | H4: Grenze je Windrichtung | mehr Abende je Richtung; echte Vortagesprognose auf 850 hPa | laufend |
 
 ## Offene Entscheide (Simon)
