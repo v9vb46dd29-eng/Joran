@@ -10,7 +10,7 @@ const ROOT = path.join(__dirname, ".."), C = require(path.join(ROOT, "core.js"))
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i>0 ? process.argv[i+1] : d; };
 const T = parseFloat(arg("--T", "12")), model = arg("--modell", "icon_eu");
 const split = JSON.parse(fs.readFileSync(path.join(__dirname, "split.json"), "utf8"));
-const H = JSON.parse(fs.readFileSync(path.join(__dirname, "data", `hoehenwind_${model}.json`), "utf8")).hourly;
+const H = require("./zeitversatz.cjs").hourly(JSON.parse(fs.readFileSync(path.join(__dirname, "data", `hoehenwind_${model}.json`), "utf8")));   /* Zeit in Ortszeit */
 const St = Object.assign(C.merge(C.sanitizeCfg(JSON.parse(fs.readFileSync(path.join(ROOT, "users", "simon.json"), "utf8")))), {T});
 const per = M.lakeByDay(M.loadArchive([], true).lk);
 const mean = a => a.length ? a.reduce((s,v)=>s+v,0)/a.length : null;

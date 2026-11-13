@@ -13,7 +13,7 @@ const file = path.join(__dirname, "data", "prognose_vortag.json");
 (async()=>{
   let D = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
   if(!D && !offline){
-    D = {geholt:new Date().toISOString(), models:[]};
+    D = {geholt:new Date().toISOString(), zeit:"ortszeit", models:[]};   /* fetchHistory rechnet in Ortszeit um */
     const days = Math.min(92, Math.ceil((Date.now()-Date.parse("2026-10-15T00:00:00Z"))/864e5)+1);
     for(const m of C.MODELS){ try{ D.models.push({id:m.id, spots:await C.fetchHistory(m, days)}); }catch(e){ console.error(`${m.id}: ${e.message||e}`); } }
     if(D.models.length){ fs.mkdirSync(path.dirname(file), {recursive:true}); fs.writeFileSync(file, JSON.stringify(D)); } else D = null;

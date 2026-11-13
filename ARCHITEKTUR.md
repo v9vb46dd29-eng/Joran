@@ -1,6 +1,6 @@
 # Aufbau der App
 
-Stand v26 (13.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
+Stand v27 (13.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
 Repo liegen, die Action und die Auswertung laden denselben Rechenkern mit `require`.
 
 ## Wozu der Umbau
@@ -28,10 +28,10 @@ Reihenfolge ist die der Abhängigkeit: Ein Silo darf nur Silos brauchen, die wei
 | `prognose` | Modellprognose auswerten: Stufe, Ensemble, Joran-Zutaten, Höhenwind | konstanten, helfer, modell | 141 |
 | `messung` | Live-Signal: Upwind-Regel, Regel E, Böenfront, Kopplung, `nowcast` | konstanten, helfer, modell, see | 185 |
 | `kalibrierung` | Parameter aus der Vergangenheit bestimmen (`fitModel`, Rückblick) | alle oben | 220 |
-| `daten` | Alles, was ins Netz geht (Open-Meteo, SwissMetNet, meteoBase, `data/windbild.json`) | konstanten, see | 225 |
+| `daten` | Alles, was ins Netz geht (Open-Meteo, SwissMetNet, meteoBase, `data/windbild.json`); `ortszeit` stellt die Zeit der Open-Meteo-Reihen richtig | konstanten, see | 245 |
 | `einstellungen` | Push-Einstellungen prüfen (`users/<name>.json`) | konstanten, helfer | 40 |
 
-`core.js` ist nur noch die Fassade. Sie führt die 96 öffentlichen Namen auf (73 Funktionen, 23 Konstanten) und fasst sie zu einem Objekt zusammen
+`core.js` ist nur noch die Fassade. Sie führt die 97 öffentlichen Namen auf (74 Funktionen, 23 Konstanten) und fasst sie zu einem Objekt zusammen
 (`JoranCore` im Browser, `require("./core.js")` in Node). `push/`, `eval/` und die Oberfläche kennen nur die Fassade.
 Für sie hat sich nichts geändert.
 
@@ -66,7 +66,7 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 2. Nur `daten` geht ins Netz. Der Rechenkern kennt weder Seite noch Browser-Speicher.
 3. Action, Auswertung und Oberfläche brauchen nur die Fassade, nie ein Silo direkt.
 4. `index.html` lädt die Silos in der Reihenfolge der Fassade, danach `core.js`, danach `app/`, `start.js` zuletzt.
-5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=26`, «v26»). Bei jeder Änderung an allen Stellen
+5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=27`, «v27»). Bei jeder Änderung an allen Stellen
    gleich hochzählen, sonst mischt der Browser alte und neue Dateien.
 6. Nur `app/push.js` spricht mit der GitHub-API. Wetterdaten holt die Oberfläche nur über den Rechenkern.
 7. `MODEL.active` ist `false`, bis Simon eine Aktivierung mergt.

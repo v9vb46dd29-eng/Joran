@@ -471,8 +471,40 @@ zu ändern. Das Skript hängt die Läufe an und baut so ein eigenes Archiv auf.
 
 **Bekannte Grenze:** Open-Meteo liefert die Zeiten der Archivläufe mit festem Versatz +1 h (Reviewer, geprüft über den
 25.10.). Vor dem 25.10. liegen die Prognosen in `windbild-stunde.cjs` und `lage-vorlauf.cjs` damit eine Stunde daneben.
-Korrigiert ändert sich die Mischregel um höchstens 2 Punkte. Betrifft schon `main`, nicht behoben.
+Korrigiert ändert sich die Mischregel um höchstens 2 Punkte. Betrifft schon `main`, nicht behoben. → Behoben in v27, siehe unten.
 
 **Review** (separater Reviewer, rechnet selbst nach): ANNEHMEN mit Auflagen, keine blockierenden Defekte. Auflagen
 umgesetzt: Messung mit der Eingabe der App (Fehlalarme ehrlich, τ von 3,75 auf 2,5 h), Skript nutzt `mischLage` aus der
 App, Fehlbeschriftung «Prognose sagt Wechsel» bei fehlender Prognose-Lage behoben, Zahlen in Kommentaren berichtigt.
+
+## 13.11.2026: Zeitversatz der Open-Meteo-Reihen behoben (v27)
+
+Auslöser: Befund des Reviewers zu v26. Open-Meteo schreibt mit `timezone=Europe/Zurich` die ganze Reihe mit dem Versatz
+vom Zeitpunkt des Abrufs (`utc_offset_seconds`), nicht mit dem der jeweiligen Stunde. Geprüft: Abruf vom 13.11.,
+624 Stunden ab 19.10., Versatz +1 h, keine doppelte Stunde am 25.10.; gegen denselben Abruf in UTC liegt «14:00» am
+20.10. eine Stunde früh. Betroffen waren alle Abrufe, nicht nur die zwei Skripte: Rückblick der App (`fetchHistory`),
+Prognose, Ensemble, Höhenwind und Joran-Zutaten über einen Wechsel der Sommerzeit, dazu alle Archive in `eval/data/`.
+
+**Behebung:** `ortszeit(times, off)` in `core/daten.js` rechnet jede Beschriftung mit dem gelieferten Versatz auf UTC
+zurück und schreibt sie in echter Ortszeit. Alle Open-Meteo-Abrufe im Rechenkern und in `eval/` laufen darüber.
+`node eval/zeitversatz.cjs` hat die abgelegten Archive einmal umgerechnet (Versatz aus `utc_offset_seconds` oder aus
+«geholt») und markiert sie mit `zeit: "ortszeit"`. Gegenprobe: 695 von 696 Stunden der Kammprognose stimmen mit einem
+frischen Abruf in UTC überein; die eine Abweichung ist 02:00 am 25.10., die es zweimal gibt.
+`eval/gleich.cjs --erlaubt ortszeit,fetchJura,fetchHoehe`: 0 Abweichungen. Push und Bewertung rechnen wie bisher.
+
+**Zahlen vorher → nachher** (Entwicklungstage 16.10.–5.11.):
+
+| Auswertung | vorher | nachher |
+|---|---|---|
+| `measure.cjs --T 12` und `--T 14` (Live-Signal, Prognose am Vortag, Höhenwind) | | unverändert |
+| Mischregel, Lauf des Tages, +1 / +3 / +6 / +12 / +24 h | 87 / 88 / 79 / 76 / 77 % | 86 / 86 / 79 / 75 / 76 % |
+| Mischregel, Lauf vom Vortag, +1 / +3 / +6 / +12 / +24 h | 86 / 86 / 79 / 77 / 77 % | 88 / 88 / 81 / 78 / 78 % |
+| Prognose, Lauf des Tages (Quote im Regler), +1 / +12 / +24 h | 74 / 73 / 77 % | 74 / 74 / 76 % |
+| Lage je Stunde, Lauf des Tages: West / Süd als «West oder Süd» / Nordlage / Joran | 71 / 80 / 80 / 32 % | 70 / 87 / 70 / 34 % |
+| Joran in der Prognose, Lauf des Tages: App / Kamm-NW allein / gegen Chasseral NW | 3/7, 5/7, 11/24 | unverändert |
+| Höhenwind ECMWF, 850 hPa gekoppelt, FPR | 0.42 | 0.50 |
+
+Die Abweichungen liegen bei höchstens 2 Punkten je Vorlauf, wie vom Reviewer geschätzt; Nordlage stützt sich auf
+10 Stunden. `data/windbild.json` neu gerechnet (`lage-vorlauf.cjs --schreiben`, `windbild.cjs`): nur die Quote der
+Prognose im Regler ändert sich um höchstens 1 Punkt. Keine Regel und kein Parameter angepasst.
+

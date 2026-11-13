@@ -21,6 +21,7 @@ const arg = (k, d) => { const i = process.argv.indexOf(k); return i>0 ? process.
 const rev = arg("--alt", "origin/main"), voll = process.argv.includes("--voll"), erlaubt = new Set(arg("--erlaubt", "").split(",").filter(Boolean));
 
 const M = require("./measure.cjs"), O = M.coreAt(rev), N = require(path.join(ROOT, "core.js"));
+const Z = require("./zeitversatz.cjs");
 
 const J = x => JSON.stringify(x, (k,v)=>v===undefined ? "__undef" : typeof v==="function" ? v.toString() : v);
 const cnt = {}, bump = (k, eq, info) => { const c = cnt[k] || (cnt[k] = {n:0, diff:0, ex:[]}); c.n++; if(!eq){ c.diff++; if(c.ex.length<3 && info) c.ex.push(info); } };
@@ -83,11 +84,11 @@ for(const v of V) days.forEach(d=>{
   if(models){ const a = O.summarize(models, d, v.St), b = N.summarize(models, d, v.St);
     bump("summarize, describe", J(a)===J(b) && O.describe(a, v.St)===N.describe(b, v.St) && O.clsOf(a.level, v.St)===N.clsOf(b.level, v.St), v.name+" "+d);
     Object.keys(models).forEach(m=>bump("evalDay", J(O.evalDay(models[m], d, v.St))===J(N.evalDay(models[m], d, v.St)), m+" "+d)); }
-  if(hw){ const a = O.hoeheDay(hw.hourly, d, v.St), b = N.hoeheDay(hw.hourly, d, v.St);
+  if(hw){ const a = O.hoeheDay(Z.hourly(hw), d, v.St), b = N.hoeheDay(Z.hourly(hw), d, v.St);
     bump("hoeheDay, hoeheOk", J(a)===J(b) && O.hoeheOk(a, v.St)===N.hoeheOk(b, v.St) && O.hoeheOk(a, withModel(O, v.St))===N.hoeheOk(b, withModel(N, v.St)), v.name+" "+d); }
 });
 bump("sanitizeCfg, pushCfg, merge", J(O.sanitizeCfg(St0))===J(N.sanitizeCfg(St0)) && J(O.pushCfg(St0))===J(N.pushCfg(St0)) && J(O.merge({T:13}))===J(N.merge({T:13})), "");
-{ const data = {days, lake:per, S, St:St0, hoehe:hw ? hw.hourly : null};
+{ const data = {days, lake:per, S, St:St0, hoehe:Z.hourly(hw)};
   bump("fitModel", J(O.fitModel(data))===J(N.fitModel(data)), "je Block bestimmt");
   bump("fitModel", J(O.fitModel(data, {fest:true}))===J(N.fitModel(data, {fest:true})), "fest");
   bump("calibrateStation", N.UPWIND.every((up,i)=>!S[up.abk] || J(O.calibrateStation(S[up.abk], O.UPWIND[i], St0, days, Object.fromEntries(days.map((d,k)=>[d, k%3 ? "n" : "y"])), S.cha))

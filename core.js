@@ -16,7 +16,7 @@ const SILOS = {
   messung: `joranType isExtra frontCheck fresh ruleE stTs stTrust stRel isTrusted stSecFn upwindNow nowcast
     lageHint chaWest lapseRate`,
   kalibrierung: "contingency calibrate fitModel evOf isEv stationDayMax calibrateStation",
-  daten: `getJSON fetchModel updateLake fetchLake fetchLakeNow fetchEnsemble fetchJura fetchHistory
+  daten: `getJSON ortszeit fetchModel updateLake fetchLake fetchLakeNow fetchEnsemble fetchJura fetchHistory
     fetchStation fetchStations fetchAll parseSMN fetchHoehe fetchWindbild`,
   einstellungen: "PUSH_FIELDS pushCfg sanitizeCfg cleanId",
 };
