@@ -99,6 +99,32 @@ h2,.sech{font-size:13px;font-weight:400;text-transform:uppercase;letter-spacing:
 .verdict .why{font-size:15px;opacity:.95;margin-top:8px}
 .verdict .basis{font-size:12px;opacity:.8;margin-top:10px}
 .thrchip{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;font-size:13px;padding:6px 12px;border-radius:16px;border:0;background:#ffffff2e;color:#fff;cursor:pointer}
+/* Startseite: «Wind kommt?» kompakt */
+#now .verdict{padding:12px 16px 14px}
+.vtop{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.vtop .when{font-size:13px;opacity:.9;margin-right:auto}
+.vtop .thrchip{margin:0;min-height:36px;position:relative}
+.vtop .thrchip::after{content:"";position:absolute;inset:-4px 0}
+#now .verdict .word{font-size:28px}
+#now .verdict .why{margin-top:4px}
+#now .verdict .why+.why{margin-top:1px;opacity:.9}
+/* Nächste 4 Tage: eine Zeile je Tag */
+.dlist{background:var(--card);border-radius:var(--r);overflow:hidden}
+.drow{display:grid;grid-template-columns:3.9em 1fr auto;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;cursor:pointer;
+  padding:10px 14px 10px 16px;border-bottom:.5px solid var(--sep);position:relative;min-height:56px;font:inherit}
+.drow:last-child{border-bottom:0}
+.drow::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:4px;border-radius:0 3px 3px 0;background:var(--fill2)}
+.drow.c4::before,.drow.c3::before{background:var(--water)}
+.drow.c2::before{background:#6fb7dc}
+.drow.c1::before{background:var(--jura)}
+.drow::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg)}
+.drow b{font-size:15px;font-weight:600}
+.dtx{min-width:0}
+.dlv{display:block;font-size:16px;font-weight:600}
+.drow.c4 .dlv,.drow.c3 .dlv{color:var(--water)}
+.dl{display:block;font-size:13px;color:color-mix(in srgb,var(--ink) 68%,var(--card));line-height:1.3}
+.more{display:block;width:100%;margin-top:12px;padding:13px;background:var(--card)}
+.meth p{font-size:15px}
 
 /* Listen, Notizen, Tabellen */
 .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:.5px solid var(--sep)}
@@ -139,9 +165,9 @@ details[open]>summary::after{transform:rotate(45deg)}
 details.sub{background:var(--card);border-radius:var(--r);padding:0 16px;margin-top:10px}
 details.sub[open]{padding-bottom:12px}
 details.sub>summary .dim{font-weight:400;font-size:13px}
-#out.loading{position:relative}
-#out.loading>*{opacity:.4;filter:grayscale(.6);pointer-events:none;transition:opacity .2s}
-#out.loading::before{content:attr(data-prog);position:sticky;top:64px;z-index:5;display:block;margin:0 0 10px;padding:9px 14px;border-radius:12px;
+#now.loading,#days.loading{position:relative}
+#now.loading>*,#days.loading>*{opacity:.4;filter:grayscale(.6);pointer-events:none;transition:opacity .2s}
+#now.loading::before{content:attr(data-prog);position:sticky;top:64px;z-index:5;display:block;margin:0 0 10px;padding:9px 14px;border-radius:12px;
   background:var(--card);color:var(--accent);font-size:14px;font-weight:600;text-align:center;box-shadow:0 2px 10px #0002}
 .skel{color:var(--muted);font-size:15px;padding:30px 0;text-align:center}
 .ing{list-style:none;padding:0;margin:6px 0 0}
@@ -253,6 +279,8 @@ ol.steps li{margin:3px 0}
 .wbticks span:last-child{transform:translateX(-100%)}
 .wbthr{position:absolute;top:-3px;width:2px;height:15px;background:var(--ink)}
 .wbpanel p{margin:.5em 0}
+/* Startseite: Karte ohne Filter und Tabelle; im Blatt «Erklärungen» (.wbfull) vollständig */
+.wb:not(.wbfull) .wblagen,.wb:not(.wbfull) .wbvars,.wb:not(.wbfull) .wbpanel,.wb:not(.wbfull) .wbback{display:none!important}
 .wbpanel small{display:block;margin-top:6px;font-size:12px}
 .wbstatus{display:inline-block;font-size:12px;font-weight:600;border-radius:10px;padding:3px 10px}
 .wbstatus.m{background:color-mix(in srgb,var(--jura) 18%,transparent);color:var(--ink)}

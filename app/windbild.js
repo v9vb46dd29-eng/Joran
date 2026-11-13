@@ -1,4 +1,4 @@
-/* Joran — Oberfläche «windbild». Sektion «Windbild»: Karte der Bieler Bucht mit dem typischen Wind je Lage, Lage von heute vorgewählt, Wind von jetzt an Vingelz und Ipsach daneben. Zahlen aus data/windbild.json (über den Rechenkern geladen), Geometrie der Karte hier.
+/* Joran — Oberfläche «windbild». Sektion «Windbild»: Karte der Bieler Bucht mit dem typischen Wind je Lage, Lage von heute vorgewählt, Wind von jetzt an Vingelz und Ipsach daneben. Startseite kompakt, im Blatt «Erklärungen» mit allen Lagen (mode). Zahlen aus data/windbild.json (über den Rechenkern geladen), Geometrie der Karte hier.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
    basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
@@ -133,7 +133,7 @@ function heute(){
 
 /* ---------- Zustand ---------- */
 const V_KEY = "joran.windbild.v1";
-const ST = {auto:true, type:"west", vk:{}, view:"bucht"};
+const ST = {auto:true, type:"west", vk:{}, view:"bucht", full:false};
 try{ const v = localStorage.getItem(V_KEY); if(v && VIEWS[v]) ST.view = v; }catch(e){}
 let DATA = null, LOADING = false, FAILED = 0, HEUTE = {lage:null, vk:null, quelle:"", grund:"", art:null, unsicher:false};
 let panelHtml = "";
@@ -373,6 +373,13 @@ function update(){
   else badges();
   panel();
 }
-return {update, vorwahl, state:ST};
+/* Startseite: nur die Lage von heute (ohne Filter, ohne Tabelle). Blatt «Erklärungen»: alle Lagen und Varianten mit Tabelle.
+   Zurück auf der Startseite gilt wieder die Lage von heute. */
+function mode(full){
+  ST.full = !!full; if(!ST.full) ST.auto = true;
+  el = el || $("#wb"); if(el) el.classList.toggle("wbfull", ST.full);
+  drawn = ""; update();
+}
+return {update, vorwahl, mode, state:ST};
 })();
 function wbUpdate(){ try{ WB.update(); }catch(e){ const b = $("#wb"); if(b) b.innerHTML = `<div class="note">Windbild: ${esc(e.message)}</div>`; } }

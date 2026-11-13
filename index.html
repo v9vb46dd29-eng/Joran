@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Joran · Wingfoil Bielersee</title>
-<link rel="stylesheet" href="app/app.css?v=23">
+<link rel="stylesheet" href="app/app.css?v=24">
 </head>
 <body>
 
@@ -22,6 +22,7 @@
   <div class="navbtns">
     <button class="ibtn" id="menu" aria-label="Einstellungen öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <button class="ibtn" id="theme" aria-label="Darstellung wechseln"></button>
+    <button class="ibtn" id="infoBtn" data-info="" aria-label="Erklärungen und Details öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg></button>
   </div>
   <span class="ttl">Joran</span>
   <button class="reload" id="go" aria-label="Aktualisieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span id="goTxt">Aktualisieren</span></button>
@@ -29,18 +30,22 @@
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v23</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v24</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
 <div class="sech" style="margin-top:4px"><span>Am See jetzt</span><span id="lakeStamp"></span></div>
 <div id="lake" class="lake"><div class="lk old"><div class="lh"><b>Vingelz</b></div><div class="lv">–</div></div><div class="lk old"><div class="lh"><b>Ipsach</b></div><div class="lv">–</div></div></div>
 
-<div class="sech"><span>Prognose</span></div>
-<div id="out"><div class="skel">Modelle und Messwerte werden geholt …</div></div>
+<div class="sech"><span>Wind kommt?</span></div>
+<div id="now"><div class="skel">Modelle und Messwerte werden geholt …</div></div>
 
 <div class="sech"><span>Windbild</span><span>Bieler Bucht</span></div>
-<div id="wb" class="wb"><div class="skel">Karte wird geladen …</div></div>
+<div id="wbHome"><div id="wb" class="wb"><div class="skel">Karte wird geladen …</div></div></div>
+
+<div class="sech"><span>Nächste 4 Tage</span></div>
+<div id="days" class="dlist"></div>
+<button class="btn2 more" data-info="">Erklärungen und Details ›</button>
 </div>
 
 <dialog class="sheet" id="sheet" aria-label="Einstellungen">
@@ -84,7 +89,22 @@
         <div class="fld"><input type="text" id="proxy" placeholder="leer = Standard-Proxy von Joran" autocomplete="off" aria-label="Eigener Proxy"><div><button class="btn2" id="proxyS">Speichern</button></div></div>
         <div id="lakeDiag" class="ftr" style="margin:8px 0 0"></div>
         <p class="ftr" style="margin:8px 0 0">Test: <a href="https://joran.rfjhvvs9p2.workers.dev/?url=https%3A%2F%2Fvingelz.meteobase.ch%2F" target="_blank" rel="noopener">Worker direkt öffnen</a>. Er muss die Vingelz-Seite zeigen.</p></details>
-      <details><summary>Methode und Quellen</summary><div style="font-size:15px">
+    </div>
+    <div style="margin-top:22px"><button class="btn2" id="reset" style="width:100%;color:var(--warn);background:var(--card);padding:13px">Einstellungen zurücksetzen</button></div>
+  </div>
+</div>
+</dialog>
+
+<dialog class="sheet" id="info" aria-label="Erklärungen">
+<div class="sh">
+  <div class="shh"><span></span><b>Erklärungen</b><button class="done">Fertig</button></div>
+  <div class="shb">
+    <h2>Tag im Detail</h2>
+    <div id="detail"><div class="skel">Noch keine Daten.</div></div>
+    <h2>Windlagen in der Bucht</h2>
+    <div id="wbSlot"></div>
+    <h2>Methode und Quellen</h2>
+    <div class="note meth">
 <p><b>Prognose.</b> Vier Wettermodelle rechnen den Wind über dem See (ICON-CH1, ICON-CH2, ICON-D2, AROME). Je Stunde zählt der stärkste deiner Spots.</p>
 <p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen (und mindestens zwei). <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines hält die Schwelle lange genug, aber das stärkste liegt höchstens 3 kn darunter. Ab übermorgen rechnet nur noch ICON-CH2.</p>
 <p><b>Wann?</b> Angezeigt werden die Stunden, in denen mindestens die Hälfte der Modelle deine Schwelle erreicht. Gibt es keine, zählen Stunden mit einem einzelnen Modell («nur einzelne Modelle»).</p>
@@ -98,32 +118,30 @@
 <p><b>Push.</b> Zwischen 6 und 21 Uhr prüft ein Programm auf GitHub alle 10 Minuten dieselben Regeln mit deinen Einstellungen und schickt die Nachricht über ntfy.</p>
 <p><b>Wie gut ist das?</b> Die Seemessung wird jeden Tag gespeichert und mit Prognose und Signalen verglichen. Dabei gilt: lieber ein Fehlalarm als ein verpasster Abend. Ein genaueres Modell mit eigenen Schwellen je Station und Windlage und mit Höhenwind ist vorbereitet, aber noch nicht aktiv. Es braucht mehr Windtage. Details stehen im Repo unter <code>eval/METHODE.md</code> und <code>eval/ITERATIONEN.md</code>.</p>
 <p><b>Daten.</b> Einstellungen bleiben in diesem Browser. Nur was du für Push speicherst, steht öffentlich im Repo, ohne ntfy-Thema. Quellen: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD), meteoBase.ch.</p>
-</div></details>
-    </div>
-    <div style="margin-top:22px"><button class="btn2" id="reset" style="width:100%;color:var(--warn);background:var(--card);padding:13px">Einstellungen zurücksetzen</button></div>
+</div>
   </div>
 </div>
 </dialog>
 
 <!-- Rechenkern: Silos in der Reihenfolge ihrer Abhängigkeit, dann die Fassade. Oberfläche: Reihenfolge wie aufgeführt.
      Bei jeder Änderung die Version an allen Dateien und in der Kopfzeile gleich hochzählen (node eval/aufbau.cjs prüft das). -->
-<script src="core/konstanten.js?v=23"></script>
-<script src="core/helfer.js?v=23"></script>
-<script src="core/modell.js?v=23"></script>
-<script src="core/see.js?v=23"></script>
-<script src="core/prognose.js?v=23"></script>
-<script src="core/messung.js?v=23"></script>
-<script src="core/kalibrierung.js?v=23"></script>
-<script src="core/daten.js?v=23"></script>
-<script src="core/einstellungen.js?v=23"></script>
-<script src="core.js?v=23"></script>
-<script src="app/basis.js?v=23"></script>
-<script src="app/see.js?v=23"></script>
-<script src="app/live.js?v=23"></script>
-<script src="app/einstellungen.js?v=23"></script>
-<script src="app/push.js?v=23"></script>
-<script src="app/rueckblick.js?v=23"></script>
-<script src="app/windbild.js?v=23"></script>
-<script src="app/start.js?v=23"></script>
+<script src="core/konstanten.js?v=24"></script>
+<script src="core/helfer.js?v=24"></script>
+<script src="core/modell.js?v=24"></script>
+<script src="core/see.js?v=24"></script>
+<script src="core/prognose.js?v=24"></script>
+<script src="core/messung.js?v=24"></script>
+<script src="core/kalibrierung.js?v=24"></script>
+<script src="core/daten.js?v=24"></script>
+<script src="core/einstellungen.js?v=24"></script>
+<script src="core.js?v=24"></script>
+<script src="app/basis.js?v=24"></script>
+<script src="app/see.js?v=24"></script>
+<script src="app/live.js?v=24"></script>
+<script src="app/einstellungen.js?v=24"></script>
+<script src="app/push.js?v=24"></script>
+<script src="app/rueckblick.js?v=24"></script>
+<script src="app/windbild.js?v=24"></script>
+<script src="app/start.js?v=24"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Aufbau der App
 
-Stand v23 (12.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
+Stand v24 (13.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
 Repo liegen, die Action und die Auswertung laden denselben Rechenkern mit `require`.
 
 ## Wozu der Umbau
@@ -47,12 +47,12 @@ Jedes Silo hat denselben Rahmen aus fünf Zeilen. Er lädt die gebrauchten Silos
 | `app.css` | Darstellung (hell, dunkel, automatisch) | 215 |
 | `basis.js` | Kurzformen, Speicher im Browser, Gesamt-Rendern | 50 |
 | `see.js` | Karten «Am See jetzt» | 59 |
-| `live.js` | Hauptansicht: Urteil, Diagramm, Hinweise, Stationen, Quellen | 279 |
+| `live.js` | Startseite: «Wind kommt?» und die nächsten 4 Tage, kurz. Blatt «Erklärungen»: Urteil mit Begründung, Diagramm, Hinweise, Stationen, Quellen | 343 |
 | `einstellungen.js` | Einstellungsblatt | 19 |
 | `push.js` | Push für mehrere Nutzer, Verwaltung, GitHub-API | 159 |
 | `rueckblick.js` | Tage markieren, kalibrieren, Markierungen ablegen | 108 |
-| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht je Lage, Lage von jetzt oder heute, Wind von jetzt | 378 |
-| `start.js` | Daten holen, auffrischen, Bedienelemente verdrahten | 148 |
+| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht je Lage, Lage von jetzt oder heute, Wind von jetzt. Auf der Startseite kompakt, im Blatt «Erklärungen» mit allen Lagen (`WB.mode`) | 385 |
+| `start.js` | Daten holen, auffrischen, Blätter Einstellungen und Erklärungen, Bedienelemente verdrahten | 164 |
 
 Das sind klassische Skripte. Sie teilen sich ihre Namen und werden in dieser Reihenfolge geladen. Die Grenzen sind hier
 also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugreifen.
@@ -66,7 +66,7 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 2. Nur `daten` geht ins Netz. Der Rechenkern kennt weder Seite noch Browser-Speicher.
 3. Action, Auswertung und Oberfläche brauchen nur die Fassade, nie ein Silo direkt.
 4. `index.html` lädt die Silos in der Reihenfolge der Fassade, danach `core.js`, danach `app/`, `start.js` zuletzt.
-5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=23`, «v23»). Bei jeder Änderung an allen Stellen
+5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=24`, «v24»). Bei jeder Änderung an allen Stellen
    gleich hochzählen, sonst mischt der Browser alte und neue Dateien.
 6. Nur `app/push.js` spricht mit der GitHub-API. Wetterdaten holt die Oberfläche nur über den Rechenkern.
 7. `MODEL.active` ist `false`, bis Simon eine Aktivierung mergt.
@@ -81,7 +81,8 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 | Regel der Prognose-Stufe, Höhenwind | `core/prognose.js` |
 | Wie Parameter bestimmt werden | `core/kalibrierung.js` |
 | Neue Datenquelle, anderer Abruf | `core/daten.js` |
-| Text oder Anzeige der Hauptansicht | `app/live.js` |
+| Text oder Anzeige der Startseite und der Erklärungen | `app/live.js` |
+| Text «Methode und Quellen» | `index.html`, Blatt `#info` |
 | Rückblick, Markierungen | `app/rueckblick.js` |
 | Windbild: Karte, Vorwahl der Lage, Texte der Sektion | `app/windbild.js` |
 | Windbild: Zahlen und Stützpunkte je Lage | nie von Hand: `node eval/windbild.cjs` schreibt `data/windbild.json` |

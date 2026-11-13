@@ -1,17 +1,78 @@
-/* Joran — Oberfläche «live». Hauptansicht: Tagesauswahl, Urteil, Diagramm, Warnungen, Messung gegen Modell, Joran-Zutaten, Höhenwind, Modelle im Detail, Upwind-Stationen, Quellen und Diagnose.
+/* Joran — Oberfläche «live». Startseite: «Wind kommt?» und die nächsten 4 Tage, je kurz. Blatt «Erklärungen»: Tagesauswahl, Urteil mit Begründung, Diagramm, Warnungen, Messung gegen Modell, Joran-Zutaten, Höhenwind, Modelle im Detail, Upwind-Stationen, Quellen und Diagnose.
    Klassisches Skript: teilt sich die Namen mit den anderen Dateien unter app/. Reihenfolge in index.html:
    basis, see, live, einstellungen, push, rueckblick, windbild, start. Aufbau und Regeln: ARCHITEKTUR.md */
 "use strict";
+/* Startseite: «Wind kommt?» (heute, nach dem Zeitfenster morgen) und die nächsten 4 Tage, je kurz.
+   Alles Ausführliche steht im Blatt «Erklärungen» (#detail). */
 function renderLive(){
   const hour = localHourNow();
   const days = [0,1,2,3].map(k=>({k, day:localDay(k)}));
   days.forEach(x=>{ x.s = summarize(D.models, x.day, S); x.ens = x.k<=1 ? ensShare(D.ens, x.day, S) : null; });
-  if(SEL==null) SEL = hour>WINS[S.win][1] ? 1 : 0;
-  const cur = days[SEL];
+  const k0 = hour>WINS[S.win][1] ? 1 : 0;
+  if(SEL==null) SEL = k0;
   const nc = C.nowcast(D.stations, S, undefined, LK);
   nc.lake = C.lakeNow(LK, S, undefined, nc.upSys).filter(x=>S.spots[x.L.id]);
   nc.hint = C.lageHint(nc, nc.lake);
+  $("#now").innerHTML = nowHTML(days[k0], hour, nc);
+  $("#days").innerHTML = days.map(dayRow).join("");
+  renderDetail(days, hour, nc);
+  wbUpdate();
+}
 
+/* Eine Zeile Prognose: Zeit · Stärke Richtung · Modelle */
+function progLine(s){
+  if(s.level<0) return "Keine Modelldaten für diesen Tag.";
+  if(!s.top) return "Kein Modell zeigt Wind aus deinen Richtungen.";
+  return [s.win ? winTxt(s.win) : `stärkster um ${s.top.hr} Uhr`, `${r0(s.top.v)} kn ${card(s.top.d)}`, `${s.hits}/${s.n} Modell${s.n>1?"e":""}`].join(" · ");
+}
+/* Eine Zeile Upwind: nur die Stationen, die ein Signal geben */
+function sigLine(nc, live, h0, k){
+  if(!live) return `Upwind-Signale ${k===1?"morgen ":""}ab ${h0-2} Uhr`;
+  const a = [];
+  if(nc.eOk) a.push(`Cressier ${r0(nc.e.mean30)} kn Joran${nc.e.since?" seit "+hhmm(nc.e.since):""}`);
+  nc.trusted.forEach(x=>{ if(nc.eOk && x.up.abk==="crm") return;
+    a.push(`${x.up.name} ${r0(x.u.mean30)} kn${x.u.sys?" "+x.u.sys.name:""}${x.u.since?" seit "+hhmm(x.u.since):""}`); });
+  if(a.length) return `Signal: ${a.slice(0,2).join(", ")}${a.length>2?` (+${a.length-2})`:""}`;
+  const weak = nc.sig.filter(x=>!nc.trusted.includes(x));
+  if(weak.length) return `Ungeprüftes Signal: ${weak.slice(0,2).map(x=>x.up.name).join(", ")}`;
+  return "Kein Upwind-Signal";
+}
+const levelWord = lv => lv<0 ? "Keine Daten" : LEVELS[lv].charAt(0).toUpperCase()+LEVELS[lv].slice(1);
+function nowHTML(cur, hour, nc){
+  const s = cur.s, today = cur.k===0, [h0,h1] = WINS[S.win];
+  const live = today && hour>=h0-2 && hour<=h1;
+  let cls = "c"+clsOf(s.level,S), word = levelWord(s.level), l1 = progLine(s), l2 = sigLine(nc, live, h0, cur.k);
+  if(live && nc.front.length){
+    cls = "danger"; word = "Nicht rausfahren";
+    l1 = "Sturm: " + nc.front.map(x=>x.up.name+" "+x.f.join(", ")).join("; ");
+    l2 = `Über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen)`;
+  } else {
+    const lakeOk = live ? nc.lake.filter(x=>x.ok) : [];
+    if(lakeOk.length){
+      cls = "c4"; word = "Jetzt foilbar";
+      l2 = l1;
+      l1 = lakeOk.map(x=>`${x.L.name} ${r0(x.last.mean)} kn ${card(x.last.dir)} seit ${hhmm(x.since)}`).join(", ");
+    } else if(live && (nc.eOk || nc.trusted.length)){
+      const strong = nc.eOk || nc.trusted.some(x=>x.u.trust!=null || x.u.rel===1);
+      cls = strong ? "c4" : "c3";
+      word = s.level>=S.cut ? "Wind kommt" : "Upwind-Signal";
+    }
+  }
+  return `<div class="verdict ${cls}"><div class="vtop"><span class="when">${today?"Heute":"Morgen"} · ${esc(WINS[S.win][2])}</span>
+      <button class="thrchip" data-open="sheet">${S.T} kn ›</button><button class="thrchip" data-info="${cur.k}">Details ›</button></div>
+    <span class="word">${esc(word)}</span><div class="why">${esc(l1)}</div><div class="why">${esc(l2)}</div></div>`;
+}
+/* Ein Tag in der Liste: Stufe, darunter die Begründung in einer Zeile */
+function dayRow(x){
+  const s = x.s, c = clsOf(s.level, S), w = warnings(x).map(t=>t.short).filter(Boolean);
+  const line = progLine(s) + (w.length ? " · " + w.join(", ") : "");
+  return `<button class="drow c${c}" data-info="${x.k}"><b>${esc(shortDay(x.k,x.day))}</b>
+    <span class="dtx"><span class="dlv">${esc(levelWord(s.level))}</span><span class="dl">${esc(line)}</span></span></button>`;
+}
+
+/* Blatt «Erklärungen»: gewählter Tag ausführlich, Modelle, Upwind-Stationen, Quellen */
+function renderDetail(days, hour, nc){
+  const cur = days[SEL] || days[0];
   let h = `<div class="days" role="tablist">`;
   days.forEach(x=>{
     const c = clsOf(x.s.level, S);
@@ -24,7 +85,7 @@ function renderLive(){
   h += verdictHTML(cur, hour, nc);
   const jc = S.dirs.joran && D.jura ? C.joranCheck(D.jura, cur.day, S, Math.max(0, ...cur.s.ok.map(x=>x.e.capeMax||0))) : null;
   const warn = warnings(cur);
-  if(warn.length) h += `<div class="note bad"><b>Was die Lage kippen kann</b><ul>${warn.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div>`;
+  if(warn.length) h += `<div class="note bad"><b>Was die Lage kippen kann</b><ul>${warn.map(w=>`<li>${esc(w.text)}</li>`).join("")}</ul></div>`;
 
   h += `<h2>${esc(dayLabel(cur.day,{weekday:"long",day:"numeric",month:"long"}))} im Modell</h2>`;
   h += chartHTML(cur.day);
@@ -49,9 +110,11 @@ function renderLive(){
     <a class="chip" href="https://www.meteoschweiz.admin.ch/service-und-publikationen/applikationen/niederschlag.html" target="_blank" rel="noopener">Radar</a></div>`;
   h += diagHTML() + `</details>`;
 
-  $("#out").innerHTML = h;
-  document.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",()=>{ SEL = +b.dataset.k; renderLive(); }));
-  wbUpdate();
+  const el = $("#detail"), open = [...el.querySelectorAll("details.sub")].map(d=>d.open);
+  el.innerHTML = h;
+  /* aufgeklappte Teile bleiben beim Auffrischen offen */
+  el.querySelectorAll("details.sub").forEach((d,i)=>{ if(open[i]) d.open = true; });
+  el.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",()=>{ SEL = +b.dataset.k; renderDetail(days, hour, nc); }));
 }
 
 const thrChip = () => `<button class="thrchip" data-open="sheet">Schwelle ${S.T} kn · ${esc(WINS[S.win][2])} ›</button>`;
@@ -121,11 +184,11 @@ function modelTable(cur){
 function warnings(cur){
   const w = [], s = cur.s;
   const cape = Math.max(0, ...s.ok.map(x=>x.e.capeMax||0));
-  if(cape>=1000) w.push(`CAPE bis ${Math.round(cape)} J/kg: Gewitter möglich. Eine Böenfront zeigt sich an den Upwind-Stationen zuerst (Temperatursturz, Windsprung).`);
+  if(cape>=1000) w.push({short:"Gewitter möglich", text:`CAPE bis ${Math.round(cape)} J/kg: Gewitter möglich. Eine Böenfront zeigt sich an den Upwind-Stationen zuerst (Temperatursturz, Windsprung).`});
   const gMax = Math.max(0, ...s.ok.map(x=>x.e.top && x.e.top.g!=null ? x.e.top.g : 0));
-  if(gMax*S.k > S.maxGust) w.push(`Böen bis ${r0(gMax*S.k)} kn möglich (mit Modellfaktor), über deiner Grenze von ${S.maxGust} kn.`);
+  if(gMax*S.k > S.maxGust) w.push({short:`Böen bis ${r0(gMax*S.k)} kn`, text:`Böen bis ${r0(gMax*S.k)} kn möglich (mit Modellfaktor), über deiner Grenze von ${S.maxGust} kn.`});
   const tops = s.ok.filter(x=>x.e.top).map(x=>x.e.top.v);
-  if(tops.length>1 && Math.max(...tops)-Math.min(...tops)>=6) w.push(`Modelle uneinig: ${r0(Math.max(...tops)-Math.min(...tops))} kn Spannweite.`);
+  if(tops.length>1 && Math.max(...tops)-Math.min(...tops)>=6) w.push({short:"", text:`Modelle uneinig: ${r0(Math.max(...tops)-Math.min(...tops))} kn Spannweite.`});
   return w;
 }
 
