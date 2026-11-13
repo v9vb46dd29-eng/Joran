@@ -58,15 +58,19 @@ function renderHist(){
         <button class="y" aria-pressed="${t==="y"}" data-t="y" title="war foilbar">Ja</button>
         <button class="k" aria-pressed="${t==="k"}" data-t="k" title="knapp, zählt nicht">~</button>
         <button class="n" aria-pressed="${t==="n"}" data-t="n" title="nicht foilbar">Nein</button>
-        <button class="tl" aria-pressed="${!!truth["tl:"+d]}" data-tl="1" title="Taubenlöchler: Wind aus Nord/Nordost in der Bielerbucht">TL</button></div></div>`;
+        <button class="tl" aria-pressed="${!!truth["tl:"+d]}" data-tl="1" title="Taubenlöchler: Wind aus Nord/Nordost in der Bielerbucht">TL</button>
+        <button class="tl" aria-pressed="${!!truth["jt:"+d]}" data-jt="1" title="Joran: tippen wechselt Front-Joran, Abend-Joran, keiner">${truth["jt:"+d]==="front" ? "Front" : truth["jt:"+d]==="abend" ? "Abend" : "Joran"}</button></div></div>`;
   });
   h += `</div><div class="chips" style="margin-top:14px"><button class="btn2" id="exp">Markierungen kopieren</button><button class="btn2" id="imp">Markierungen einfügen</button>${loadG().token?`<button class="btn2" id="expM">Fürs Modell speichern</button>`:""}</div>
-    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, zählt nicht mit. «TL» = Taubenlöchler (Wind aus Nord oder Nordost in der Bucht), zusätzlich zu «Ja» markieren.${loadG().token?" «Fürs Modell speichern» legt die Markierungen im Repo ab (eval/truth.json). Dort bleiben auch Tage stehen, die du hier wieder entfernst.":""}</small>`;
+    <small>Werte = Vortagesprognose, bester Spot, mit aktuellem Faktor. «~» = knapp, zählt nicht mit. «TL» = Taubenlöchler (Wind aus Nord oder Nordost in der Bucht), zusätzlich zu «Ja» markieren. «Joran» tippen: Front-Joran, nochmals: Abend-Joran.${loadG().token?" «Fürs Modell speichern» legt die Markierungen im Repo ab (eval/truth.json). Dort bleiben auch Tage stehen, die du hier wieder entfernst.":""}</small>`;
   el.innerHTML = h;
 
   el.querySelectorAll(".mk button").forEach(bt=>bt.addEventListener("click",()=>{
     const d = bt.parentElement.dataset.d, tv = bt.dataset.t, tr = loadT();
     if(bt.dataset.tl){ if(tr["tl:"+d]) delete tr["tl:"+d]; else tr["tl:"+d] = 1; }
+    /* Joran: keiner → Front-Joran → Abend-Joran → keiner; setzt das Windsystem des Tages auf Joran */
+    else if(bt.dataset.jt){ const nx = {undefined:"front", front:"abend", abend:undefined}[tr["jt:"+d]];
+      if(nx){ tr["jt:"+d] = nx; tr["sys:"+d] = "joran"; } else { delete tr["jt:"+d]; if(tr["sys:"+d]==="joran") delete tr["sys:"+d]; } }
     else if(tr[d]===tv) delete tr[d]; else tr[d] = tv;
     saveT(tr); renderHist();
   }));
@@ -101,7 +105,9 @@ function renderHist(){
     try{
       const o = JSON.parse(txt), tr = loadT(); let n = 0;
       Object.keys(o).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(k) && ["y","n","k"].includes(o[k])){ tr[k] = o[k]; n++; }
-        else if(/^tl:\d{4}-\d{2}-\d{2}$/.test(k) && o[k]===1){ tr[k] = 1; n++; } });
+        else if(/^tl:\d{4}-\d{2}-\d{2}$/.test(k) && o[k]===1){ tr[k] = 1; n++; }
+        else if(/^sys:\d{4}-\d{2}-\d{2}$/.test(k) && DIRS.some(x=>x.id===o[k])){ tr[k] = o[k]; n++; }
+        else if(/^jt:\d{4}-\d{2}-\d{2}$/.test(k) && ["front","abend"].includes(o[k])){ tr[k] = o[k]; n++; } });
       saveT(tr); renderHist(); alert(n+" Markierungen übernommen.");
     }catch(e){ alert("Das ist kein gültiger Markierungs-Text."); }
   });

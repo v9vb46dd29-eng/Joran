@@ -43,6 +43,32 @@
    ]
   },
   {
+   "id": "suedost",
+   "name": "Südost",
+   "vars": [
+    {
+     "key": "mix",
+     "label": "Durchmischt",
+     "text": "Südost auf dem Jura, oft vor einer Front. Am See kommt er als schwacher Nordost an, wie eine schwache Bise. Zum Foilen reicht es selten.",
+     "regel": {
+      "kamm": ["SO"],
+      "schicht": "gemischt"
+     },
+     "schaetzung": [["biel","ips",1.25,10],["nid","ips",1,5],["bay","ips",1.13,5],["alf","vin",1,0],["tus","vin",1.06,0],["twa","ips",1.25,5],["lig","ips",1.25,5],["neuv","ips",1.25,10],["sutz","ips",1,0],["mor","ips",1,0],["seel","crm",0.8,5],["hag","crm",0.9,10],["erl","crm",0.9,5],["lus","ips",1.13,10],["pla","cha",0.58,-15],["val","cha",0.53,-5],["son","cha",0.53,-5],["pery","cha",0.53,-10],["mag","cha",0.53,-20],["twb","cha",0.53,-20],["frin","cha",0.47,-35]]
+    },
+    {
+     "key": "stab",
+     "label": "Inversion",
+     "text": "Oben Südost, unten kalte Luft: Am See bleibt es meist ruhig.",
+     "regel": {
+      "kamm": ["SO"],
+      "schicht": "stabil"
+     },
+     "schaetzung": [["biel","ips",1.25,10],["nid","ips",1,5],["bay","ips",1.13,5],["alf","vin",1,0],["tus","vin",1.06,0],["twa","ips",1.25,5],["lig","ips",1.25,5],["neuv","ips",1.25,10],["sutz","ips",1,0],["mor","ips",1,0],["seel","crm",0.8,5],["hag","crm",0.9,10],["erl","crm",0.9,5],["lus","ips",1.13,10],["pla","cha",0.58,-15],["val","cha",0.53,-5],["son","cha",0.53,-5],["pery","cha",0.53,-10],["mag","cha",0.53,-20],["twb","cha",0.53,-20],["frin","cha",0.47,-35]]
+    }
+   ]
+  },
+  {
    "id": "bise",
    "name": "Bise",
    "vars": [

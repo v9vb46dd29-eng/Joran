@@ -115,11 +115,13 @@ function lakeByDay(lk){
 const MARK_DAY = /^\d{4}-\d{2}-\d{2}$/;
 function checkMarks(raw){
   if(!raw || typeof raw!=="object" || Array.isArray(raw)) throw new Error("Markierungen: kein JSON-Objekt");
-  const sysIds = C.DIRS.map(d=>d.id), marks = {}, bad = [], n = {y:0, n:0, k:0, tl:0, sys:0};
+  const sysIds = C.DIRS.map(d=>d.id), marks = {}, bad = [], n = {y:0, n:0, k:0, tl:0, sys:0, jt:0};
   Object.keys(raw).forEach(k=>{ const v = raw[k];
     if(MARK_DAY.test(k)){ if(["y","n","k"].includes(v)){ marks[k] = v; n[v]++; } else if(v!=null && v!=="") bad.push(`${k}: «${v}» (erlaubt y, n, k)`); }
     else if(/^tl:/.test(k) && MARK_DAY.test(k.slice(3))){ if(v){ marks[k] = 1; n.tl++; } }
     else if(/^sys:/.test(k) && MARK_DAY.test(k.slice(4))){ if(sysIds.includes(v)){ marks[k] = v; n.sys++; } else if(v) bad.push(`${k}: «${v}» (erlaubt ${sysIds.join(", ")})`); }
+    /* Joran-Typ aus dem Rückblick (Front- oder Abend-Joran): noch nicht gemessen, wird für eval/regel-e.cjs gesammelt */
+    else if(/^jt:/.test(k) && MARK_DAY.test(k.slice(3))){ if(["front","abend"].includes(v)){ marks[k] = v; n.jt++; } else if(v) bad.push(`${k}: «${v}» (erlaubt front, abend)`); }
     else bad.push(`${k}: unbekannter Eintrag`); });
   /* tl: und sys: wirken nur an Tagen, die als foilbar gelten */
   return {marks, bad, n};

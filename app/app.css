@@ -270,6 +270,7 @@ ol.steps li{margin:3px 0}
 .wbnote{position:absolute;left:8px;bottom:6px;font-size:11px;padding:1px 6px;border-radius:6px;background:color-mix(in srgb,var(--card) 80%,transparent);color:var(--ink);pointer-events:none}
 .wbest{position:absolute;right:8px;top:8px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:10px;background:var(--orange);color:#000;pointer-events:none}
 .wbest[hidden]{display:none}
+.wbcorner{position:absolute;left:8px;top:8px;font-size:12px;font-weight:600;padding:3px 8px;border-radius:8px;background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--ink);pointer-events:none}
 .wbleg{display:flex;align-items:center;gap:10px;margin:8px 4px 0;font-size:12px;color:var(--muted)}
 .wbscale{position:relative;flex:1;height:26px}
 .wbramp{height:9px;border-radius:5px}

@@ -7,7 +7,7 @@ const WB = (function(){
 const LAT0 = 47.09, LON0 = 7.15, KX = 75.8, KY = 111.2;
 const km = ([lat,lon]) => [(lon-LON0)*KX, (lat-LAT0)*KY];
 const VIEWS = {
-  region:{name:"Region", lon:[6.53,7.83], lat:[46.77,47.29]},
+  region:{name:"Region", lon:[6.53,7.83], lat:[46.71,47.29]},
   see:   {name:"See",   lon:[7.045,7.272], lat:[47.028,47.150]},
   bucht: {name:"Bucht", lon:[7.170,7.258], lat:[47.098,47.141]}
 };
@@ -23,7 +23,18 @@ const RIDGES_REGION = [
 ];
 /* SwissMetNet-Stationen (Koordinaten aus den Metadaten von MeteoSchweiz) */
 const STAT = {crm:[47.0476,7.0591], cha:[47.1318,7.0544], neu:[47.0001,6.9533], pay:[46.8116,6.9425], gre:[47.1791,7.4151], wyn:[47.2550,7.7875],
-  mub:[46.9733,7.2782], chm:[47.0492,6.9788], cdf:[47.0829,6.7923], fre:[46.8406,6.5764], brl:[46.9838,6.6103], coy:[47.1808,7.0907]};
+  mub:[46.9733,7.2782], chm:[47.0492,6.9788], cdf:[47.0829,6.7923], fre:[46.8406,6.5764], brl:[46.9838,6.6103], coy:[47.1808,7.0907],
+  mah:[46.7370,6.5680]};
+/* Nur zur Anzeige im Ausschnitt Region, kein Upwind-Signal: Am Westende des Neuenburgersees (Yverdon, Estavayer) gibt es keine
+   öffentliche Station mit Wind; am nächsten liegt Mathod in der Orbe-Ebene, 7 km südwestlich von Yverdon. */
+const ANZEIGE = [{abk:"mah", name:"Mathod", voll:"Mathod (Orbe-Ebene bei Yverdon)"}];
+const EXTRA = {};
+function holeExtra(){
+  ANZEIGE.forEach(a=>{ const e = EXTRA[a.abk]; if(e && (e.busy || Date.now()-e.at<10*60000)) return;
+    EXTRA[a.abk] = Object.assign(e || {}, {busy:true});
+    C.fetchStation(a.abk).then(rows=>{ EXTRA[a.abk] = {rows, at:Date.now()}; }).catch(err=>{ EXTRA[a.abk] = {err:err.message||"Fehler", at:Date.now()}; })
+      .then(()=>{ if(ST.view==="region"){ drawn = ""; update(); } }); });
+}
 const RIDGES = [
   {w:5.5, p:[[47.064,7.075],[47.080,7.105],[47.096,7.132],[47.110,7.158],[47.124,7.185],[47.136,7.208],[47.147,7.235],[47.160,7.270],[47.175,7.315]]},
   {w:7, p:[[47.080,6.930],[47.105,6.990],[47.132,7.054],[47.150,7.110],[47.166,7.170],[47.180,7.225],[47.196,7.290],[47.205,7.33]]},
@@ -69,7 +80,7 @@ const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
    schwach weht oder die Angabe fehlt, zählt der Sektor am Boden (DIRS im Rechenkern). */
 const sec8 = d => ["N","NO","O","SO","S","SW","W","NW"][Math.round(d/45)%8];
 const SEKNAME = {N:"Nord", NO:"Nordost", O:"Ost", SO:"Südost", S:"Süd", SW:"Südwest", W:"West", NW:"Nordwest"};
-const BODEN = {w:"west", s:"sued", bise:"bise", n:"nord", joran:"joran"};
+const BODEN = {w:"west", s:"sued", so:"suedost", bise:"bise", n:"nord", joran:"joran"};
 /* Reine Funktion, damit sie sich mit künstlichen Daten prüfen lässt.
    x = {nc: Ergebnis von nowcast (nur im Zeitfenster übergeben), kammP: {kn, dir} Chasseral in der Prognose im Zeitfenster,
         kammM: {kn, dir} Chasseral jetzt gemessen, mixP / mixM: Luft durchmischt laut Prognose / Messung (true, false, null),
@@ -86,16 +97,22 @@ function vorwahl(x, lagen, regeln){
   const R = Object.assign({kammMin:10}, regeln || (DATA && DATA.regeln) || {});
   /* ohne Sektoren in der Datei (ältere Fassung im Zwischenspeicher) zählt nur der Sektor am Boden */
   const stark = k => !!(k && k.dir!=null && k.kn>=R.kammMin) && lagen.some(z=>(z.kamm||[]).length);
+  /* ICON-CH2 sagt auf dem Chasseral im Median 0.49 der Messung voraus (eval/windbild-stunde.cjs): Kammprognose mit
+     regeln.kammFaktor hochrechnen, bevor sie mit kammMin verglichen wird. Mit Faktor 2 trifft die Prognose je Stunde Nordlage
+     80 statt 60 %, Joran 32 statt 16 %, «West oder Süd» 80 statt 77 % (Lauf des Tages, 16.10.–5.11.). */
+  if(x.kammP && x.kammP.kn!=null) x = Object.assign({}, x, {kammP:{kn:x.kammP.kn*(R.kammFaktor||1), dir:x.kammP.dir}});
   const nc = x.nc, joranOk = !!(nc && nc.eOk) || !!(x.jc && x.jc.crestOk && (x.jc.dpOk || x.jc.bnOk));
   const ohne = (quelle, was) => ({lage:null, quelle, was});
   const vonKamm = (k, quelle, mix) => { const sek = sec8(k.dir), l = lagen.find(z=>(z.kamm||[]).includes(sek));
     if(!l) return ohne(quelle, `${SEKNAME[sek]} auf dem Jura`);
-    if(l.id==="joran" && !joranOk) return ohne(quelle, `${SEKNAME[sek]} auf dem Jura, ohne Zeichen für Joran`);
+    /* Nordwest auf dem Kamm ist Joran-Lage, auch ohne Joran-Zeichen. Ohne Zeichen kommt er am See oft schwach an
+       (eval/regel-e.cjs: Regel E feuert an 39 % der Abende mit Nordwest auf dem Chasseral). */
+    if(l.id==="joran" && !joranOk) return {lage:l.id, quelle:quelle+", ohne Joran-Zeichen", mix};
     return {lage:l.id, quelle, mix}; };
   const vonBoden = (d, quelle, mix) => !d ? null : !BODEN[d.id] ? ohne(quelle, d.name)
     : BODEN[d.id]==="joran" && !joranOk ? ohne(quelle, "Nordwest am See, ohne Zeichen für Joran") : {lage:BODEN[d.id], quelle, mix};
   let r = null;
-  let art = "messung", kamm = false;
+  let art = "messung", kamm = false;   /* kamm: Lage aus der Messung auf dem Chasseral oder aus Regel E */
   if(nc && nc.eOk){ r = {lage:"joran", quelle:"Upwind-Signal (Cressier)", mix:x.mixM}; kamm = true; }
   else if(nc && (nc.trusted||[]).length){
     const t = nc.trusted.find(z=>z.u && z.u.sys) || nc.trusted[0], q = `Upwind-Signal (${t.up.name})`;
@@ -109,14 +126,42 @@ function vorwahl(x, lagen, regeln){
     const f = (x.lake||[]).filter(z=>z.fresh && z.last && z.last.dir!=null && z.last.mean>=3).sort((a,b)=>b.last.mean-a.last.mean)[0];
     if(f) r = vonBoden(dirOf(f.last.dir), `Seemessung ${f.L.name}`, x.mixM);
   }
-  if(!r) return {lage:null, vk:null, quelle:"", grund:"Lage von heute noch offen.", art:null, unsicher:false};
+  if(!r) return {lage:null, vk:null, quelle:"", grund:"Lage von heute noch offen.", art:null, unsicher:false, kamm:false};
   const unsicher = !kamm && !!x.kammFehlt;
-  if(!r.lage) return {lage:null, vk:null, quelle:r.quelle, art, unsicher,
+  if(!r.lage) return {lage:null, vk:null, quelle:r.quelle, art, unsicher, kamm,
     grund:`${art==="messung" ? "Jetzt" : "Heute"} ${r.was}: Dafür gibt es noch kein Windbild.`};
   const l = lagen.find(z=>z.id===r.lage); let vk = null;
   if(r.lage==="joran") vk = x.jc && x.jc.bnOk ? "front" : x.monat>=5 && x.monat<=8 ? "abend" : "front";
   else if(l && l.vars.length>1){ const v = l.vars.find(z=>z.schicht===(r.mix===false ? "stabil" : "gemischt")); vk = v ? v.key : l.vars[0].key; }
-  return {lage:r.lage, vk, quelle:r.quelle, grund:"", art, unsicher};
+  return {lage:r.lage, vk, quelle:r.quelle, grund:"", art, unsicher, kamm};
+}
+/* Regler: Lage einer kommenden Stunde. Die Messung von jetzt hält länger, als die Prognose trifft (eval/lage-vorlauf.cjs,
+   Entwicklungstage: fortgeschrieben 90 % nach 1 h und 61 % nach 18 h, Prognose 62–69 %). Darum gilt die Lage von jetzt,
+   ausser die Prognose sagt selbst einen Wechsel voraus (Lage der Stunde anders als ihre Lage von jetzt).
+   jetzt: Lage aus der Messung auf dem Chasseral (oder null), p0 / ph: vorwahl() aus der Prognose für jetzt und für die Stunde.
+   West und Süd zählen dabei als eine Lage: Die Prognose trennt sie nicht. */
+const wsGleich = (a, b) => (a==="sued" ? "west" : a)===(b==="sued" ? "west" : b);
+function mischLage(jetzt, p0, ph){
+  if(jetzt && jetzt.lage && !(ph && ph.lage && !wsGleich(ph.lage, p0 && p0.lage))) return {lage:jetzt.lage, vk:jetzt.vk, aus:"messung"};
+  return ph && ph.lage ? {lage:ph.lage, vk:ph.vk, aus:jetzt && jetzt.lage ? "wechsel" : "prognose"} : {lage:null, vk:null, aus:"prognose"};
+}
+/* Stärke einer kommenden Stunde: Messung jetzt und Modell gemischt, Gewicht der Messung exp(−h/tau). Nie unter dem Modell:
+   Ein verpasster Abend wiegt schwerer als ein Fehlalarm (eval/lage-vorlauf.cjs: so erkennt der Regler an Ipsach ab 12 kn
+   bis +6 h mehr Stunden als Messung oder Modell allein, bei gleich wenigen Fehlalarmen). m, p: {kn, dir} oder null. */
+function mischKn(m, p, h, tau){
+  if(!p) return h<=1 && m ? {kn:m.kn, dir:m.dir, w:1} : null;
+  if(!m) return {kn:p.kn, dir:p.dir, w:0};
+  const w = Math.exp(-h/(tau||3.75)), r = mittel([{kn:m.kn*w, dir:m.dir}, {kn:p.kn*(1-w), dir:p.dir}]);
+  return {kn:Math.max(w*m.kn+(1-w)*p.kn, p.kn), dir:r && (w*m.kn+(1-w)*p.kn)>0 ? r.dir : p.dir, w};
+}
+/* Wie oft stimmt die Lage nach h Stunden? v = vorlauf aus data/windbild.json. aus = "messung" (fortgeschrieben, lange Reihe
+   des Chasseral je Lage) oder sonst (Prognose, Entwicklungstage). Zwischen den gemessenen Vorlaufzeiten linear. */
+function quote(v, aus, lage, h){
+  if(!v || !v.leads) return null;
+  const a = aus==="messung" ? v.fort && v.fort[lage] : v.prog; if(!a) return null;
+  const L = v.leads; if(h<=L[0]) return a[0];
+  for(let i=1;i<L.length;i++) if(h<=L[i]){ const x = a[i-1], y = a[i]; return x==null || y==null ? (y ?? x) : Math.round(x+(y-x)*(h-L[i-1])/(L[i]-L[i-1])); }
+  return a[a.length-1];
 }
 /* Stärke als Mittel, Richtung als Vektormittel */
 function mittel(rs){
@@ -143,9 +188,9 @@ function heute(){
       if(lp!=null) x.mixM = lp>=R.lapseMin; } }catch(e){}
   const r = vorwahl(x); r.nc = x.nc || null; return r;
 }
-/* Lage einer kommenden Stunde aus der Prognose (Regler). Die Kammprognose ICON-CH2 zeigt Süd als Südwest:
-   aus der Prognose gewählt trifft Süd 0 %, West 65 %, Bise 94 %, Nordlage 60 % (eval/windbild-stunde.cjs, 16.10.–5.11.).
-   Darum heissen West und Süd hier zusammen «West oder Süd» und zeigen das Muster von West. */
+/* Lage einer kommenden Stunde aus der Prognose. Die Kammprognose ICON-CH2 zeigt Süd als Südwest: aus der Prognose gewählt
+   trifft Süd 0 %, West 71 %, Bise 96 %, Nordlage 80 % (eval/windbild-stunde.cjs, 16.10.–5.11., mit regeln.kammFaktor). Darum
+   heissen West und Süd aus der Prognose zusammen «West oder Süd» und zeigen das Muster von West. */
 const MOD_SPOTS = ["vin","ips"];
 function modellAm(id, key){
   const pts = [];
@@ -154,7 +199,7 @@ function modellAm(id, key){
   return mittel(pts);
 }
 function stundeKey(h){ const t = new Date(Date.now()+h*3600e3); return {t, day:C.dayOfDate(t), hr:C.localHour(t), key:C.dayOfDate(t)+"T"+String(C.localHour(t)).padStart(2,"0")+":00"}; }
-function stunde(h){
+function prognoseLage(h){
   const T = stundeKey(h), R = Object.assign({lapseMin:4}, DATA.regeln || {});
   const x = {monat:+T.day.slice(5,7)};
   const ref = {}; MOD_SPOTS.forEach(id=>{ const m = modellAm(id, T.key); if(m) ref[id] = m; });
@@ -163,10 +208,19 @@ function stunde(h){
   try{ if(D && D.jura) x.jc = C.joranCheck(D.jura, T.day, S, 0); }catch(e){}
   try{ const H = D && D.hoehe, i = H ? H.time.indexOf(T.key) : -1;
     if(i>=0 && H.temperature_2m[i]!=null && H.temperature_850hPa[i]!=null) x.mixP = (H.temperature_2m[i]-H.temperature_850hPa[i])/C.HOEHE.dz>=R.lapseMin; }catch(e){}
-  const r = vorwahl(x);
-  if(r.lage==="sued"){ r.lage = "west"; r.vk = "mix"; }
-  r.westSued = r.lage==="west";
-  r.ref = ref; r.T = T;
+  return {r:vorwahl(x), ref, T};
+}
+/* Regler: Lage und Stärke einer kommenden Stunde aus Messung und Prognose (mischLage, mischKn). h0 = Ergebnis von heute() */
+function stunde(h, h0){
+  const P = prognoseLage(h), P0 = prognoseLage(0);
+  /* fortgeschrieben wird nur eine Lage, die der Chasseral (oder Regel E) jetzt misst, wie in eval/lage-vorlauf.cjs */
+  const j = h0 && h0.lage && h0.kamm && h0.art==="messung" && !h0.unsicher ? h0 : null;
+  const m = mischLage(j, P0.r, P.r);
+  const r = {lage:m.lage, vk:m.vk, aus:m.aus, T:P.T, ref:{}};
+  if(m.aus!=="messung" && (r.lage==="west" || r.lage==="sued")){ r.lage = "west"; r.vk = "mix"; r.westSued = true; }
+  const tau = DATA.vorlauf && DATA.vorlauf.tau;
+  MOD_SPOTS.forEach(id=>{ const n = jetzt(id), k = mischKn(n && n.mean!=null && n.dir!=null ? {kn:n.mean, dir:n.dir} : null, P.ref[id] || null, h, tau); if(k) r.ref[id] = k; });
+  r.quote = r.lage ? quote(DATA.vorlauf, m.aus, m.lage, h) : null;
   return r;
 }
 
@@ -188,7 +242,7 @@ const typ = id => { const a = varOf().a.find(z=>z[0]===id); return a ? {dir:a[1]
 const jetzt = id => { const z = C.lakeNow(LK, S).find(q=>q.L.id===id); return z && z.fresh && z.last ? z.last : null; };
 /* Station jetzt: Mittel der Werte der letzten halben Stunde, nur wenn frisch */
 function station(abk){
-  const d = D && D.stations && D.stations[abk], now = new Date();
+  const d = (D && D.stations && D.stations[abk]) || EXTRA[abk], now = new Date();
   if(!d || d.err || !d.rows || !d.rows.length || !C.fresh(d.rows, now)) return null;
   const m = mittel(d.rows.slice(-3).filter(r=>now-r.t<=35*60000).map(r=>({kn:r.mean, dir:r.dir})));
   return m ? Object.assign(m, {gust:d.rows[d.rows.length-1].gust, t:d.rows[d.rows.length-1].t}) : null;
@@ -347,15 +401,23 @@ function badgePos(){
     y += L.id==="vin" ? -24 : 24; x += L.id==="vin" ? -14 : 14;
     return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(24, Math.min(Hh-24, y))}; }).filter(Boolean);
 }
-/* Ausschnitt Region: alle Upwind-Stationen und die Seestationen mit dem Wind von jetzt (im Regler: nur die Seestationen mit
-   dem Modell). Ein Signal ist hervorgehoben. Beschriftung rechts, sonst links, sonst nur die Zahl. */
+/* Ausschnitt Region: alle Upwind-Stationen, Mathod und die Seestationen mit dem Wind von jetzt (im Regler: nur Ipsach aus
+   Messung und Modell). Ausschnitt See: der Chasseral mit dem Wind von jetzt. Nur gemessene Werte, keine typischen.
+   Ein Signal ist hervorgehoben. Beschriftung rechts, sonst links, sonst nur die Zahl. */
 const KURZ = {fre:"Bullet", cdf:"Chaux-de-Fonds", brl:"La Brévine", vin:"Vingelz", ips:"Ipsach"};
 function statPos(){
-  if(ST.view!=="region" || !W) return [];
+  if(ST.view==="bucht" || !W) return [];
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
   const vor = !ST.full && ST.h>0;
-  const L = vor ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}));
-  if(vor){ const m = BILD.ref.ips; L.push({id:"ips", name:"Ipsach", ll:MARK.ips, w:m ? {kn:m.kn, dir:m.dir} : null, sig:"", voll:"Ipsach (Modell)", modell:true}); }
+  if(ST.view==="see"){ if(vor) return [];
+    const L1 = [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}]; return platziere(L1); }
+  if(!vor) holeExtra();
+  const L = vor ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}))
+    .concat(ANZEIGE.map(a=>({id:a.abk, name:a.name, ll:STAT[a.abk], w:station(a.abk), sig:"", voll:a.voll})));
+  if(vor){ const m = BILD.ref.ips; L.push({id:"ips", name:"Ipsach", ll:MARK.ips, w:m ? {kn:m.kn, dir:m.dir} : null, sig:"", voll:"Ipsach (Messung und Modell)", modell:true}); }
+  return platziere(L);
+}
+function platziere(L){
   const out = L.map(s=>{ const [x,y] = P(s.ll); return Object.assign({x, y}, s); }).filter(s=>s.x>=0 && s.y>=0 && s.x<=W && s.y<=Hh);
   const used = out.map(s=>[s.x-11, s.y-11, 22, 22]);
   const fits = b => b[0]>=2 && b[0]+b[2]<=W-2 && b[1]>=2 && b[1]+b[3]<=Hh-24 && !used.some(u=>b[0]<u[0]+u[2] && u[0]<b[0]+b[2] && b[1]<u[1]+u[3] && u[1]<b[1]+b[3]);
@@ -377,18 +439,20 @@ function badges(){
     h += `<div class="wbst${s.sig ? " "+s.sig : ""}" style="left:${s.x}px;top:${s.y}px">${s.w ? dot(s.w.dir, s.w.kn) : grau}</div>`;
     if(s.lx!=null) h += `<div class="wbstl${s.sig ? " "+s.sig : ""}" style="left:${s.lx}px;top:${s.ly}px">${esc(s.txt)}</div>`;
   });
+  /* Ausschnitt Bucht: Der Chasseral liegt ausserhalb, sein Wind von jetzt steht in der Ecke */
+  if(ST.view==="bucht" && !(!ST.full && ST.h>0)){ const c = station("cha");
+    h += `<div class="wbcorner">Chasseral ${c ? r0(c.kn)+" kn "+card(c.dir) : "–"}</div>`; }
   badgePos().forEach(({L, x, y})=>{
-    const t = typ(L.id);
     if(!ST.full && ST.h>0){
       /* Regler: gross das Modell, klein die Quelle */
       const m = BILD.ref[L.id];
-      h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${m ? dot(m.dir, m.kn) : grau}<span><b>${L.name} ${m ? "~"+r0(m.kn)+" kn "+card(m.dir) : "–"}</b><small>Modell</small></span></div>`;
+      h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${m ? dot(m.dir, m.kn) : grau}<span><b>${L.name} ${m ? "~"+r0(m.kn)+" kn "+card(m.dir) : "–"}</b><small>${m && m.w>=0.1 ? "Messung und Modell" : "Modell"}</small></span></div>`;
       return;
     }
     const n = jetzt(L.id);
-    /* gross der Wind von jetzt (Punkt und Pfeil dazu), klein der typische Wert der Lage */
+    /* nur gemessene Werte: gross der Wind von jetzt, klein die Uhrzeit der Messung */
     const now = n ? dot(n.dir, n.mean) : grau;
-    const klein = BILD.lage && t ? `typisch ${t.m?"":"~"}${r0(t.kn)} kn ${card(t.dir)}` : "keine Lage erkannt";
+    const klein = n && n.t ? `gemessen ${C.hhmm(new Date(n.t))}` : "keine Messung";
     h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${now}<span><b>${L.name} ${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</b><small>${klein}</small></span></div>`;
   });
   box.innerHTML = h;
@@ -434,7 +498,7 @@ function head(){
   /* Startseite kurz: Lage und woher das Bild kommt; im Blatt «Erklärungen» mit Quelle */
   const wie = BILD.art==="live" ? "live" : BILD.art==="modell" ? "Prognose" : "typisch";
   el.querySelector(".wbtoday").innerHTML = !ST.full && ST.h>0
-    ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : "keine Lage erkennbar"} <span class="dim">· Prognose</span>`
+    ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
     : !ST.full ? (hl ? `${wann}: <b>${esc(hl.name)}</b> <span class="dim">· ${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
       : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`)
     : hl ? `${wann}: <b>${esc(hl.name)}</b> <span class="dim">· ${esc(h.quelle)}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
@@ -517,9 +581,9 @@ function update(){
     if(ST.full) BILD = {art:"typisch", lage:ST.type, ref:{}, name:lageOf().name};
     else { const ref = liveRef(); BILD = {art:Object.keys(ref).length ? "live" : "typisch", lage:bekannt(HEUTE.lage) ? HEUTE.lage : null, ref, name:lageOf().name}; }
   } else {
-    const r = stunde(ST.h);
+    const r = stunde(ST.h, HEUTE);
     if(bekannt(r.lage)){ ST.type = r.lage; if(r.vk) ST.vk[r.lage] = r.vk; }
-    BILD = {art:"modell", lage:bekannt(r.lage) ? r.lage : null, ref:r.ref, T:r.T, name:r.westSued ? "West oder Süd" : lageOf().name};
+    BILD = {art:"modell", lage:bekannt(r.lage) ? r.lage : null, ref:r.ref, T:r.T, name:r.westSued ? "West oder Süd" : lageOf().name, aus:r.aus, quote:r.quote};
   }
   head();
   const refKey = Object.entries(BILD.ref).map(([k,v])=>k+Math.round(v.kn)+"/"+Math.round(v.dir/5)).join(",");
@@ -535,6 +599,6 @@ function mode(full){
   el = el || $("#wb"); if(el) el.classList.toggle("wbfull", ST.full);
   drawn = ""; update();
 }
-return {update, vorwahl, mode, ausrichten, state:ST};
+return {update, vorwahl, mischLage, mischKn, quote, mode, ausrichten, state:ST};
 })();
 function wbUpdate(){ try{ WB.update(); }catch(e){ const b = $("#wb"); if(b) b.innerHTML = `<div class="note">Windbild: ${esc(e.message)}</div>`; } }

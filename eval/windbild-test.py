@@ -2,6 +2,7 @@
 """Joran — Sektion «Windbild» im Browser prüfen. Kein Teil der Pflichtprüfungen (braucht Python-Playwright und Chrome).
 Lädt die Seite von einem lokalen Server in 390×844, hell und dunkel. Modelle und Seemessung sind künstlich, alle anderen
 Abrufe ins Netz werden abgebrochen. Prüft: Vorwahl der Lage je Quelle (nach dem Wind auf dem Chasseral, wie die Daten), Wind von jetzt, fehlende Messung, Südost,
+Regler (Messung fortschreiben, Stärke mischen, Quote), Chasseral in See und Bucht, Mathod in der Region,
 alle Lagen und Varianten, reduzierte Bewegung, Animation nur im Bild, Konsolenfehler.
 Aufruf: python3 eval/windbild-test.py [Ordner für Screenshots]   Chrome: Umgebungsvariable CHROME, sonst /usr/bin/google-chrome"""
 import json, sys, time, datetime, re, threading, http.server, functools, os, tempfile
@@ -68,7 +69,28 @@ with sync_playwright() as p:
     want="v"+re.search(r"app/windbild\.js\?v=(\d+)", open(os.path.join(ROOT,"index.html"),encoding="utf8").read()).group(1)
     ok("A Kopfzeile zeigt die Version der Dateien ("+want+")", want in i["ver"], i["ver"])
     ok("A Vorwahl West aus der Prognose (Chasseral)", i["pressed"]==["west"] and "Prognose, Wind auf dem Chasseral" in i["today"], i)
-    ok("A Wind von jetzt neben typisch", "17 kn SW" in i["panel"] and "8 kn WSW" in i["panel"] and "Ipsach 17 kn SW" in i["badges"] and re.search(r"typisch \d+ kn [NOSW]+", i["badges"]) is not None, i["panel"])
+    ok("A Karte zeigt nur Gemessenes: Wind von jetzt mit Uhrzeit, kein typischer Wert", "17 kn SW" in i["panel"] and "8 kn WSW" in i["panel"] and "Ipsach 17 kn SW" in i["badges"] and re.search(r"gemessen \d\d:\d\d", i["badges"]) is not None and "typisch" not in i["badges"], i["badges"])
+    ok("A Bucht: Chasseral in der Ecke beschriftet", pg.evaluate("()=>{const c=document.querySelector('.wbcorner'); return !!c && c.textContent.startsWith('Chasseral');}"))
+    pg.click(".wbviews button[data-v=see]"); pg.wait_for_timeout(500)
+    ok("A See: Chasseral als Station beschriftet", pg.evaluate("()=>document.querySelectorAll('.wbst').length===1 && [...document.querySelectorAll('.wbstl')].some(x=>x.textContent.startsWith('Chasseral'))"))
+    pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(300)
+    # Regler: Messung fortschreiben, ausser die Prognose sagt einen Wechsel; Stärke gemischt, nie unter dem Modell
+    res=pg.evaluate("""()=>{ const P=(lage)=>({lage, vk:lage==='west'?'mix':null}), J={lage:'bise', vk:'mix', kamm:true};
+      const v={leads:[1,2,3], fort:{bise:[90,80,70]}, prog:[60,62,64]};
+      const T=[
+       ['Messung, Prognose ohne Wechsel → Messung', WB.mischLage(J, P('bise'), P('bise')), 'bise', 'messung'],
+       ['Messung, Prognose ohne Lage → Messung', WB.mischLage(J, P('bise'), P(null)), 'bise', 'messung'],
+       ['Messung, Prognose sagt Wechsel → Prognose', WB.mischLage(J, P('bise'), P('west')), 'west', 'wechsel'],
+       ['Messung Süd, Prognose West jetzt und später → Süd bleibt', WB.mischLage({lage:'sued'}, P('west'), P('west')), 'sued', 'messung'],
+       ['ohne Messung → Prognose', WB.mischLage(null, P('bise'), P('nord')), 'nord', 'prognose'] ];
+      const k1=WB.mischKn({kn:20,dir:240},{kn:10,dir:240},1,3.75), k2=WB.mischKn({kn:4,dir:240},{kn:12,dir:240},2,3.75), k3=WB.mischKn(null,{kn:9,dir:60},2,3.75);
+      return T.map(([n,r,l,a])=>[n, r.lage===l && r.aus===a, JSON.stringify(r)]).concat([
+       ['Stärke +1 h: Messung zählt mehr', k1.kn>17 && k1.kn<20, JSON.stringify(k1)],
+       ['Stärke nie unter dem Modell', k2.kn===12, JSON.stringify(k2)],
+       ['Stärke ohne Messung = Modell', k3.kn===9 && k3.w===0, JSON.stringify(k3)],
+       ['Quote fortgeschrieben, zwischen den Stützstellen linear', WB.quote(v,'messung','bise',2.5)===75, String(WB.quote(v,'messung','bise',2.5))],
+       ['Quote Prognose', WB.quote(v,'prognose','bise',2)===62, String(WB.quote(v,'prognose','bise',2))] ]); }""")
+    for n,c,r in res: ok("Regler: "+n, c, r)
     ok("A Anteil für die eingestellte Schwelle (14 kn), ohne Hinweis auf eine andere", "Zeit ab 14 kn" in i["panel"] and re.search(r"\d+(–\d+)? %", i["panel"]) is not None and "erst für" not in i["panel"], i["panel"])
     ok("A Karte gezeichnet", i["px"][3]==255, i["px"])
     ok("A Ziele ab 40 px, kein Querscrollen", not i["small"] and not i["over"], i["small"])
@@ -84,14 +106,15 @@ with sync_playwright() as p:
        ['Prognose: Chasseral W stabil → West Inversion', {kammP:K(265,15), mixP:false}, 'west','stab','Chasseral'],
        ['Prognose: Chasseral O → Bise', {kammP:K(80,22)}, 'bise',null,'Chasseral'],
        ['Prognose: Chasseral NO → Bise', {kammP:K(50,16)}, 'bise',null,'Chasseral'],
-       ['Prognose: Chasseral SO → kein Windbild', {kammP:K(135,18), s:{top:{d:60,v:9}}}, null,null,'Chasseral'],
-       ['Prognose: Chasseral NW ohne Joran-Zeichen → kein Windbild', {kammP:K(315,17), monat:11}, null,null,'Chasseral'],
+       ['Prognose: Chasseral SO → Südost', {kammP:K(135,18), s:{top:{d:60,v:9}}}, 'suedost','mix','Chasseral'],
+       ['Prognose: Chasseral NW ohne Joran-Zeichen → Joran-Lage, Front im November', {kammP:K(315,17), monat:11}, 'joran','front','ohne Joran-Zeichen'],
+       ['Prognose: Kammprognose 6 kn zählt mal 2 → West', {kammP:K(240,6), s:{top:{d:60,v:9}}, mixP:true}, 'west','mix','Chasseral'],
        ['Prognose: Chasseral NW mit Joran-Zeichen, Juli → Abend-Joran', {kammP:K(315,17), monat:7, jc:jo}, 'joran','abend','Chasseral'],
        ['Prognose: Chasseral NW, Front → Front-Joran', {kammP:K(300,30), monat:7, jc:{crestOk:true,bnOk:true}}, 'joran','front','Chasseral'],
        // Chasseral schwach oder ohne Angabe: Sektor am Boden
-       ['Prognose: Chasseral schwach, am See West', {kammP:K(240,6), s:{top:{d:240,v:9}}, mixP:true}, 'west','mix','Prognose im Zeitfenster'],
+       ['Prognose: Chasseral schwach, am See West', {kammP:K(240,4), s:{top:{d:240,v:9}}, mixP:true}, 'west','mix','Prognose im Zeitfenster'],
        ['Prognose: ohne Chasseral, am See Bise', {s:{top:{d:60,v:9}}}, 'bise',null,'Prognose im Zeitfenster'],
-       ['Prognose: ohne Chasseral, am See Südost', {s:{top:{d:135,v:9}}}, null,null,'Prognose im Zeitfenster'],
+       ['Prognose: ohne Chasseral, am See Südost', {s:{top:{d:135,v:9}}}, 'suedost','mix','Prognose im Zeitfenster'],
        ['Prognose unter 3 kn zählt nicht', {s:{top:{d:240,v:2}}}, null,null,''],
        // Signal geht vor
        ['Signal Regel E → Joran', {nc:{eOk:true,trusted:[]}, monat:7, kammP:K(240,20)}, 'joran','abend','Cressier'],
@@ -149,7 +172,7 @@ with sync_playwright() as p:
     ok("Regler in der Region: keine Upwind-Stationen, nur Ipsach mit Modell und «~»", j["n"]==1 and "Ipsach ~" in j["b"], j)
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=0; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(700)
     j=pg.evaluate("()=>({n:document.querySelectorAll('.wbst').length, t:document.querySelector('.wbtoday').innerText})")
-    ok("Region jetzt: alle Upwind-Stationen als Punkte", j["n"]>=11 and "Uhr" not in j["t"], j)
+    ok("Region jetzt: alle Upwind-Stationen und Mathod als Punkte", j["n"]>=12 and "Uhr" not in j["t"], j)
     if True: pg.screenshot(path=f"{OUT}/region-hell.png")
     pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(400)
     ok("Regler und Region ohne Konsolenfehler", not errs, errs)
@@ -178,7 +201,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=6; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(500)
     pg.click("#infoBtn"); pg.wait_for_timeout(700)
     j=pg.evaluate("()=>({b:document.querySelector('.wbbadges').innerText})")
-    ok("Erklärungen nach dem Regler: typische Werte, kein «Modell»", "Modell" not in j["b"] and "typisch" in j["b"], j)
+    ok("Erklärungen nach dem Regler: gemessene Werte, kein «Modell», kein typischer Wert auf der Karte", "Modell" not in j["b"] and "typisch" not in j["b"] and "gemessen" in j["b"], j)
     pg.click(".wbviews button[data-v=region]"); pg.wait_for_timeout(600)
     ok("Erklärungen nach dem Regler: Region mit allen Stationen", pg.evaluate("()=>document.querySelectorAll('.wbst').length")>=11)
     pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(300)
@@ -188,14 +211,14 @@ with sync_playwright() as p:
     # B: Bise, dunkel, Vingelz ohne Messung
     b,pg,i,errs,tm=run(p,"bise-dunkel","dark",60,10,{"ips":(7,50)})
     ok("B Vorwahl Bise (Sektor am Boden, Chasseral ohne Angabe)", i["pressed"]==["bise"] and "Prognose im Zeitfenster" in i["today"], i["today"])
-    ok("B fehlende Messung als Strich", "Vingelz" in i["panel"] and re.search(r"Vingelz\s*\d+ kn [NOSW]+\s*–", i["panel"]) is not None and re.search(r"Vingelz –\s+typisch \d+ kn", i["badges"]) is not None, i["panel"]+i["badges"])
+    ok("B fehlende Messung als Strich", "Vingelz" in i["panel"] and re.search(r"Vingelz\s*\d+ kn [NOSW]+\s*–", i["panel"]) is not None and re.search(r"Vingelz –\s+keine Messung", i["badges"]) is not None, i["panel"]+i["badges"])
     ok("B keine Konsolenfehler", not errs, errs); b.close()
     # C: Südost am Boden, Chasseral ohne Angabe
     b,pg,i,errs,tm=run(p,"so","light",135,9,{}, shots=False)
-    ok("C Südost: keine Vorwahl, Hinweis", "kein Windbild" in i["today"], i["today"])
+    ok("C Südost wird als eigene Lage vorgewählt", "Südost" in i["today"] and i["pressed"]==["suedost"], i["today"])
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=3; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(600)
     j=pg.evaluate("()=>({t:document.querySelector('.wbtoday').innerText, b:document.querySelector('.wbbadges').innerText})")
-    ok("C Regler bei Südost: «keine Lage erkennbar», Pfeile an den Spots", "keine Lage erkennbar" in j["t"] and "Modell" in j["b"], j); b.close()
+    ok("C Regler bei Südost: Lage aus der Prognose mit Quote, Modell an den Spots", "Südost" in j["t"] and "Prognose" in j["t"] and "stimmt ~" in j["t"] and "Modell" in j["b"], j); b.close()
     # F: Nordlage: Chasseral Nord, am See Nordost (Bodenwind allein ergäbe Bise)
     b,pg,i,errs,tm=run(p,"nord-hell","light",50,13,{"ips":(13,40),"vin":(6,65)}, kamm=(5,24))
     ok("F Nordlage trotz Nordost am See", i["pressed"]==["nord"] and "Nordlage" in i["today"], i["today"])

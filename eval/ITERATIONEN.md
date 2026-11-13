@@ -421,3 +421,43 @@ eine Seite aus dem Zwischenspeicher sie noch ohne Silos lädt.
 
 Offen (in `ARCHITEKTUR.md` unter «Nächste Schritte»): sichtbare Meldung bei einem Skript, das nicht lädt; Parser an einen
 Ort; `gleich.cjs` deckt Datenabruf, Parser und Joran-Zweige kaum ab.
+
+
+## 13.11.2026: Regler aus Messung und Prognose, Südost, Joran-Lage (v26)
+
+Auslöser: Simon will alle Windlagen erkennen, auch Front- und Abend-Joran, und kurzfristig der Messung mehr trauen als
+der Prognose. Keine Änderung an Push, Bewertung oder Rechenkern (`eval/gleich.cjs`: 0 Abweichungen). Geändert hat die
+Sektion «Windbild».
+
+**Messung oder Prognose** (`node eval/lage-vorlauf.cjs`, Lage richtig, West und Süd zusammen, Entwicklungstage):
+
+| Vorlauf | +1 h | +3 h | +6 h | +12 h | +18 h | +24 h |
+|---|---|---|---|---|---|---|
+| Messung fortgeschrieben | 90 % | 84 % | 76 % | 70 % | 61 % | 60 % |
+| Prognose, Lauf des Tages (Kamm × 2) | 73 % | 74 % | 75 % | 73 % | 72 % | 76 % |
+| Mischregel (Messung, ausser die Prognose sagt einen Wechsel) | 89 % | 85 % | 81 % | 77 % | 74 % | 78 % |
+
+Lange Reihe Chasseral 2010–2026, Lage nach 6 h gleich: Bise 77 %, West 70 %, Joran 68 %, Nordlage 56 %, Süd 39 %,
+Südost 36 %. Stärke am See: Mischung w = exp(−h/3,75 h), nie unter dem Modell. Mittlerer Fehler +1 h 1,6 kn (Modell
+2,0); an Ipsach ab 12 kn erkannt +3 h 0,83 (Modell 0,76, Messung 0,68), Fehlalarme 0,02–0,03 wie beim Modell.
+
+**Kammprognose × 2:** ICON-CH2 liefert auf dem Chasseral im Median 0,49 der Messung. Mit Faktor 2 trifft die Prognose je
+Stunde Nordlage 80 statt 60 %, Joran 32 statt 0 %, Bise 96 statt 94 %, «West oder Süd» 80 statt 77 %. Angezeigt
+und richtig: Bise 80 statt 75 %, «West oder Süd» 84 statt 90 %.
+
+**Südost** ist eine eigene Lage (Chasseral SO). Am See kommt er als schwacher Nordost an (Ipsach 6 kn, 3 Tage). Die
+Prognose wählt ihn erst selten (17 %), meist zeigt sie Bise; die Mischregel hilft, sobald der Chasseral Südost misst.
+
+**Regel E** (`node eval/regel-e.cjs`, 2020–2026, 14–21 Uhr): feuert an 249 Abenden, davon 80 % mit Nordwest auf dem
+Chasseral, 12 % mit West (meist Front-Joran im Anzug), 3 % mit Nord. An 535 Abenden mit Nordwest auf dem Kamm feuert sie
+an 39 %. Seit dem 16.10. zwei NW-Abende ohne Regel E: Ipsach 8 und 3 kn, also zu Recht still. `joranType` trennt kaum:
+«stat» kommt nur aus dem Monat. **Folge:** Nordwest auf dem Kamm gilt im Windbild neu als Joran-Lage, auch ohne
+Zeichen (Quelle «ohne Joran-Zeichen»). Regel E bleibt unverändert.
+
+**Joran in der Prognose** (`node eval/joran-prognose.cjs`, 13.8.–12.11., 7 Abende mit Regel E): Bedingung der App
+(Kamm-NW ab 12 kn und Druckzeichen) 3/7 erkannt, 9/85 Fehlalarme; Kamm-NW allein 5/7, 9/85. Gegen Nordwest auf dem
+Chasseral: 11/24, 1 Fehlalarm. Front-Joran über Besançon − Neuchâtel: 16.9., 8.10., 25.10. Zu wenig Abende, um Schwellen
+zu ändern. Das Skript hängt die Läufe an und baut so ein eigenes Archiv auf.
+
+Reviewer-Entscheid: siehe PR.
+
