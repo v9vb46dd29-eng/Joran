@@ -290,7 +290,7 @@ ol.steps li{margin:3px 0}
 .wbst{position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;pointer-events:none;display:grid;place-items:center}
 .wbst svg{width:20px;height:20px}
 .wbst.on{box-shadow:0 0 0 3px var(--orange)}
-.wbst.near{box-shadow:0 0 0 2px var(--orange)}
+.wbst.near{outline:2.5px dashed var(--orange);outline-offset:1px}
 .wbstl{position:absolute;font-size:12px;font-weight:600;line-height:18px;padding:0 5px;border-radius:6px;white-space:nowrap;pointer-events:none;
   background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--ink)}
 .wbstl.on{background:var(--orange);color:#000}

@@ -132,7 +132,13 @@ with sync_playwright() as p:
     for n,c,r in res: ok("Vorwahl: "+n, c, r)
     # Muster an der Messung ausrichten: Punkte mit Wert übernehmen ihn, die übrigen folgen dem Verhältnis der nahen Punkte
     r=pg.evaluate("""()=>WB.ausrichten([["vin",240,9,1],["ips",244,18,1],["twa",240,17],["mag",250,5]], {vin:{kn:18,dir:250}, ips:{kn:36,dir:254}})""")
-    ok("Ausrichten: Messpunkte übernommen, Nachbarn skaliert und gedreht", r[0][2]==18 and r[1][2]==36 and 30<=r[2][2]<=38 and r[2][1]==250 and 8<=r[3][2]<=12, r)
+    ok("Ausrichten: Messpunkte übernommen, Seepunkte skaliert und gedreht, Jurahöhe ohne Chasseral typisch", r[0][2]==18 and r[1][2]==36 and 30<=r[2][2]<=36 and r[2][1]==250 and r[3][2]==5, r)
+    # Review PR #30, B1: Drehung um rund 180° (Westmuster, am See Bise) darf sich nicht aufheben
+    r=pg.evaluate("""()=>WB.ausrichten([["vin",249,9,1],["ips",244,18,1],["bay",240,14],["sutz",235,17],["twa",235,17]], {vin:{kn:8,dir:60}, ips:{kn:9,dir:65}})""")
+    ok("Ausrichten B1: Drehung nahe 180° als Vektor gemittelt (Fläche zeigt NO wie die Messung)", all(30<=z[1]<=90 for z in r[2:]), r)
+    # B2: geschätzte Punkte nie stärker als die stärkste Messung ihrer Höhenlage; Höhenpunkte ohne Chasseral bleiben typisch
+    r=pg.evaluate("""()=>WB.ausrichten([["cha",234,15.3,1],["vin",191,1.9,1],["ips",198,2.3,1],["pla",230,6],["twa",200,3]], {vin:{kn:10,dir:200}, ips:{kn:12,dir:200}})""")
+    ok("Ausrichten B2: Seepunkte höchstens wie die stärkste Messung unten, Jurahöhen ohne Chasseral typisch", r[0][2]==15.3 and r[3][2]==6 and r[4][2]<=12, r)
     ok("Ausrichten ohne Werte: Muster bleibt typisch", pg.evaluate("""()=>JSON.stringify(WB.ausrichten([["vin",240,9,1]], {}))""")=='[["vin",240,9,1]]')
     # Regler: kommende Stunde aus der Prognose, West heisst «West oder Süd»
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=6; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(700)
@@ -140,7 +146,7 @@ with sync_playwright() as p:
     ok("Regler +6 h: Prognose mit Uhrzeit, «West oder Süd», Modellwerte an den Spots", "Uhr" in j["t"] and "West oder Süd" in j["t"] and "Prognose" in j["t"] and "Modell" in j["b"] and j["est"]=="Prognose", j)
     pg.click(".wbviews button[data-v=region]"); pg.wait_for_timeout(700)
     j=pg.evaluate("()=>({n:document.querySelectorAll('.wbst').length, b:document.querySelector('.wbbadges').innerText})")
-    ok("Regler in der Region: keine Upwind-Stationen, nur Ipsach mit Modell", j["n"]==1 and "Ipsach" in j["b"], j)
+    ok("Regler in der Region: keine Upwind-Stationen, nur Ipsach mit Modell und «~»", j["n"]==1 and "Ipsach ~" in j["b"], j)
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=0; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(700)
     j=pg.evaluate("()=>({n:document.querySelectorAll('.wbst').length, t:document.querySelector('.wbtoday').innerText})")
     ok("Region jetzt: alle Upwind-Stationen als Punkte", j["n"]>=11 and "Uhr" not in j["t"], j)
@@ -167,6 +173,15 @@ with sync_playwright() as p:
         n=pg.evaluate("()=>document.querySelectorAll('.wbvars button').length")
         for k in range(n): pg.click(f".wbvars button >> nth={k}"); pg.wait_for_timeout(150)
     ok("Alle Lagen und Varianten ohne Fehler", not errs, errs)
+    # B3: nach dem Regler zeigt das Blatt typische Werte und in der Region alle Stationen
+    pg.click("#info .done"); pg.wait_for_timeout(400)
+    pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=6; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(500)
+    pg.click("#infoBtn"); pg.wait_for_timeout(700)
+    j=pg.evaluate("()=>({b:document.querySelector('.wbbadges').innerText})")
+    ok("Erklärungen nach dem Regler: typische Werte, kein «Modell»", "Modell" not in j["b"] and "typisch" in j["b"], j)
+    pg.click(".wbviews button[data-v=region]"); pg.wait_for_timeout(600)
+    ok("Erklärungen nach dem Regler: Region mit allen Stationen", pg.evaluate("()=>document.querySelectorAll('.wbst').length")>=11)
+    pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(300)
     pg.click("#info .done"); pg.wait_for_timeout(500)
     ok("Erklärungen zu: Karte zurück, wieder Lage von heute", pg.evaluate("()=>!!document.querySelector('#wbHome #wb:not(.wbfull)') && document.querySelector('.wblagen button[aria-pressed=true]').dataset.t==='west'"))
     pg.evaluate("localStorage.clear()"); b.close()

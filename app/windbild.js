@@ -207,16 +207,27 @@ const T = {cx:0, cy:0, k:1}, CELL = 3;
 /* Muster an Werte von jetzt oder aus dem Modell anpassen: Punkte mit eigenem Wert übernehmen ihn, die übrigen werden mit dem
    Verhältnis jetzt/typisch und der Drehung der nahen Punkte angepasst (gewichtet nach inverser Distanz). Ohne Werte bleibt das Muster typisch. */
 const drehung = (a, b) => ((a-b+540)%360)-180;
+/* Höhenlage: Punkte auf Jurakamm und Jurahöhen (Bezug Chasseral in eval/windbild.vorlage.json) gehen nur mit dem Chasseral,
+   Punkte am See und im Flachland nur mit den Stationen unten. So wird kein geschätzter Punkt stärker als die stärkste Messung
+   seiner Höhenlage (dieselbe Regel, die eval/windbild.cjs --pruefen für die Datei verlangt). */
+const HOCH = new Set(["cha","mag","pla","val","son","pery","twb","frin","tlx"]);
 function ausrichten(a, ref){
   const pts = a.filter(z=>ref[z[0]] && PT[z[0]]).map(z=>{ const r = ref[z[0]], [x,y] = km(PT[z[0]]);
-    return {x, y, f:Math.max(0.15, Math.min(4, r.kn/Math.max(z[2], 2))), dd:r.kn>=2 && z[2]>=2 ? drehung(r.dir, z[1]) : 0}; });
+    return {x, y, hoch:HOCH.has(z[0]), kn:r.kn, f:Math.max(0.15, Math.min(4, r.kn/Math.max(z[2], 2))), dd:r.kn>=2 && z[2]>=2 ? drehung(r.dir, z[1]) : null}; });
   if(!pts.length) return a;
+  const maxKn = hoch => { const m = pts.filter(q=>q.hoch===hoch).map(q=>q.kn); return m.length ? Math.max(...m) : null; };
   return a.map(z=>{
-    const r = ref[z[0]]; if(r) return [z[0], Math.round(r.dir), Math.round(r.kn*10)/10, 1];
+    const r = ref[z[0]]; if(r) return [z[0], Math.round(r.dir)%360, Math.round(r.kn*10)/10, 1];
     if(!PT[z[0]]) return z;
-    const [x,y] = km(PT[z[0]]); let sf = 0, sd = 0, sw = 0;
-    pts.forEach(q=>{ const w = 1/((x-q.x)**2+(y-q.y)**2+0.5); sf += q.f*w; sd += q.dd*w; sw += w; });
-    return [z[0], Math.round((z[1]+sd/sw+360)%360), Math.round(z[2]*sf/sw*10)/10, 0];
+    const hoch = HOCH.has(z[0]), nah = pts.filter(q=>q.hoch===hoch);
+    if(!nah.length) return [z[0], z[1], z[2], 0];
+    const [x,y] = km(PT[z[0]]); let sf = 0, sw = 0, su = 0, sc = 0;
+    nah.forEach(q=>{ const w = 1/((x-q.x)**2+(y-q.y)**2+0.5); sf += q.f*w; sw += w;
+      /* Drehung als Vektor mitteln: Werte nahe ±180° heben sich sonst gegenseitig auf */
+      if(q.dd!=null){ su += w*Math.sin(q.dd*Math.PI/180); sc += w*Math.cos(q.dd*Math.PI/180); } });
+    const rot = su||sc ? Math.atan2(su, sc)*180/Math.PI : 0;
+    const kn = Math.min(z[2]*sf/sw, maxKn(hoch));
+    return [z[0], Math.round((z[1]+rot+720)%360)%360, Math.round(kn*10)/10, 0];
   });
 }
 function setAnchors(){
@@ -279,7 +290,7 @@ function drawBase(){
   ctx.textBaseline = "middle"; ctx.textAlign = "center";
   const F = "-apple-system, BlinkMacSystemFont, system-ui, sans-serif";
   /* Namen nur, wo sie ganz ins Bild passen und weder ein Spot-Schild noch einen anderen Namen überdecken */
-  const used = badgePos().map(b=>[b.x-76, b.y-24, 152, 48]).concat(statPos().flatMap(b=>[[b.x-11, b.y-11, 22, 22]].concat(b.lx!=null ? [[b.lx, b.ly, b.txt.length*6.6+12, 18]] : [])));
+  const used = badgePos().map(b=>[b.x-76, b.y-24, 152, 48]).concat(statPos().flatMap(b=>[[b.x-11, b.y-11, 22, 22]].concat(b.lx!=null ? [[b.lx, b.ly, b.txt.length*7.2+14, 18]] : [])));
   LABELS.forEach(([n,lat,lon,zz,kind])=>{
     if(z<zz || (z===2 && kind==="peak") || (z>0 && kind==="lakeR")) return;
     const [x,y] = P([lat,lon]);
@@ -310,7 +321,7 @@ const newPart = () => ({x:Math.random()*W, y:Math.random()*Hh, age:Math.floor(Ma
 function seed(){ parts = Array.from({length:Math.round(W*Hh/430)}, newPart); fctx.clearRect(0,0,W,Hh); }
 function tick(){
   raf = 0;
-  if(!visible || document.hidden || reduce() || !GU) return;
+  if(!visible || document.hidden || reduce() || !GU || !ANCH.length) return;
   fctx.globalCompositeOperation = "destination-in"; fctx.fillStyle = "rgba(0,0,0,0.89)"; fctx.fillRect(0,0,W,Hh);
   fctx.globalCompositeOperation = "source-over"; fctx.strokeStyle = isDark() ? "rgba(255,255,255,.78)" : "rgba(15,25,35,.45)"; fctx.lineWidth = 1.1; fctx.beginPath();
   for(const p of parts){
@@ -322,7 +333,7 @@ function tick(){
   fctx.stroke();
   raf = requestAnimationFrame(tick);
 }
-function play(){ if(!raf && visible && !document.hidden && !reduce() && GU) raf = requestAnimationFrame(tick); }
+function play(){ if(!raf && visible && !document.hidden && !reduce() && GU && ANCH.length) raf = requestAnimationFrame(tick); }
 
 /* ---------- Anzeige ---------- */
 const zeit = T => T ? `${T.day===localDay(0) ? "Heute" : T.day===localDay(1) ? "Morgen" : T.day} ${T.hr} Uhr` : "";
@@ -342,16 +353,17 @@ const KURZ = {fre:"Bullet", cdf:"Chaux-de-Fonds", brl:"La Brévine", vin:"Vingel
 function statPos(){
   if(ST.view!=="region" || !W) return [];
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
-  const L = ST.h>0 ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}));
-  if(ST.h>0){ const m = BILD.ref.ips; L.push({id:"ips", name:"Ipsach", ll:MARK.ips, w:m ? {kn:m.kn, dir:m.dir} : null, sig:"", voll:"Ipsach (Modell)"}); }
+  const vor = !ST.full && ST.h>0;
+  const L = vor ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}));
+  if(vor){ const m = BILD.ref.ips; L.push({id:"ips", name:"Ipsach", ll:MARK.ips, w:m ? {kn:m.kn, dir:m.dir} : null, sig:"", voll:"Ipsach (Modell)", modell:true}); }
   const out = L.map(s=>{ const [x,y] = P(s.ll); return Object.assign({x, y}, s); }).filter(s=>s.x>=0 && s.y>=0 && s.x<=W && s.y<=Hh);
   const used = out.map(s=>[s.x-11, s.y-11, 22, 22]);
   const fits = b => b[0]>=2 && b[0]+b[2]<=W-2 && b[1]>=2 && b[1]+b[3]<=Hh-24 && !used.some(u=>b[0]<u[0]+u[2] && u[0]<b[0]+b[2] && b[1]<u[1]+u[3] && u[1]<b[1]+b[3]);
   /* Signale zuerst beschriften, dann in der Reihenfolge der Stationsliste (Cressier, Chasseral, Neuchâtel, …) */
   out.slice().sort((a,b)=>(b.sig?1:0)-(a.sig?1:0)).forEach(s=>{
-    const kn = s.w ? r0(s.w.kn) : "–";
+    const kn = s.w ? (s.modell ? "~" : "") + r0(s.w.kn) : "–";
     for(const txt of [`${s.name} ${kn}`, String(kn)]){
-      const tw = txt.length*6.6+12, at = [[s.x+13, s.y-9], [s.x-13-tw, s.y-9], [s.x-tw/2, s.y+13], [s.x-tw/2, s.y-31]];
+      const tw = txt.length*7.2+14, at = [[s.x+13, s.y-9], [s.x-13-tw, s.y-9], [s.x-tw/2, s.y+13], [s.x-tw/2, s.y-31]];
       const b = at.map(o=>[o[0], o[1], tw, 18]).find(fits);
       if(b){ used.push(b); Object.assign(s, {lx:b[0], ly:b[1], txt}); break; }
     }
@@ -367,7 +379,7 @@ function badges(){
   });
   badgePos().forEach(({L, x, y})=>{
     const t = typ(L.id);
-    if(ST.h>0){
+    if(!ST.full && ST.h>0){
       /* Regler: gross das Modell, klein die Quelle */
       const m = BILD.ref[L.id];
       h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${m ? dot(m.dir, m.kn) : grau}<span><b>${L.name} ${m ? "~"+r0(m.kn)+" kn "+card(m.dir) : "–"}</b><small>Modell</small></span></div>`;
@@ -427,7 +439,7 @@ function head(){
       : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`)
     : hl ? `${wann}: <b>${esc(hl.name)}</b> <span class="dim">· ${esc(h.quelle)}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
     : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`;
-  const rg = el.querySelector(".wbtime input"); if(rg && +rg.value!==ST.h) rg.value = ST.h;
+  const rg = el.querySelector(".wbtime input"); if(rg){ if(+rg.value!==ST.h) rg.value = ST.h; rg.setAttribute("aria-valuetext", ST.h>0 ? zeit(BILD.T)+", Prognose" : "jetzt"); }
   el.querySelector(".wbtoday").dataset.quelle = h.quelle || "";
   const b = el.querySelector(".wbback"); if(b) b.addEventListener("click", ()=>{ ST.auto = true; update(); });
   el.querySelectorAll(".wblagen button").forEach(c=>{ const on = c.dataset.t===ST.type, today = c.dataset.t===h.lage;
@@ -439,7 +451,9 @@ function head(){
   vb.querySelectorAll("button").forEach(b2=>b2.addEventListener("click", ()=>{ ST.auto = false; ST.vk[l.id] = b2.dataset.k; update();
     const again = el.querySelector(`.wbvars button[data-k="${b2.dataset.k}"]`); if(again) again.focus(); }));
   el.querySelectorAll(".wbviews button").forEach(b3=>b3.setAttribute("aria-pressed", b3.dataset.v===ST.view));
-  mapEl.setAttribute("aria-label", !BILD.lage ? `Karte ${VIEWS[ST.view].name}: keine Lage erkannt, nur der Wind an den Stationen.` : `Karte ${VIEWS[ST.view].name}: ${BILD.art==="typisch" ? "typischer" : BILD.art==="modell" ? "vorhergesagter" : "an der Messung ausgerichteter"} Wind bei ${l.name}${l.vars.length>1 ? ", "+V.label : ""}${V.status==="s" ? ", geschätzt" : ""}. ${["ips","vin"].map(id=>{ const t = typ(id); return (id==="ips" ? "Ipsach " : "Vingelz ")+(t ? (t.m ? "" : "geschätzt ")+r0(t.kn)+" kn "+card(t.dir) : "ohne Wert"); }).join(", ")}.`);
+  mapEl.setAttribute("aria-label", !BILD.lage ? `Karte ${VIEWS[ST.view].name}: keine Lage erkannt, nur der Wind an den Stationen.` : `Karte ${VIEWS[ST.view].name}: ${BILD.art==="typisch" ? "typischer" : BILD.art==="modell" ? "vorhergesagter" : "an der Messung ausgerichteter"} Wind bei ${BILD.name||l.name}${l.vars.length>1 && !ST.h ? ", "+V.label : ""}${V.status==="s" ? ", geschätzt" : ""}. ${["ips","vin"].map(id=>{ const n = BILD.ref[id], t = typ(id), nm = id==="ips" ? "Ipsach " : "Vingelz ";
+    if(BILD.art!=="typisch") return nm+(n ? (BILD.art==="modell" ? "Modell " : "gemessen ")+r0(n.kn)+" kn "+card(n.dir) : "ohne Wert");
+    return nm+(t ? (t.m ? "" : "geschätzt ")+r0(t.kn)+" kn "+card(t.dir) : "ohne Wert"); }).join(", ")}.`);
   const est = el.querySelector(".wbest"); est.textContent = BILD.art==="modell" ? "Prognose" : "geschätzt";
   est.hidden = !(BILD.art==="modell" || (BILD.lage && V.status==="s"));
   el.querySelector(".wbthr").style.left = `calc(${Math.min(S.T, KN_MAX)/KN_MAX*100}% - 1px)`;

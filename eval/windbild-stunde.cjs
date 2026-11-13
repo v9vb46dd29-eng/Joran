@@ -49,7 +49,7 @@ async function hole(){
   const soll = k => { if(!k || k.kn<DATA.regeln.kammMin) return null; const l = DATA.lagen.find(z=>(z.kamm||[]).includes(sek(k.dir))); return l ? l.id : "ohne"; };
   const idx = {}; D.kamm.time.forEach((t,i)=>{ idx[t] = i; });
   const res = {};
-  LEADS.forEach(s=>{ res[s] = {}; });
+  LEADS.forEach(s=>{ res[s] = {}; }); const zeig = {};
   let n = 0, ratio = [];
   Object.keys(std).sort().forEach(key=>{
     const ist = app.mittel(std[key]), want = soll(ist); if(!want || std[key].length<4) return;
@@ -68,6 +68,8 @@ async function hole(){
       const ws = x => x==="sued" ? "west" : x;
       R.n++; if(got.lage===want) R.hit++; if(got.lage && ws(got.lage)===ws(want)) R.app = (R.app||0)+1;
       const w = got.lage || "keine"; R.wohin[w] = (R.wohin[w]||0)+1;
+      /* andersherum: Wie oft stimmt die angezeigte Lage? (auch Stunden mit Soll «ohne» und «joran» zählen) */
+      if(got.lage){ const g = ws(got.lage), Z = (zeig[s] = zeig[s] || {})[g] = (zeig[s] || {})[g] || {n:0, hit:0}; Z.n++; if(g===ws(want)) Z.hit++; }
     });
   });
   const med = a => { const b = [...a].sort((x,y)=>x-y); return b[b.length>>1]; };
@@ -78,5 +80,6 @@ async function hole(){
     console.log(`\n${s ? "Lauf vom Vortag (24–48 h)" : "Lauf des Tages (0–24 h)"}`);
     Object.entries(res[s]).sort((a,b)=>b[1].n-a[1].n).forEach(([id, R])=>
       console.log(`  ${id.padEnd(7)} ${String(Math.round(100*R.hit/R.n)).padStart(3)} % von ${String(R.n).padStart(3)} Stunden${["west","sued"].includes(id) ? `, als «West oder Süd» ${Math.round(100*(R.app||0)/R.n)} %` : ""}  gewählt: ${Object.entries(R.wohin).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v}`).join(", ")}`));
+    console.log("  angezeigt und richtig: " + Object.entries(zeig[s]||{}).map(([g,Z])=>`${g==="west" ? "West oder Süd" : g} ${Math.round(100*Z.hit/Z.n)} % von ${Z.n}`).join(", "));
   });
 })().catch(e=>{ console.error(e.message||e); process.exitCode = 1; });
