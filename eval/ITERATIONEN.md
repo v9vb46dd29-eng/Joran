@@ -429,21 +429,31 @@ Auslöser: Simon will alle Windlagen erkennen, auch Front- und Abend-Joran, und 
 der Prognose. Keine Änderung an Push, Bewertung oder Rechenkern (`eval/gleich.cjs`: 0 Abweichungen). Geändert hat die
 Sektion «Windbild».
 
-**Messung oder Prognose** (`node eval/lage-vorlauf.cjs`, Lage richtig, West und Süd zusammen, Entwicklungstage):
+**Messung oder Prognose** (`node eval/lage-vorlauf.cjs`, Lage richtig, West und Süd zusammen, Entwicklungstage; «jetzt»
+wie in der App: Mittel der letzten 30 min auf dem Chasseral, letzter Wert am See):
 
 | Vorlauf | +1 h | +3 h | +6 h | +12 h | +18 h | +24 h |
 |---|---|---|---|---|---|---|
-| Messung fortgeschrieben | 90 % | 84 % | 76 % | 70 % | 61 % | 60 % |
-| Prognose, Lauf des Tages (Kamm × 2) | 73 % | 74 % | 75 % | 73 % | 72 % | 76 % |
-| Mischregel (Messung, ausser die Prognose sagt einen Wechsel) | 89 % | 85 % | 81 % | 77 % | 74 % | 78 % |
+| Messung fortgeschrieben | 88 % | 85 % | 75 % | 69 % | 62 % | 60 % |
+| Prognose, Lauf des Tages (Kamm × 2) | 74 % | 76 % | 76 % | 73 % | 72 % | 77 % |
+| Mischregel (Messung, ausser die Prognose sagt einen Wechsel) | 87 % | 88 % | 79 % | 76 % | 72 % | 77 % |
+| Mischregel, Lauf vom Vortag | 86 % | 86 % | 79 % | 77 % | 73 % | 77 % |
 
-Lange Reihe Chasseral 2010–2026, Lage nach 6 h gleich: Bise 77 %, West 70 %, Joran 68 %, Nordlage 56 %, Süd 39 %,
-Südost 36 %. Stärke am See: Mischung w = exp(−h/3,75 h), nie unter dem Modell. Mittlerer Fehler +1 h 1,6 kn (Modell
-2,0); an Ipsach ab 12 kn erkannt +3 h 0,83 (Modell 0,76, Messung 0,68), Fehlalarme 0,02–0,03 wie beim Modell.
+Bis 12.11. (mit Holdout): Mischregel 90 / 90 / 83 / 80 / 77 / 81 %. Der Holdout ist fast nur West und prüft den Fall
+«Prognose sagt Wechsel» kaum.
 
-**Kammprognose × 2:** ICON-CH2 liefert auf dem Chasseral im Median 0,49 der Messung. Mit Faktor 2 trifft die Prognose je
-Stunde Nordlage 80 statt 60 %, Joran 32 statt 0 %, Bise 96 statt 94 %, «West oder Süd» 80 statt 77 %. Angezeigt
-und richtig: Bise 80 statt 75 %, «West oder Süd» 84 statt 90 %.
+Lange Reihe Chasseral 2010–2026 (jetzt = Stunde bis jetzt), Lage nach 6 h gleich: Bise 75 %, West 68 %, Joran 65 %,
+Nordlage 53 %, Süd 36 %, Südost 32 %.
+
+Stärke am See: Mischung w = exp(−h/τ) mit τ = 2,5 h, nie unter dem Modell. Mittlerer Fehler +1 h 1,8 kn (Modell 2,0).
+An Ipsach ab 12 kn erkannt / Fehlalarme: +1 h 0,85 / 0,04 (Modell 0,75 / 0,02), +3 h 0,81 / 0,03 (0,76 / 0,02),
++6 h 0,82 / 0,03 (0,80 / 0,03). Mehr erkannte Stunden kosten in den ersten Stunden etwas mehr Fehlalarme. Auf dem
+Holdout gab es an Ipsach nur 2 Stunden ab 12 kn: für die Stärke kein Nachweis.
+
+**Kammprognose × 2:** ICON-CH2 liefert auf dem Chasseral im Median 0,49 der Messung (Holdout 0,39). Der Faktor kommt
+aus dem Median, nicht aus der Trefferquote. Mit Faktor 2 trifft die Prognose je Stunde Nordlage 80 statt 60 %, Joran
+32 statt 11 %, Bise 96 statt 94 %, «West oder Süd» 80 statt 77 %. Angezeigt und richtig: Bise 80 statt 75 %, «West oder
+Süd» 84 statt 90 %. Holdout 6.–12.11., alle Lagen: 79 statt 39 % (Reviewer: ×2,5 wäre dort 89 %).
 
 **Südost** ist eine eigene Lage (Chasseral SO). Am See kommt er als schwacher Nordost an (Ipsach 6 kn, 3 Tage). Die
 Prognose wählt ihn erst selten (17 %), meist zeigt sie Bise; die Mischregel hilft, sobald der Chasseral Südost misst.
@@ -459,5 +469,10 @@ Zeichen (Quelle «ohne Joran-Zeichen»). Regel E bleibt unverändert.
 Chasseral: 11/24, 1 Fehlalarm. Front-Joran über Besançon − Neuchâtel: 16.9., 8.10., 25.10. Zu wenig Abende, um Schwellen
 zu ändern. Das Skript hängt die Läufe an und baut so ein eigenes Archiv auf.
 
-Reviewer-Entscheid: siehe PR.
+**Bekannte Grenze:** Open-Meteo liefert die Zeiten der Archivläufe mit festem Versatz +1 h (Reviewer, geprüft über den
+25.10.). Vor dem 25.10. liegen die Prognosen in `windbild-stunde.cjs` und `lage-vorlauf.cjs` damit eine Stunde daneben.
+Korrigiert ändert sich die Mischregel um höchstens 2 Punkte. Betrifft schon `main`, nicht behoben.
 
+**Review** (separater Reviewer, rechnet selbst nach): ANNEHMEN mit Auflagen, keine blockierenden Defekte. Auflagen
+umgesetzt: Messung mit der Eingabe der App (Fehlalarme ehrlich, τ von 3,75 auf 2,5 h), Skript nutzt `mischLage` aus der
+App, Fehlbeschriftung «Prognose sagt Wechsel» bei fehlender Prognose-Lage behoben, Zahlen in Kommentaren berichtigt.

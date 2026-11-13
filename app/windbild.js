@@ -99,7 +99,8 @@ function vorwahl(x, lagen, regeln){
   const stark = k => !!(k && k.dir!=null && k.kn>=R.kammMin) && lagen.some(z=>(z.kamm||[]).length);
   /* ICON-CH2 sagt auf dem Chasseral im Median 0.49 der Messung voraus (eval/windbild-stunde.cjs): Kammprognose mit
      regeln.kammFaktor hochrechnen, bevor sie mit kammMin verglichen wird. Mit Faktor 2 trifft die Prognose je Stunde Nordlage
-     80 statt 60 %, Joran 32 statt 16 %, «West oder Süd» 80 statt 77 % (Lauf des Tages, 16.10.–5.11.). */
+     80 statt 60 %, Joran 32 statt 11 %, «West oder Süd» 80 statt 77 % (Lauf des Tages, 16.10.–5.11.; Holdout 6.–12.11.
+     gesamt 79 statt 39 %). */
   if(x.kammP && x.kammP.kn!=null) x = Object.assign({}, x, {kammP:{kn:x.kammP.kn*(R.kammFaktor||1), dir:x.kammP.dir}});
   const nc = x.nc, joranOk = !!(nc && nc.eOk) || !!(x.jc && x.jc.crestOk && (x.jc.dpOk || x.jc.bnOk));
   const ohne = (quelle, was) => ({lage:null, quelle, was});
@@ -135,23 +136,26 @@ function vorwahl(x, lagen, regeln){
   else if(l && l.vars.length>1){ const v = l.vars.find(z=>z.schicht===(r.mix===false ? "stabil" : "gemischt")); vk = v ? v.key : l.vars[0].key; }
   return {lage:r.lage, vk, quelle:r.quelle, grund:"", art, unsicher, kamm};
 }
-/* Regler: Lage einer kommenden Stunde. Die Messung von jetzt hält länger, als die Prognose trifft (eval/lage-vorlauf.cjs,
-   Entwicklungstage: fortgeschrieben 90 % nach 1 h und 61 % nach 18 h, Prognose 62–69 %). Darum gilt die Lage von jetzt,
+/* Regler: Lage einer kommenden Stunde. Die Messung von jetzt hält kurzfristig länger, als die Prognose trifft
+   (eval/lage-vorlauf.cjs, Entwicklungstage: fortgeschrieben 88 % nach 1 h und 62 % nach 18 h, Prognose 72–76 %; die
+   Mischregel liegt bei jedem Vorlauf vorne oder gleichauf). Darum gilt die Lage von jetzt,
    ausser die Prognose sagt selbst einen Wechsel voraus (Lage der Stunde anders als ihre Lage von jetzt).
    jetzt: Lage aus der Messung auf dem Chasseral (oder null), p0 / ph: vorwahl() aus der Prognose für jetzt und für die Stunde.
    West und Süd zählen dabei als eine Lage: Die Prognose trennt sie nicht. */
 const wsGleich = (a, b) => (a==="sued" ? "west" : a)===(b==="sued" ? "west" : b);
 function mischLage(jetzt, p0, ph){
-  if(jetzt && jetzt.lage && !(ph && ph.lage && !wsGleich(ph.lage, p0 && p0.lage))) return {lage:jetzt.lage, vk:jetzt.vk, aus:"messung"};
+  /* Wechsel nur, wenn die Prognose für die Stunde eine andere Lage hat als für jetzt und als die Messung */
+  const wechsel = !!(ph && ph.lage) && !wsGleich(ph.lage, p0 && p0.lage) && !(jetzt && wsGleich(ph.lage, jetzt.lage));
+  if(jetzt && jetzt.lage && !wechsel) return {lage:jetzt.lage, vk:jetzt.vk, aus:"messung"};
   return ph && ph.lage ? {lage:ph.lage, vk:ph.vk, aus:jetzt && jetzt.lage ? "wechsel" : "prognose"} : {lage:null, vk:null, aus:"prognose"};
 }
 /* Stärke einer kommenden Stunde: Messung jetzt und Modell gemischt, Gewicht der Messung exp(−h/tau). Nie unter dem Modell:
    Ein verpasster Abend wiegt schwerer als ein Fehlalarm (eval/lage-vorlauf.cjs: so erkennt der Regler an Ipsach ab 12 kn
-   bis +6 h mehr Stunden als Messung oder Modell allein, bei gleich wenigen Fehlalarmen). m, p: {kn, dir} oder null. */
+   bis +6 h mehr Stunden als das Modell, auf Kosten von etwas mehr Fehlalarmen in den ersten Stunden). m, p: {kn, dir} oder null. */
 function mischKn(m, p, h, tau){
   if(!p) return h<=1 && m ? {kn:m.kn, dir:m.dir, w:1} : null;
   if(!m) return {kn:p.kn, dir:p.dir, w:0};
-  const w = Math.exp(-h/(tau||3.75)), r = mittel([{kn:m.kn*w, dir:m.dir}, {kn:p.kn*(1-w), dir:p.dir}]);
+  const w = Math.exp(-h/(tau||2.5)), r = mittel([{kn:m.kn*w, dir:m.dir}, {kn:p.kn*(1-w), dir:p.dir}]);
   return {kn:Math.max(w*m.kn+(1-w)*p.kn, p.kn), dir:r && (w*m.kn+(1-w)*p.kn)>0 ? r.dir : p.dir, w};
 }
 /* Wie oft stimmt die Lage nach h Stunden? v = vorlauf aus data/windbild.json. aus = "messung" (fortgeschrieben, lange Reihe

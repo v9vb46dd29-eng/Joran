@@ -82,7 +82,8 @@ with sync_playwright() as p:
        ['Messung, Prognose ohne Lage → Messung', WB.mischLage(J, P('bise'), P(null)), 'bise', 'messung'],
        ['Messung, Prognose sagt Wechsel → Prognose', WB.mischLage(J, P('bise'), P('west')), 'west', 'wechsel'],
        ['Messung Süd, Prognose West jetzt und später → Süd bleibt', WB.mischLage({lage:'sued'}, P('west'), P('west')), 'sued', 'messung'],
-       ['ohne Messung → Prognose', WB.mischLage(null, P('bise'), P('nord')), 'nord', 'prognose'] ];
+       ['ohne Messung → Prognose', WB.mischLage(null, P('bise'), P('nord')), 'nord', 'prognose'],
+       ['Prognose jetzt ohne Lage, später wie die Messung → kein Wechsel', WB.mischLage(J, P(null), P('bise')), 'bise', 'messung'] ];
       const k1=WB.mischKn({kn:20,dir:240},{kn:10,dir:240},1,3.75), k2=WB.mischKn({kn:4,dir:240},{kn:12,dir:240},2,3.75), k3=WB.mischKn(null,{kn:9,dir:60},2,3.75);
       return T.map(([n,r,l,a])=>[n, r.lage===l && r.aus===a, JSON.stringify(r)]).concat([
        ['Stärke +1 h: Messung zählt mehr', k1.kn>17 && k1.kn<20, JSON.stringify(k1)],

@@ -23,7 +23,7 @@ const DATA = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "windbild.json")
 const LEADS = [1,2,3,4,6,9,12,18,24];
 const src = fs.readFileSync(path.join(ROOT, "app", "windbild.js"), "utf8");
 const i0 = src.indexOf("/* ---------- Lage von heute ---------- */"), i1 = src.indexOf("function heute(){");
-const app = new Function("dirOf", "DATA", src.slice(i0, i1)+"; return {vorwahl, mittel};")(C.dirOf, DATA);
+const app = new Function("dirOf", "DATA", src.slice(i0, i1)+"; return {vorwahl, mittel, mischLage, mischKn};")(C.dirOf, DATA);
 const KMIN = DATA.regeln.kammMin;
 const sek = d => ["N","NO","O","SO","S","SW","W","NW"][Math.round(d/45)%8];
 /* Soll: Lage nach dem Chasseral. «suedost» auch dann, wenn die Datei Südost noch nicht als Lage führt */
@@ -47,7 +47,8 @@ const pct = (a, n) => n ? Math.round(100*a/n) : null, f = x => x==null ? "  –"
   const chaH = new Map(cha.map(r=>[r.t-H, r]));
   const pers = {}, persN = {};
   for(const [t, r] of chaH){ const hr = C.localHour(new Date(t)); const a = lageVon(r); if(!a) continue;
-    LEADS.forEach(h=>{ const z = chaH.get(t+h*H); if(!z) return; const hz = C.localHour(new Date(t+h*H)); if(hz<8 || hz>=22) return;
+    /* jetzt = Ende dieser Stunde (t+H, kein Blick voraus), Ziel = die Stunde, die h Stunden später beginnt */
+    LEADS.forEach(h=>{ const z = chaH.get(t+(h+1)*H); if(!z) return; const hz = C.localHour(new Date(t+(h+1)*H)); if(hz<8 || hz>=22) return;
       const b = lageVon(z); if(!b) return; const P = (pers[a] = pers[a] || {}); const Q = (P[h] = P[h] || {n:0, hit:0}); Q.n++; if(a===b) Q.hit++; }); }
   const jahre = `${C.dayOfDate(new Date(cha[0].t)).slice(0,4)}–${C.dayOfDate(new Date(cha[cha.length-1].t))}`;
   console.log(`1) Lage fortgeschrieben, Chasseral ${jahre}, Ziel 8–22 Uhr. Anteil gleiche Lage nach h Stunden (nur Stunden, in denen der Chasseral ab ${KMIN} kn misst)`);
@@ -61,6 +62,9 @@ const pct = (a, n) => n ? Math.round(100*a/n) : null, f = x => x==null ? "  –"
   const c10 = JSON.parse(fs.readFileSync(path.join(__dirname, "cache", "cha.t.json"), "utf8"));
   const std = {}; c10.forEach(r=>{ const t = new Date(r.t), k = keyOf(t); if(r.mean==null) return; (std[k] = std[k] || []).push({kn:r.mean, dir:r.dir}); });
   const ist = k => std[k] && std[k].length>=4 ? app.mittel(std[k]) : null;
+  /* «jetzt» wie in der App: Mittel der letzten drei Zehnminutenwerte vor dem Zeitpunkt (kein Blick in die laufende Stunde) */
+  const c10m = new Map(c10.map(r=>[+new Date(r.t), r]));
+  const vorher = t => { const rs = [0,1,2].map(i=>c10m.get(t-i*600e3)).filter(r=>r && r.mean!=null); return rs.length>=2 ? app.mittel(rs.map(r=>({kn:r.mean, dir:r.dir}))) : null; };
   const prog = (k, s) => { const i = idx[k]; if(i==null) return null;
     const kv = D.kamm["wind_speed_10m"+s][i], kd = D.kamm["wind_direction_10m"+s][i], pts = [];
     C.MODELS.forEach(m=>["vin","ips"].forEach(id=>{ const h = D.see[m.id] && D.see[m.id][id]; if(!h) return;
@@ -73,17 +77,17 @@ const pct = (a, n) => n ? Math.round(100*a/n) : null, f = x => x==null ? "  –"
   /* Stunden als Zeitpunkte (UTC), damit der Wechsel auf die Winterzeit stimmt */
   const STD = []; for(let t=Date.parse(VON+"T00:00:00Z")-2*H; C.dayOfDate(new Date(t))<=BIS; t+=H) if(C.dayOfDate(new Date(t))>=VON) STD.push(t);
   STD.forEach(t0=>{ const k = keyOf(new Date(t0));
-    const jetzt = lageVon(ist(k)); if(!jetzt || jetzt==="ohne") return;
+    const jetzt = lageVon(vorher(t0)); if(!jetzt || jetzt==="ohne") return;
     LEADS.forEach(h=>{ const kz = keyOf(new Date(t0+h*H)), hz = +kz.slice(11,13); if(hz<8 || hz>=22 || kz.slice(0,10)>BIS) return;
       const soll = lageVon(ist(kz)); if(!soll) return;
       add("fort", h, ws(jetzt)===ws(soll));
       ["", "_previous_day1"].forEach(s=>{ const p = prog(kz, s), p0 = prog(k, s);
         add("prog"+s, h, !!p && ws(p)===ws(soll));
-        /* Mischregel: Prognose nur, wenn sie selbst einen Wechsel voraussagt */
-        const misch = p && p0!==p ? p : jetzt;
-        add("misch"+s, h, ws(misch)===ws(soll)); });
+        /* Mischregel der App (mischLage aus app/windbild.js) */
+        const misch = app.mischLage({lage:jetzt}, {lage:p0}, {lage:p}).lage;
+        add("misch"+s, h, !!misch && ws(misch)===ws(soll)); });
     }); });
-  console.log(`\n2) Entwicklungstage ${VON}–${BIS}, Lage richtig (West und Süd zusammen wie im Regler), Ziel 8–22 Uhr`);
+  console.log(`\n2) Tage ${VON}–${BIS}, Lage richtig (West und Süd zusammen wie im Regler), Ziel 8–22 Uhr`);
   console.log("   Methode                          " + LEADS.map(h=>("+"+h+"h").padStart(5)).join("") + "   n(+1h)");
   [["fort","Messung fortgeschrieben"],["prog","Prognose, Lauf des Tages"],["prog_previous_day1","Prognose, Lauf vom Vortag"],
    ["misch","Mischregel, Lauf des Tages"],["misch_previous_day1","Mischregel, Lauf vom Vortag"]].forEach(([m, name])=>
@@ -91,13 +95,18 @@ const pct = (a, n) => n ? Math.round(100*a/n) : null, f = x => x==null ? "  –"
 
   /* ---------- Stärke am See ---------- */
   const {lk} = M.loadArchive([], true);
+  /* Seemessung jetzt wie in der App: letzter Wert vor dem Zeitpunkt, höchstens 50 min alt */
+  const seeRows = {}; C.LAKE.forEach(L=>{ seeRows[L.id] = lk.st[L.id].rows.filter(r=>r.mean!=null).map(r=>({t:+new Date(r.t), kn:r.mean})); });
+  const seeVor = (id, t) => { const a = seeRows[id]; let lo = 0, hi = a.length-1, best = null;
+    while(lo<=hi){ const mid = (lo+hi)>>1; if(a[mid].t<=t){ best = a[mid]; lo = mid+1; } else hi = mid-1; }
+    return best && t-best.t<=50*60000 ? best.kn : null; };
   const see = {}; C.LAKE.forEach(L=>{ const m = {}; lk.st[L.id].rows.forEach(r=>{ if(r.mean==null) return; const k = keyOf(new Date(r.t)); (m[k] = m[k] || []).push(r.mean); });
     see[L.id] = Object.fromEntries(Object.entries(m).filter(([,a])=>a.length>=3).map(([k,a])=>[k, a.reduce((x,y)=>x+y,0)/a.length])); });
   const modell = (id, k, s) => { const i = idx[k]; if(i==null) return null; const v = [];
     C.MODELS.forEach(m=>{ const h = D.see[m.id] && D.see[m.id][id]; const x = h && h["wind_speed_10m"+s][i]; if(x!=null) v.push(x); });
     return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
   const paare = [];
-  ["vin","ips"].forEach(id=>STD.forEach(t0=>{ const k = keyOf(new Date(t0)), a = see[id][k]; if(a==null) return;
+  ["vin","ips"].forEach(id=>STD.forEach(t0=>{ const a = seeVor(id, t0); if(a==null) return;
     LEADS.forEach(h=>{ const kz = keyOf(new Date(t0+h*H)), hz = +kz.slice(11,13); if(hz<8 || hz>=22 || kz.slice(0,10)>BIS) return;
       const b = see[id][kz], m0 = modell(id, kz, ""), m1 = modell(id, kz, "_previous_day1"); if(b==null || m0==null) return;
       paare.push({id, h, jetzt:a, soll:b, m0, m1}); }); }));
