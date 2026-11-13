@@ -9,7 +9,7 @@
    Speichert die Archivprognosen in eval/data/joran_prognose.json und hängt bei jedem Aufruf die neuen Läufe an. */
 "use strict";
 const fs = require("fs"), path = require("path");
-const ROOT = path.join(__dirname, ".."), C = require(path.join(ROOT, "core.js"));
+const ROOT = path.join(__dirname, ".."), C = require(path.join(ROOT, "core.js")), Z = require("./zeitversatz.cjs");
 const FILE = path.join(__dirname, "data", "joran_prognose.json"), SUF = ["", "_previous_day1"];
 async function hole(){
   const P = [C.JURA, C.CREST, C.SPOTS[2], C.BES, C.NEUP];
@@ -17,14 +17,16 @@ async function hole(){
   const u = "https://previous-runs-api.open-meteo.com/v1/forecast" + `?latitude=${P.map(p=>p.lat).join(",")}&longitude=${P.map(p=>p.lon).join(",")}`
     + `&hourly=${v}&models=meteoswiss_icon_ch2&wind_speed_unit=kn&timezone=Europe%2FZurich&past_days=92&forecast_days=1`;
   const r = await fetch(u); if(!r.ok) throw new Error(r.status+" "+await r.text());
-  const neu = (await r.json()).map(x=>x.hourly);
+  const neu = (await r.json()).map(x=>Z.hourly(x));   /* Zeit in echter Ortszeit (eval/zeitversatz.cjs) */
   /* an die abgelegten Läufe anhängen: Das Archiv der API reicht nur 92 Tage zurück, die Datei wächst mit jedem Aufruf */
-  const alt = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")).punkte : null;
+  const altD = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : null;
+  if(altD) Z.umrechnen("joran_prognose.json", altD);   /* ältere Ablage ohne Umrechnung zuerst in Ortszeit */
+  const alt = altD ? altD.punkte : null;
   const punkte = neu.map((h, p)=>{ const m = new Map();
     [alt && alt[p], h].filter(Boolean).forEach(o=>o.time.forEach((t,i)=>{ const z = {}; Object.keys(o).forEach(k=>{ if(k!=="time") z[k] = o[k][i]; });
       if(!m.has(t) || Object.values(z).some(v=>v!=null)) m.set(t, z); }));
     const ts = [...m.keys()].sort(), out = {time:ts}; Object.keys(h).filter(k=>k!=="time").forEach(k=>{ out[k] = ts.map(t=>m.get(t)[k] ?? null); }); return out; });
-  const D = {geholt:new Date().toISOString(), punkte};
+  const D = {geholt:new Date().toISOString(), zeit:Z.MARK, punkte};
   fs.writeFileSync(FILE, JSON.stringify(D)); return D;
 }
 (async()=>{

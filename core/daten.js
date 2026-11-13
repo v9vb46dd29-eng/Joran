@@ -37,15 +37,35 @@ async function getText1252(url, ms){
 }
 const coordQ = () => `latitude=${SPOTS.map(s=>s.lat).join(",")}&longitude=${SPOTS.map(s=>s.lon).join(",")}`;
 function indexTimes(t){ const m = {}; t.forEach((x,i)=>m[x]=i); return m; }
+/* Open-Meteo schreibt mit timezone=Europe/Zurich die ganze Reihe mit EINEM Versatz (utc_offset_seconds, der vom Zeitpunkt
+   des Abrufs), nicht mit dem Versatz der jeweiligen Stunde. Liegt ein Wechsel Sommer-/Winterzeit in der Reihe, sind die
+   Stunden auf der anderen Seite um eine Stunde falsch beschriftet (z. B. Abruf im November: «14:00» am 20.10. ist 15:00 MESZ).
+   ortszeit() rechnet jede Beschriftung mit dem gelieferten Versatz auf UTC zurück und schreibt sie in echter Ortszeit.
+   Ohne Versatz bleibt die Reihe, wie sie ist. Beim Wechsel auf Winterzeit kommt 02:00 zweimal vor, beim Wechsel auf
+   Sommerzeit fehlt 02:00; die Abstände im Feld bleiben echte Stunden. */
+const ORT_FMT = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Zurich",year:"numeric",month:"2-digit",day:"2-digit",
+  hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+const ORT_MEMO = new Map();
+function ortszeit(times, off){
+  if(!Array.isArray(times) || off==null || isNaN(off)) return times;
+  return times.map(t=>{
+    const k = t+"|"+off; let v = ORT_MEMO.get(k); if(v) return v;
+    const ms = Date.parse(t+"Z") - off*1000;
+    if(isNaN(ms)) return t;
+    const p = {}; ORT_FMT.formatToParts(new Date(ms)).forEach(x=>{ p[x.type] = x.value; });
+    v = `${p.year}-${p.month}-${p.day}T${p.hour==="24" ? "00" : p.hour}:${p.minute}`;
+    if(ORT_MEMO.size>20000) ORT_MEMO.clear();
+    ORT_MEMO.set(k, v); return v; });
+}
 
 function normSpots(j, suffix){
   const arr = Array.isArray(j) ? j : [j];
   return SPOTS.map((sp,i)=>{
     const o = arr[i]; if(!o || !o.hourly) return null;
-    const hh = o.hourly, sf = suffix||"";
-    const h = {time:hh.time, ws:hh["wind_speed_10m"+sf], wd:hh["wind_direction_10m"+sf], wg:hh["wind_gusts_10m"+sf]||null, cape:hh["cape"+sf]||null};
+    const hh = o.hourly, sf = suffix||"", time = ortszeit(hh.time, o.utc_offset_seconds);
+    const h = {time, ws:hh["wind_speed_10m"+sf], wd:hh["wind_direction_10m"+sf], wg:hh["wind_gusts_10m"+sf]||null, cape:hh["cape"+sf]||null};
     if(!h.ws || !h.wd) return null;
-    return {id:sp.id, h, idx:indexTimes(hh.time), cell:{lat:o.latitude, lon:o.longitude}};
+    return {id:sp.id, h, idx:indexTimes(time), cell:{lat:o.latitude, lon:o.longitude}};
   }).filter(Boolean);
 }
 async function fetchModel(m){
@@ -79,7 +99,7 @@ async function fetchHoehe(){
     + "&hourly=wind_speed_850hPa,wind_direction_850hPa,temperature_850hPa,temperature_2m&models=icon_eu&wind_speed_unit=kn&timezone=Europe%2FZurich&forecast_days=4";
   const j = await getJSON(u), h = j && j.hourly;
   if(!h || !h.time || !h.wind_speed_850hPa) throw new Error("kein Höhenwind");
-  return h;
+  return Object.assign({}, h, {time:ortszeit(h.time, j.utc_offset_seconds)});
 }
 /* Joran-Zutaten (ICON-CH2): Druck Jurahochfläche minus See, Wind auf dem Chasseral-Kamm, je Stunde */
 async function fetchJura(){
@@ -92,7 +112,7 @@ async function fetchJura(){
   if(arr.length<3) throw new Error("zu wenige Punkte");
   const [jj, cr, lk, be, ne] = arr.map(x=>x.hourly);
   const out = {};
-  jj.time.forEach((t,i)=>{
+  ortszeit(jj.time, arr[0].utc_offset_seconds).forEach((t,i)=>{
     const a = jj.pressure_msl[i], b = lk.pressure_msl[i];
     const pb = be ? be.pressure_msl[i] : null, pn = ne ? ne.pressure_msl[i] : null;
     out[t] = {dp: a!=null && b!=null ? a-b : null, cv: cr.wind_speed_10m[i], cd: cr.wind_direction_10m[i],
@@ -220,6 +240,6 @@ async function fetchAll(St, opts){
   return N;
 }
 
-return {getJSON, fetchModel, fetchEnsemble, fetchHoehe, fetchJura, fetchHistory, fetchStation, parseSMN, updateLake,
+return {getJSON, ortszeit, fetchModel, fetchEnsemble, fetchHoehe, fetchJura, fetchHistory, fetchStation, parseSMN, updateLake,
   fetchLakeNow, fetchLake, fetchStations, fetchAll, fetchWindbild};
 });

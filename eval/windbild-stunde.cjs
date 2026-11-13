@@ -11,7 +11,7 @@
    Speichert die Archivprognosen in eval/data/stunde_prognose.json. Braucht den Stationscache aus eval/measure.cjs. */
 "use strict";
 const fs = require("fs"), path = require("path");
-const ROOT = path.join(__dirname, ".."), C = require(path.join(ROOT, "core.js"));
+const ROOT = path.join(__dirname, ".."), C = require(path.join(ROOT, "core.js")), Z = require("./zeitversatz.cjs");
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i>0 ? process.argv[i+1] : d; };
 const split = JSON.parse(fs.readFileSync(path.join(__dirname, "split.json"), "utf8"));
 const BIS = arg("--bis", split.devBis), VON = "2026-10-16", FK = parseFloat(arg("--kamm", "1"));
@@ -30,9 +30,10 @@ async function hole(){
   const q = (lat, lon, m, sea) => `https://previous-runs-api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${v}&models=${m}`
     + `&wind_speed_unit=kn&timezone=Europe%2FZurich&past_days=${days}&forecast_days=1${sea?"&cell_selection=sea":""}`;
   const get = async u => { const r = await fetch(u); if(!r.ok) throw new Error(r.status+" "+u); return r.json(); };
-  const D = {geholt:new Date().toISOString(), kamm:(await get(q(C.CREST.lat, C.CREST.lon, "meteoswiss_icon_ch2"))).hourly, see:{}};
+  /* Zeit in echter Ortszeit (Open-Meteo beschriftet die ganze Reihe mit dem Versatz vom Abruf, eval/zeitversatz.cjs) */
+  const D = {geholt:new Date().toISOString(), zeit:Z.MARK, kamm:Z.hourly(await get(q(C.CREST.lat, C.CREST.lon, "meteoswiss_icon_ch2"))), see:{}};
   for(const m of C.MODELS){ D.see[m.id] = {};
-    for(const L of C.SPOTS.filter(s=>s.id!=="mit")){ try{ D.see[m.id][L.id] = (await get(q(L.lat, L.lon, m.id, true))).hourly; }catch(e){ console.error(m.id, L.id, e.message); } } }
+    for(const L of C.SPOTS.filter(s=>s.id!=="mit")){ try{ D.see[m.id][L.id] = Z.hourly(await get(q(L.lat, L.lon, m.id, true))); }catch(e){ console.error(m.id, L.id, e.message); } } }
   fs.mkdirSync(path.dirname(FILE), {recursive:true}); fs.writeFileSync(FILE, JSON.stringify(D));
   return D;
 }

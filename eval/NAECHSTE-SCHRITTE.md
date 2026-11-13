@@ -19,6 +19,9 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
    Die Tage 6.–10.11.2026 waren schon Holdout und dürfen in die Entwicklung wandern; der neue Holdout sind die jüngsten Tage.
 3. Archivprognosen und Höhenwind für den neuen Zeitraum nachladen (`eval/data/prognose_vortag.json` löschen und
    `node eval/prognose.cjs` laufen lassen; `eval/data/hoehenwind_icon_eu.json` über die Historical Forecast API erneuern).
+   Danach `node eval/zeitversatz.cjs`: Es bringt die Zeit aller abgelegten Open-Meteo-Reihen in Ortszeit (Open-Meteo
+   beschriftet eine ganze Reihe mit dem Versatz vom Abruf; über den Wechsel auf Sommer- oder Winterzeit liegt sonst eine
+   Stunde daneben). Schon umgerechnete Dateien lässt es stehen.
 4. Parameter neu bestimmen (`node eval/measure.cjs --fit`): alle Werte in `core/modell.js` eintragen (`MODEL.f`,
    `MODEL.kopplung.min`, `MODEL.hoehe.f`, `MODEL.fitted`). Messen bei 10, 12 und 14 kn. Den Lieferverzug mit
    `node eval/verzug.cjs` nachprüfen (heute 10 min).

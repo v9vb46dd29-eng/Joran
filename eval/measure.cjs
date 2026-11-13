@@ -34,6 +34,7 @@
 const fs = require("fs"), path = require("path"), os = require("os"), {execFileSync} = require("child_process");
 const ROOT = path.join(__dirname, "..");
 const C = require(path.join(ROOT, "core.js"));
+const Z = require("./zeitversatz.cjs");   /* abgelegte Open-Meteo-Reihen in Ortszeit */
 
 /* ================= Optionen ================= */
 /* Lieferverzug in Minuten: Alter des jüngsten SwissMetNet-Werts, den die Action beim Lauf sieht (eval/verzug.cjs) */
@@ -437,12 +438,12 @@ async function main(){
   if(o.fit){
     if(!cores.neu.K.fitModel) throw new Error("dieser Stand kann keine Parameter bestimmen");
     const dev = Object.keys(per).sort().filter(d=>d<=split.devBis && C.lakeDay(per[d], d, St).known);
-    const M = cores.neu.K.fitModel({days:dev, lake:per, S, St, hoehe:rd("hoehenwind_icon_eu.json") ? rd("hoehenwind_icon_eu.json").hourly : null}, o.fest ? {fest:true} : null);
+    const M = cores.neu.K.fitModel({days:dev, lake:per, S, St, hoehe:Z.hourly(rd("hoehenwind_icon_eu.json"))}, o.fest ? {fest:true} : null);
     console.log(JSON.stringify({fitted:M.fitted, kopplung:M.kopplung, hoehe:M.hoehe, f:M.f}));
     return;
   }
   const pv = rd("prognose_vortag.json"), hw = rd("hoehenwind_icon_eu.json");
-  const FC = pv ? {models:Object.fromEntries(pv.models.map(x=>[x.id, x.spots])), hoehe:hw ? hw.hourly : null} : null;
+  const FC = pv ? {models:Object.fromEntries(pv.models.map(x=>[x.id, x.spots])), hoehe:Z.hourly(hw)} : null;
   const R = measureAll({per, S, marks, St, ctl:o.ctl, cores, split, teil:o.teil, FC, fest:o.fest, verzug:o.verzug, sturm:o.sturm});
   let rev = "?"; try{ rev = git(["rev-parse","--short","HEAD"]).trim() + (git(["status","--porcelain","core.js","core","eval"]).trim() ? "+lokal" : ""); }catch(e){}
   const KN = cores.neu.K;
