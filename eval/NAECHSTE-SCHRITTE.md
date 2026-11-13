@@ -34,7 +34,11 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
 9. `node eval/windbild.cjs --pruefen` laufen lassen: rechnet `data/windbild.json` für die Sektion «Windbild» neu (nach
    Schritt 2, damit der neue Holdout ungelesen bleibt) und vergleicht mit `eval/schichten.cjs`. Die Datei kommt in den PR.
    Hat eine Lage aus der Vorlage (`eval/windbild.vorlage.json`, «fest») inzwischen genug Tage, dort eine Regel eintragen.
-10. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+10. `node eval/windbild-stunde.cjs` laufen lassen (vorher `eval/data/stunde_prognose.json` löschen): Lage je Stunde
+    aus der Prognose (Regler im Windbild) gegen die Messung Chasseral. Stand 13.11.2026 (16.10.–5.11.): Bise 94 %,
+    West 65 %, Nordlage 60 %, Süd 0 % (als West). Trifft Süd inzwischen, «West oder Süd» in `stunde()` aufheben.
+    Probeweise `--kamm 2.5` (ICON-CH2 liefert am Kamm rund die Hälfte): hebt West auf 83 %, Süd bleibt bei 0 %.
+11. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 

@@ -49,7 +49,7 @@ def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None, vh=
     pg.route("**/*", route)
     t0=time.time(); pg.goto("http://127.0.0.1:8765/index.html"); pg.wait_for_selector("#now .verdict", timeout=30000); tmain=time.time()-t0
     pg.wait_for_selector("#wb .wbpanel table", state="attached", timeout=10000); pg.wait_for_timeout(1200)
-    info=pg.evaluate("""()=>({today:document.querySelector('.wbtoday').innerText, pressed:[...document.querySelectorAll('.wblagen button[aria-pressed=true]')].map(b=>b.dataset.t),
+    info=pg.evaluate("""()=>({today:document.querySelector('.wbtoday').innerText+' | '+document.querySelector('.wbtoday').dataset.quelle, pressed:[...document.querySelectorAll('.wblagen button[aria-pressed=true]')].map(b=>b.dataset.t),
       panel:document.querySelector('.wbpanel').innerText, badges:document.querySelector('.wbbadges').innerText, ver:document.querySelector('.large .sub').innerText,
       small:[...document.querySelectorAll('#wb button')].filter(b=>b.offsetParent && (b.getBoundingClientRect().height<40||b.getBoundingClientRect().width<40)).map(b=>b.innerText+' '+Math.round(b.getBoundingClientRect().width)+'x'+Math.round(b.getBoundingClientRect().height)),
       over:document.documentElement.scrollWidth>document.documentElement.clientWidth,
@@ -130,10 +130,27 @@ with sync_playwright() as p:
        ['Kein Windbild ohne Chasseral → unsicher', {s:{top:{d:135,v:9}}, kammFehlt:true}, 'prognose', true] ];
       return T.map(([n,x,a,u])=>{ const r=WB.vorwahl(x); return [n, r.art===a && r.unsicher===u && (!n.includes('Quelle nennt') || r.quelle.startsWith('Messung Chasseral')), JSON.stringify(r)]; }); }""")
     for n,c,r in res: ok("Vorwahl: "+n, c, r)
+    # Muster an der Messung ausrichten: Punkte mit Wert übernehmen ihn, die übrigen folgen dem Verhältnis der nahen Punkte
+    r=pg.evaluate("""()=>WB.ausrichten([["vin",240,9,1],["ips",244,18,1],["twa",240,17],["mag",250,5]], {vin:{kn:18,dir:250}, ips:{kn:36,dir:254}})""")
+    ok("Ausrichten: Messpunkte übernommen, Nachbarn skaliert und gedreht", r[0][2]==18 and r[1][2]==36 and 30<=r[2][2]<=38 and r[2][1]==250 and 8<=r[3][2]<=12, r)
+    ok("Ausrichten ohne Werte: Muster bleibt typisch", pg.evaluate("""()=>JSON.stringify(WB.ausrichten([["vin",240,9,1]], {}))""")=='[["vin",240,9,1]]')
+    # Regler: kommende Stunde aus der Prognose, West heisst «West oder Süd»
+    pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=6; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(700)
+    j=pg.evaluate("()=>({t:document.querySelector('.wbtoday').innerText, b:document.querySelector('.wbbadges').innerText, est:document.querySelector('.wbest').hidden?'':document.querySelector('.wbest').innerText})")
+    ok("Regler +6 h: Prognose mit Uhrzeit, «West oder Süd», Modellwerte an den Spots", "Uhr" in j["t"] and "West oder Süd" in j["t"] and "Prognose" in j["t"] and "Modell" in j["b"] and j["est"]=="Prognose", j)
+    pg.click(".wbviews button[data-v=region]"); pg.wait_for_timeout(700)
+    j=pg.evaluate("()=>({n:document.querySelectorAll('.wbst').length, b:document.querySelector('.wbbadges').innerText})")
+    ok("Regler in der Region: keine Upwind-Stationen, nur Ipsach mit Modell", j["n"]==1 and "Ipsach" in j["b"], j)
+    pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=0; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(700)
+    j=pg.evaluate("()=>({n:document.querySelectorAll('.wbst').length, t:document.querySelector('.wbtoday').innerText})")
+    ok("Region jetzt: alle Upwind-Stationen als Punkte", j["n"]>=11 and "Uhr" not in j["t"], j)
+    if True: pg.screenshot(path=f"{OUT}/region-hell.png")
+    pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(400)
+    ok("Regler und Region ohne Konsolenfehler", not errs, errs)
     # Startseite: Karte ohne Filter; im Blatt «Erklärungen» mit allen Lagen
     ok("Startseite: Lagen-Filter ausgeblendet", pg.evaluate("()=>!document.querySelector('.wblagen').offsetParent && !document.querySelector('.wbpanel').offsetParent"))
     pg.click("#infoBtn"); pg.wait_for_timeout(700)
-    ok("Erklärungen: Karte mit Filtern im Blatt", pg.evaluate("()=>!!document.querySelector('#info #wb.wbfull') && !!document.querySelector('.wblagen').offsetParent"))
+    ok("Erklärungen: Karte mit Filtern im Blatt, ohne Regler", pg.evaluate("()=>!!document.querySelector('#info #wb.wbfull') && !!document.querySelector('.wblagen').offsetParent && !document.querySelector('.wbtime').offsetParent"))
     # Lage wählen, Variante, Ausschnitt, zurück
     pg.click(".wblagen button[data-t=joran]"); pg.wait_for_timeout(500)
     j=pg.evaluate("()=>({est:!document.querySelector('.wbest').hidden, vars:document.querySelector('.wbvars').innerText, panel:document.querySelector('.wbpanel').innerText, back:!!document.querySelector('.wbback')})")
@@ -160,7 +177,10 @@ with sync_playwright() as p:
     ok("B keine Konsolenfehler", not errs, errs); b.close()
     # C: Südost am Boden, Chasseral ohne Angabe
     b,pg,i,errs,tm=run(p,"so","light",135,9,{}, shots=False)
-    ok("C Südost: keine Vorwahl, Hinweis", "kein Windbild" in i["today"], i["today"]); b.close()
+    ok("C Südost: keine Vorwahl, Hinweis", "kein Windbild" in i["today"], i["today"])
+    pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=3; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(600)
+    j=pg.evaluate("()=>({t:document.querySelector('.wbtoday').innerText, b:document.querySelector('.wbbadges').innerText})")
+    ok("C Regler bei Südost: «keine Lage erkennbar», Pfeile an den Spots", "keine Lage erkennbar" in j["t"] and "Modell" in j["b"], j); b.close()
     # F: Nordlage: Chasseral Nord, am See Nordost (Bodenwind allein ergäbe Bise)
     b,pg,i,errs,tm=run(p,"nord-hell","light",50,13,{"ips":(13,40),"vin":(6,65)}, kamm=(5,24))
     ok("F Nordlage trotz Nordost am See", i["pressed"]==["nord"] and "Nordlage" in i["today"], i["today"])
