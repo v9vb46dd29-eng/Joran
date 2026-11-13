@@ -22,6 +22,13 @@ def model_json(wd, ws):
     times=[(base+datetime.timedelta(hours=i)).strftime("%Y-%m-%dT%H:00") for i in range(24*6)]
     n=len(times)
     return [{"latitude":47.1,"longitude":7.2,"hourly":{"time":times,"wind_speed_10m":[ws]*n,"wind_direction_10m":[wd]*n,"wind_gusts_10m":[ws*1.4]*n,"cape":[0]*n}} for _ in range(3)]
+def punkt_json(wd, ws):
+    # fetchPunkt (La Neuveville): ein Punkt, alle Modelle mit Suffix
+    base=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).replace(hour=0,minute=0,second=0,microsecond=0)-datetime.timedelta(days=1)
+    times=[(base+datetime.timedelta(hours=i)).strftime("%Y-%m-%dT%H:00") for i in range(24*3)]; n=len(times); h={"time":times}
+    for k,m in enumerate(["meteoswiss_icon_ch1","meteoswiss_icon_ch2","icon_d2","meteofrance_arome_france_hd"]):
+        h["wind_speed_10m_"+m]=[ws-2+k]*n; h["wind_direction_10m_"+m]=[wd]*n
+    return {"latitude":47.063,"longitude":7.1,"utc_offset_seconds":0,"hourly":h}
 def jura_json(kamm):
     base=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).replace(hour=0,minute=0,second=0,microsecond=0)-datetime.timedelta(days=1)
     times=[(base+datetime.timedelta(hours=i)).strftime("%Y-%m-%dT%H:00") for i in range(24*6)]; n=len(times)
@@ -40,6 +47,8 @@ def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None, vh=
     def route(r):
         u=r.request.url
         if u.startswith("http://127.0.0.1"): return r.continue_()
+        if "api.open-meteo.com/v1/forecast" in u and "latitude=47.063&" in u:
+            return r.fulfill(status=200, content_type="application/json", body=json.dumps(punkt_json(wd,ws)))
         if "api.open-meteo.com/v1/forecast" in u and "models=" in u and "850hPa" not in u and "pressure_msl" not in u:
             return r.fulfill(status=200, content_type="application/json", body=json.dumps(model_json(wd,ws)))
         if kamm and "api.open-meteo.com/v1/forecast" in u and "pressure_msl" in u:
@@ -72,7 +81,9 @@ with sync_playwright() as p:
     ok("A Karte zeigt nur Gemessenes: Wind von jetzt mit Uhrzeit, kein typischer Wert", "17 kn SW" in i["panel"] and "8 kn WSW" in i["panel"] and "Ipsach 17 kn SW" in i["badges"] and re.search(r"gemessen \d\d:\d\d", i["badges"]) is not None and "typisch" not in i["badges"], i["badges"])
     ok("A Bucht: Chasseral in der Ecke beschriftet", pg.evaluate("()=>{const c=document.querySelector('.wbcorner'); return !!c && c.textContent.startsWith('Chasseral');}"))
     pg.click(".wbviews button[data-v=see]"); pg.wait_for_timeout(500)
-    ok("A See: Chasseral als Station beschriftet", pg.evaluate("()=>document.querySelectorAll('.wbst').length===1 && [...document.querySelectorAll('.wbstl')].some(x=>x.textContent.startsWith('Chasseral'))"))
+    ok("A See: Chasseral als Station beschriftet", pg.evaluate("()=>document.querySelectorAll('.wbst').length===2 && [...document.querySelectorAll('.wbstl')].some(x=>x.textContent.startsWith('Chasseral'))"))
+    j=pg.evaluate("()=>({l:[...document.querySelectorAll('.wbstl.mod')].map(x=>x.textContent), m:document.querySelectorAll('.wbst.mod').length})")
+    ok("A See: La Neuveville mit Modellwert, als «Modell» und mit «~» gekennzeichnet", j["m"]==1 and any(t.startswith("La Neuveville ~") and t.endswith("Modell") for t in j["l"]), j)
     pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(300)
     # Regler: Messung fortschreiben, ausser die Prognose sagt einen Wechsel; Stärke gemischt, nie unter dem Modell
     res=pg.evaluate("""()=>{ const P=(lage)=>({lage, vk:lage==='west'?'mix':null}), J={lage:'bise', vk:'mix', kamm:true};
@@ -170,7 +181,7 @@ with sync_playwright() as p:
     ok("Regler +6 h: Prognose mit Uhrzeit, «West oder Süd», Modellwerte an den Spots", "Uhr" in j["t"] and "West oder Süd" in j["t"] and "Prognose" in j["t"] and "Modell" in j["b"] and j["est"]=="Prognose", j)
     pg.click(".wbviews button[data-v=region]"); pg.wait_for_timeout(700)
     j=pg.evaluate("()=>({n:document.querySelectorAll('.wbst').length, b:document.querySelector('.wbbadges').innerText})")
-    ok("Regler in der Region: keine Upwind-Stationen, nur Ipsach mit Modell und «~»", j["n"]==1 and "Ipsach ~" in j["b"], j)
+    ok("Regler in der Region: keine Upwind-Stationen, nur Ipsach und La Neuveville mit «~»", j["n"]==2 and "Ipsach ~" in j["b"] and "La Neuveville ~" in j["b"], j)
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=0; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(700)
     j=pg.evaluate("()=>({n:document.querySelectorAll('.wbst').length, t:document.querySelector('.wbtoday').innerText})")
     ok("Region jetzt: alle Upwind-Stationen und Mathod als Punkte", j["n"]>=12 and "Uhr" not in j["t"], j)
@@ -202,7 +213,8 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=6; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(500)
     pg.click("#infoBtn"); pg.wait_for_timeout(700)
     j=pg.evaluate("()=>({b:document.querySelector('.wbbadges').innerText})")
-    ok("Erklärungen nach dem Regler: gemessene Werte, kein «Modell», kein typischer Wert auf der Karte", "Modell" not in j["b"] and "typisch" not in j["b"] and "gemessen" in j["b"], j)
+    ohne_nv="\n".join(x for x in j["b"].split("\n") if not x.startswith("La Neuveville"))   # La Neuveville zeigt immer das Modell
+    ok("Erklärungen nach dem Regler: gemessene Werte, kein «Modell» an den Spots, kein typischer Wert auf der Karte", "Modell" not in ohne_nv and "typisch" not in j["b"] and "gemessen" in j["b"], j)
     pg.click(".wbviews button[data-v=region]"); pg.wait_for_timeout(600)
     ok("Erklärungen nach dem Regler: Region mit allen Stationen", pg.evaluate("()=>document.querySelectorAll('.wbst').length")>=11)
     pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(300)

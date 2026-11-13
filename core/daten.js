@@ -129,6 +129,19 @@ async function fetchHistory(m, days){
   if(!sp.length) throw new Error("keine Archivwerte");
   return sp;
 }
+/* Modellwind an einem Punkt am See, alle Modelle der App in einer Abfrage. Für Orte ohne öffentliche Messung (im Windbild:
+   La Neuveville). Gibt {time, idx, m:{modell:{ws, wd}}} zurück, Zeit in Ortszeit. Nicht Teil von fetchAll (Push-Lauf). */
+async function fetchPunkt(lat, lon, days){
+  const u = "https://api.open-meteo.com/v1/forecast" + `?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_direction_10m`
+    + `&models=${MODELS.map(x=>x.id).join(",")}&wind_speed_unit=kn&timezone=Europe%2FZurich&forecast_days=${days||2}&cell_selection=sea`;
+  const j = await getJSON(u), h = j && j.hourly;
+  if(!h || !h.time) throw new Error("keine Stundenwerte");
+  const m = {};
+  MODELS.forEach(x=>{ const ws = h["wind_speed_10m_"+x.id], wd = h["wind_direction_10m_"+x.id]; if(ws && wd) m[x.id] = {ws, wd}; });
+  if(!Object.keys(m).length) throw new Error("keine Modellwerte");
+  const time = ortszeit(h.time, j.utc_offset_seconds);
+  return {time, idx:indexTimes(time), m};
+}
 /* Messwerte SwissMetNet: kind "t" = 10 min, "h" = Stunde; period "now" oder "recent" */
 async function fetchStation(abk, kind, period){
   const u = `https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/${abk}/ogd-smn_${abk}_${kind||"t"}_${period||"now"}.csv`
@@ -240,6 +253,6 @@ async function fetchAll(St, opts){
   return N;
 }
 
-return {getJSON, ortszeit, fetchModel, fetchEnsemble, fetchHoehe, fetchJura, fetchHistory, fetchStation, parseSMN, updateLake,
+return {getJSON, ortszeit, fetchModel, fetchEnsemble, fetchHoehe, fetchJura, fetchHistory, fetchPunkt, fetchStation, parseSMN, updateLake,
   fetchLakeNow, fetchLake, fetchStations, fetchAll, fetchWindbild};
 });

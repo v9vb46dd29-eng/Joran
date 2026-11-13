@@ -295,6 +295,9 @@ ol.steps li{margin:3px 0}
 .wbstl{position:absolute;font-size:12px;font-weight:600;line-height:18px;padding:0 5px;border-radius:6px;white-space:nowrap;pointer-events:none;
   background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--ink)}
 .wbstl.on{background:var(--orange);color:#000}
+/* Modellwert statt Messung (La Neuveville): blasser Punkt, Beschriftung kursiv */
+.wbst.mod svg{opacity:.7}
+.wbstl.mod{font-style:italic;font-weight:500}
 .wbpanel small{display:block;margin-top:6px;font-size:12px}
 .wbstatus{display:inline-block;font-size:12px;font-weight:600;border-radius:10px;padding:3px 10px}
 .wbstatus.m{background:color-mix(in srgb,var(--jura) 18%,transparent);color:var(--ink)}
