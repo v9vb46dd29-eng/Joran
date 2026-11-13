@@ -30,9 +30,9 @@ def lake_json(vals):
     for k in ("vin","ips"):
         v=vals.get(k); st[k]={"rows":[{"t":(now-datetime.timedelta(minutes=m)).strftime("%Y-%m-%dT%H:%M:00.000Z"),"mean":v[0],"dir":v[1],"gust":v[0]*1.3} for m in (25,15,5)] if v else []}
     return {"updated":now.isoformat()+"Z","st":st}
-def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None):
+def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None, vh=844):
     b=p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
-    ctx=b.new_context(viewport={"width":390,"height":844}, device_scale_factor=2, color_scheme=scheme, reduced_motion="reduce" if reduced else "no-preference", locale="de-CH", timezone_id="Europe/Zurich")
+    ctx=b.new_context(viewport={"width":390,"height":vh}, device_scale_factor=2, color_scheme=scheme, reduced_motion="reduce" if reduced else "no-preference", locale="de-CH", timezone_id="Europe/Zurich")
     pg=ctx.new_page(); errs=[]
     pg.on("console", lambda m: errs.append(m.text) if m.type=="error" and "Failed to load resource" not in m.text else None)
     pg.on("pageerror", lambda e: errs.append("pageerror: "+str(e)))
@@ -47,8 +47,8 @@ def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None):
             return r.fulfill(status=200, content_type="application/json", headers={"access-control-allow-origin":"*"}, body=json.dumps(lake_json(lake)))
         return r.abort()
     pg.route("**/*", route)
-    t0=time.time(); pg.goto("http://127.0.0.1:8765/index.html"); pg.wait_for_selector("#out .verdict", timeout=30000); tmain=time.time()-t0
-    pg.wait_for_selector("#wb .wbpanel table", timeout=10000); pg.wait_for_timeout(1200)
+    t0=time.time(); pg.goto("http://127.0.0.1:8765/index.html"); pg.wait_for_selector("#now .verdict", timeout=30000); tmain=time.time()-t0
+    pg.wait_for_selector("#wb .wbpanel table", state="attached", timeout=10000); pg.wait_for_timeout(1200)
     info=pg.evaluate("""()=>({today:document.querySelector('.wbtoday').innerText, pressed:[...document.querySelectorAll('.wblagen button[aria-pressed=true]')].map(b=>b.dataset.t),
       panel:document.querySelector('.wbpanel').innerText, badges:document.querySelector('.wbbadges').innerText, ver:document.querySelector('.large .sub').innerText,
       small:[...document.querySelectorAll('#wb button')].filter(b=>b.offsetParent && (b.getBoundingClientRect().height<40||b.getBoundingClientRect().width<40)).map(b=>b.innerText+' '+Math.round(b.getBoundingClientRect().width)+'x'+Math.round(b.getBoundingClientRect().height)),
@@ -130,6 +130,10 @@ with sync_playwright() as p:
        ['Kein Windbild ohne Chasseral → unsicher', {s:{top:{d:135,v:9}}, kammFehlt:true}, 'prognose', true] ];
       return T.map(([n,x,a,u])=>{ const r=WB.vorwahl(x); return [n, r.art===a && r.unsicher===u && (!n.includes('Quelle nennt') || r.quelle.startsWith('Messung Chasseral')), JSON.stringify(r)]; }); }""")
     for n,c,r in res: ok("Vorwahl: "+n, c, r)
+    # Startseite: Karte ohne Filter; im Blatt «Erklärungen» mit allen Lagen
+    ok("Startseite: Lagen-Filter ausgeblendet", pg.evaluate("()=>!document.querySelector('.wblagen').offsetParent && !document.querySelector('.wbpanel').offsetParent"))
+    pg.click("#infoBtn"); pg.wait_for_timeout(700)
+    ok("Erklärungen: Karte mit Filtern im Blatt", pg.evaluate("()=>!!document.querySelector('#info #wb.wbfull') && !!document.querySelector('.wblagen').offsetParent"))
     # Lage wählen, Variante, Ausschnitt, zurück
     pg.click(".wblagen button[data-t=joran]"); pg.wait_for_timeout(500)
     j=pg.evaluate("()=>({est:!document.querySelector('.wbest').hidden, vars:document.querySelector('.wbvars').innerText, panel:document.querySelector('.wbpanel').innerText, back:!!document.querySelector('.wbback')})")
@@ -146,11 +150,13 @@ with sync_playwright() as p:
         n=pg.evaluate("()=>document.querySelectorAll('.wbvars button').length")
         for k in range(n): pg.click(f".wbvars button >> nth={k}"); pg.wait_for_timeout(150)
     ok("Alle Lagen und Varianten ohne Fehler", not errs, errs)
+    pg.click("#info .done"); pg.wait_for_timeout(500)
+    ok("Erklärungen zu: Karte zurück, wieder Lage von heute", pg.evaluate("()=>!!document.querySelector('#wbHome #wb:not(.wbfull)') && document.querySelector('.wblagen button[aria-pressed=true]').dataset.t==='west'"))
     pg.evaluate("localStorage.clear()"); b.close()
     # B: Bise, dunkel, Vingelz ohne Messung
     b,pg,i,errs,tm=run(p,"bise-dunkel","dark",60,10,{"ips":(7,50)})
     ok("B Vorwahl Bise (Sektor am Boden, Chasseral ohne Angabe)", i["pressed"]==["bise"] and "Prognose im Zeitfenster" in i["today"], i["today"])
-    ok("B fehlende Messung als Strich", "Vingelz" in i["panel"] and re.search(r"Vingelz\s+\d+ kn [NOSW]+\s+–", i["panel"]) is not None and re.search(r"Vingelz –\s+typisch \d+ kn", i["badges"]) is not None, i["panel"]+i["badges"])
+    ok("B fehlende Messung als Strich", "Vingelz" in i["panel"] and re.search(r"Vingelz\s*\d+ kn [NOSW]+\s*–", i["panel"]) is not None and re.search(r"Vingelz –\s+typisch \d+ kn", i["badges"]) is not None, i["panel"]+i["badges"])
     ok("B keine Konsolenfehler", not errs, errs); b.close()
     # C: Südost am Boden, Chasseral ohne Angabe
     b,pg,i,errs,tm=run(p,"so","light",135,9,{}, shots=False)
@@ -170,14 +176,14 @@ with sync_playwright() as p:
             if u.startswith("http://127.0.0.1"): return r.continue_()
             if "api.open-meteo.com/v1/forecast" in u and "models=" in u and "850hPa" not in u and "pressure_msl" not in u: return r.fulfill(status=200, content_type="application/json", body=json.dumps(model_json(240,16)))
             return r.abort()
-        pg.route("**/*", rt); pg.goto("http://127.0.0.1:8765/index.html"); pg.wait_for_selector("#out .verdict", timeout=30000); pg.wait_for_timeout(800)
+        pg.route("**/*", rt); pg.goto("http://127.0.0.1:8765/index.html"); pg.wait_for_selector("#now .verdict", timeout=30000); pg.wait_for_timeout(800)
         ok("G Datei "+nm+": Meldung statt Karte, kein Fehler", "nicht abrufbar" in pg.inner_text("#wb") and not er, (pg.inner_text("#wb"), er)); bb.close()
     # D: reduzierte Bewegung
     b,pg,i,errs,tm=run(p,"west-ruhig","dark",240,16,{"ips":(17,235),"vin":(8,240)}, reduced=True)
     f=pg.evaluate("()=>{const c=document.querySelectorAll('.wbmap canvas')[1]; const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n=0; for(let k=3;k<d.length;k+=4) if(d[k]) n++; return n;}")
     ok("D reduzierte Bewegung: keine Strömungslinien", f==0, f); ok("D keine Konsolenfehler", not errs, errs); b.close()
     # E: Animation nur im Bild
-    b,pg,i,errs,tm=run(p,"x","light",240,16,{}, shots=False)
+    b,pg,i,errs,tm=run(p,"x","light",240,16,{}, shots=False, vh=420)
     pg.evaluate("window.scrollTo(0,0)"); pg.wait_for_timeout(500)
     cnt="""()=>new Promise(res=>{ const o=CanvasRenderingContext2D.prototype.stroke; let n=0; CanvasRenderingContext2D.prototype.stroke=function(){ n++; return o.apply(this,arguments); }; setTimeout(()=>{ CanvasRenderingContext2D.prototype.stroke=o; res(n); },700); })"""
     off=pg.evaluate(cnt); pg.locator(".wbmap").scroll_into_view_if_needed(); pg.wait_for_timeout(300); on=pg.evaluate(cnt)

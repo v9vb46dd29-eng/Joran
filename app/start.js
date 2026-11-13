@@ -20,7 +20,7 @@ let rT = null;
 /* Während des Ladens keine neue Bewertung aus halben Daten: alter Stand bleibt ausgegraut, nur der Fortschritt zählt hoch.
    Die Seekacheln (reine Messwerte) dürfen sofort erscheinen. */
 let DONE = 0, TOTAL = 0;
-function progress(){ const o = $("#out"); o.classList.add("loading"); o.dataset.prog = `Wird aktualisiert … (${DONE}/${TOTAL}). Bewertung erst, wenn alles da ist.`; }
+function progress(){ const o = $("#now"); o.classList.add("loading"); o.dataset.prog = `Wird aktualisiert … (${DONE}/${TOTAL})`; $("#days").classList.add("loading"); }
 function renderSoon(){ DONE++; progress(); }
 async function run(full){
   if(BUSY) return; BUSY = true;
@@ -29,8 +29,8 @@ async function run(full){
   if(!D){ const c = loadMCache(); D = c ? Object.assign(c, {stations:{}, at:new Date()}) : null; }
   const needModels = full!==false && (!D || Date.now()-D.mt > M_MAX);
   const first = !D;
-  if(!D){ D = {models:{}, err:{}, ens:null, jura:null, hoehe:null, stations:{}, mt:new Date(0), at:new Date()}; $("#out").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`; }
-  else if(!$("#out .verdict")){ try{ renderLive(); }catch(e){} }   /* letzter Stand aus dem Speicher, ausgegraut */
+  if(!D){ D = {models:{}, err:{}, ens:null, jura:null, hoehe:null, stations:{}, mt:new Date(0), at:new Date()}; $("#now").innerHTML = `<div class="skel">Modelle und Messwerte werden geholt …</div>`; }
+  else if(!$("#now .verdict")){ try{ renderLive(); }catch(e){} }   /* letzter Stand aus dem Speicher, ausgegraut */
   DONE = 0; TOTAL = 2 + (needModels ? MODELS.length + 3 : 0);
   if(!first) progress();
   const jobs = [
@@ -54,10 +54,10 @@ async function run(full){
     }
   }
   finally {
-    $("#out").classList.remove("loading");
+    $("#now").classList.remove("loading"); $("#days").classList.remove("loading");
     clearTimeout(rT);
     if(!Object.keys(D.models).length && !Object.keys(D.err).length) D.err.all = "keine Antwort";
-    try{ renderLive(); }catch(e){ $("#out").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
+    try{ renderLive(); }catch(e){ $("#now").innerHTML = `<div class="note bad">Auswertung fehlgeschlagen: ${esc(e.message)}</div>`; }
     stamp();
     b.disabled = false; b.classList.remove("busy"); $("#goTxt").textContent = "Aktualisieren";
     BUSY = false;
@@ -111,15 +111,31 @@ $("#theme").addEventListener("click", ()=>{
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>applyTheme(getTheme()));
 applyTheme(getTheme());
 
-/* Menü (Sheet) */
-const sheet = $("#sheet");
-function openSheet(){ if(sheet.showModal) sheet.showModal(); else sheet.setAttribute("open",""); document.body.style.overflow = "hidden"; }
-function closeSheet(){ if(sheet.close) sheet.close(); else sheet.removeAttribute("open"); }
-sheet.addEventListener("close", ()=>{ document.body.style.overflow = ""; });
-sheet.addEventListener("click", e=>{ if(e.target===sheet) closeSheet(); });
+/* Blätter: Einstellungen und Erklärungen */
+const sheet = $("#sheet"), info = $("#info");
+function openDlg(d){ if(d.showModal) d.showModal(); else d.setAttribute("open",""); document.body.style.overflow = "hidden"; }
+function closeDlg(d){ if(d.close) d.close(); else d.removeAttribute("open"); }
+const openSheet = () => openDlg(sheet), closeSheet = () => closeDlg(sheet);
+[sheet, info].forEach(d=>{
+  d.addEventListener("close", ()=>{ if(!sheet.open && !info.open) document.body.style.overflow = ""; });
+  d.addEventListener("click", e=>{ if(e.target===d) closeDlg(d); });
+});
+/* Die Karte zieht beim Öffnen ins Blatt «Erklärungen» und zeigt dort alle Lagen mit Filtern; beim Schliessen kommt sie zurück
+   auf die Startseite und zeigt wieder die Lage von heute. */
+function openInfo(k){
+  if(k!=null && k!==""){ SEL = +k; if(D) renderLive(); }
+  const wb = $("#wb"); if(wb) $("#wbSlot").appendChild(wb);
+  openDlg(info); info.querySelector(".shb").scrollTop = 0;
+  WB.mode(true);
+}
+info.addEventListener("close", ()=>{ const wb = $("#wb"); if(wb) $("#wbHome").appendChild(wb); WB.mode(false); });
 $("#menu").addEventListener("click", openSheet);
 $("#done").addEventListener("click", closeSheet);
-document.addEventListener("click", e=>{ if(e.target.closest("[data-open=sheet]")) openSheet(); });
+info.querySelector(".done").addEventListener("click", ()=>closeDlg(info));
+document.addEventListener("click", e=>{
+  if(e.target.closest("[data-open=sheet]")){ openSheet(); return; }
+  const b = e.target.closest("[data-info]"); if(b) openInfo(b.dataset.info);
+});
 $("#proxy").value = S_PROXY();
 $("#proxyS").addEventListener("click", async ()=>{
   const b = $("#proxyS"); let v = $("#proxy").value.trim();
