@@ -60,9 +60,13 @@ const BODEN = {w:"west", s:"sued", bise:"bise", n:"nord", joran:"joran"};
 /* Reine Funktion, damit sie sich mit künstlichen Daten prüfen lässt.
    x = {nc: Ergebnis von nowcast (nur im Zeitfenster übergeben), kammP: {kn, dir} Chasseral in der Prognose im Zeitfenster,
         kammM: {kn, dir} Chasseral jetzt gemessen, mixP / mixM: Luft durchmischt laut Prognose / Messung (true, false, null),
-        s: Ergebnis von summarize für heute, lake: Ergebnis von lakeNow, jc: Ergebnis von joranCheck, monat: 1–12}
+        s: Ergebnis von summarize für heute, lake: Ergebnis von lakeNow, jc: Ergebnis von joranCheck, monat: 1–12,
+        kammFehlt: true, wenn der Chasseral keinen frischen Wert liefert}
    Reihenfolge der Quellen: Upwind-Signal, Messung auf dem Chasseral, Prognose, Seemessung. Die Messung geht der Prognose vor:
    ICON-CH2 sagt auf dem Chasseral im Mittel nur halb so viel Wind voraus, wie gemessen wird, und zeigt bei Süd Südwest.
+   Ergebnis: art = "messung" (Lage von jetzt) oder "prognose" (Lage fürs Zeitfenster); unsicher = true, wenn die Lage ohne
+   Messung auf dem Chasseral gewählt ist. Dann kann hinter «West» auch Süd stehen und hinter «Bise» die Nordlage: Keine
+   andere Station zeigt den Unterschied (im Archiv 16.10.–5.11. trifft ohne Chasseral Süd 2 %, Nordlage 73 %).
    eval/windbild.cjs --pruefen spielt diese Funktion gegen das Archiv ab. */
 function vorwahl(x, lagen, regeln){
   lagen = lagen || (DATA && DATA.lagen) || [];
@@ -70,7 +74,7 @@ function vorwahl(x, lagen, regeln){
   /* ohne Sektoren in der Datei (ältere Fassung im Zwischenspeicher) zählt nur der Sektor am Boden */
   const stark = k => !!(k && k.dir!=null && k.kn>=R.kammMin) && lagen.some(z=>(z.kamm||[]).length);
   const nc = x.nc, joranOk = !!(nc && nc.eOk) || !!(x.jc && x.jc.crestOk && (x.jc.dpOk || x.jc.bnOk));
-  const ohne = (quelle, was) => ({lage:null, quelle, grund:`Heute ${was}: Dafür gibt es noch kein Windbild.`});
+  const ohne = (quelle, was) => ({lage:null, quelle, was});
   const vonKamm = (k, quelle, mix) => { const sek = sec8(k.dir), l = lagen.find(z=>(z.kamm||[]).includes(sek));
     if(!l) return ohne(quelle, `${SEKNAME[sek]} auf dem Jura`);
     if(l.id==="joran" && !joranOk) return ohne(quelle, `${SEKNAME[sek]} auf dem Jura, ohne Zeichen für Joran`);
@@ -78,25 +82,28 @@ function vorwahl(x, lagen, regeln){
   const vonBoden = (d, quelle, mix) => !d ? null : !BODEN[d.id] ? ohne(quelle, d.name)
     : BODEN[d.id]==="joran" && !joranOk ? ohne(quelle, "Nordwest am See, ohne Zeichen für Joran") : {lage:BODEN[d.id], quelle, mix};
   let r = null;
-  if(nc && nc.eOk) r = {lage:"joran", quelle:"Upwind-Signal (Cressier)", mix:x.mixM};
+  let art = "messung", kamm = false;
+  if(nc && nc.eOk){ r = {lage:"joran", quelle:"Upwind-Signal (Cressier)", mix:x.mixM}; kamm = true; }
   else if(nc && (nc.trusted||[]).length){
     const t = nc.trusted.find(z=>z.u && z.u.sys) || nc.trusted[0], q = `Upwind-Signal (${t.up.name})`;
-    if(stark(x.kammM)) r = vonKamm(x.kammM, q, x.mixM);
+    if(stark(x.kammM)){ r = vonKamm(x.kammM, `Messung Chasseral, ${q}`, x.mixM); kamm = true; }
     else if(t.u && t.u.sys && BODEN[t.u.sys.id]) r = {lage:BODEN[t.u.sys.id], quelle:q, mix:x.mixM};
   }
-  if(!r && stark(x.kammM)) r = vonKamm(x.kammM, "Messung Chasseral", x.mixM);
-  if(!r && stark(x.kammP)) r = vonKamm(x.kammP, "Prognose, Wind auf dem Chasseral", x.mixP);
-  if(!r && x.s && x.s.top && x.s.top.d!=null && x.s.top.v>=3) r = vonBoden(dirOf(x.s.top.d), "Prognose im Zeitfenster", x.mixP);
+  if(!r && stark(x.kammM)){ r = vonKamm(x.kammM, "Messung Chasseral", x.mixM); kamm = true; }
+  if(!r && stark(x.kammP)){ r = vonKamm(x.kammP, "Prognose, Wind auf dem Chasseral", x.mixP); art = "prognose"; }
+  if(!r && x.s && x.s.top && x.s.top.d!=null && x.s.top.v>=3){ r = vonBoden(dirOf(x.s.top.d), "Prognose im Zeitfenster", x.mixP); art = "prognose"; }
   if(!r){
     const f = (x.lake||[]).filter(z=>z.fresh && z.last && z.last.dir!=null && z.last.mean>=3).sort((a,b)=>b.last.mean-a.last.mean)[0];
     if(f) r = vonBoden(dirOf(f.last.dir), `Seemessung ${f.L.name}`, x.mixM);
   }
-  if(!r) return {lage:null, vk:null, quelle:"", grund:"Lage von heute noch offen."};
-  if(!r.lage) return {lage:null, vk:null, quelle:r.quelle, grund:r.grund};
+  if(!r) return {lage:null, vk:null, quelle:"", grund:"Lage von heute noch offen.", art:null, unsicher:false};
+  const unsicher = !kamm && !!x.kammFehlt;
+  if(!r.lage) return {lage:null, vk:null, quelle:r.quelle, art, unsicher,
+    grund:`${art==="messung" ? "Jetzt" : "Heute"} ${r.was}: Dafür gibt es noch kein Windbild.`};
   const l = lagen.find(z=>z.id===r.lage); let vk = null;
   if(r.lage==="joran") vk = x.jc && x.jc.bnOk ? "front" : x.monat>=5 && x.monat<=8 ? "abend" : "front";
   else if(l && l.vars.length>1){ const v = l.vars.find(z=>z.schicht===(r.mix===false ? "stabil" : "gemischt")); vk = v ? v.key : l.vars[0].key; }
-  return {lage:r.lage, vk, quelle:r.quelle, grund:""};
+  return {lage:r.lage, vk, quelle:r.quelle, grund:"", art, unsicher};
 }
 /* Stärke als Mittel, Richtung als Vektormittel */
 function mittel(rs){
@@ -106,7 +113,7 @@ function mittel(rs){
 }
 function heute(){
   const day = localDay(0), hour = C.localHour(), [h0,h1] = WINS[S.win], now = new Date();
-  const x = {monat:+day.slice(5,7), lake:C.lakeNow(LK, S), mixP:null, mixM:null};
+  const x = {monat:+day.slice(5,7), lake:C.lakeNow(LK, S), mixP:null, mixM:null, kammFehlt:true};
   const R = Object.assign({lapseMin:4}, DATA.regeln || {});
   try{ if(D && D.models && Object.keys(D.models).length) x.s = summarize(D.models, day, S); }catch(e){}
   try{ if(D && D.stations && hour>=h0-2 && hour<=h1) x.nc = C.nowcast(D.stations, S, undefined, LK); }catch(e){}
@@ -116,7 +123,9 @@ function heute(){
   try{ const hd = D && D.hoehe ? C.hoeheDay(D.hoehe, day, S) : null; if(hd) x.mixP = hd.coupled; }catch(e){}
   try{ const c = D && D.stations && D.stations.cha;
     if(c && !c.err && C.fresh(c.rows, now)){
-      x.kammM = mittel(c.rows.slice(-3).map(r=>({kn:r.mean, dir:r.dir})));
+      /* nur Werte der letzten halben Stunde: Bei einer Lücke in der Reihe zählen ältere nicht mit */
+      x.kammM = mittel(c.rows.slice(-3).filter(r=>now-r.t<=35*60000).map(r=>({kn:r.mean, dir:r.dir})));
+      x.kammFehlt = !x.kammM;
       const lp = C.lapseRate(D.stations, UPWIND.find(u=>u.abk==="cha"), UPWIND.find(u=>u.abk==="crm"), now);
       if(lp!=null) x.mixM = lp>=R.lapseMin; } }catch(e){}
   return vorwahl(x);
@@ -126,7 +135,7 @@ function heute(){
 const V_KEY = "joran.windbild.v1";
 const ST = {auto:true, type:"west", vk:{}, view:"bucht"};
 try{ const v = localStorage.getItem(V_KEY); if(v && VIEWS[v]) ST.view = v; }catch(e){}
-let DATA = null, LOADING = false, FAILED = 0, HEUTE = {lage:null, vk:null, quelle:"", grund:""};
+let DATA = null, LOADING = false, FAILED = 0, HEUTE = {lage:null, vk:null, quelle:"", grund:"", art:null, unsicher:false};
 let panelHtml = "";
 let el = null, mapEl = null, base = null, flow = null, bctx = null, fctx = null, drawn = "", visible = false, raf = 0;
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -289,13 +298,16 @@ function panel(){
 function head(){
   const h = HEUTE, hl = h.lage ? DATA.lagen.find(l=>l.id===h.lage) : null;
   const same = hl && ST.type===h.lage;
+  /* «Jetzt» bei einer Messung, «Heute» bei der Prognose fürs Zeitfenster: Am Vormittag kann die Lage bis zum Abend drehen */
+  const wann = h.art==="messung" ? "Jetzt" : "Heute", zurueck = h.art==="messung" ? "Lage von jetzt" : "Lage von heute";
+  const vorbehalt = h.unsicher ? ` <span class="dim">· Chasseral misst nicht, Lage unsicher</span>` : "";
   el.querySelector(".wbtoday").innerHTML = hl
-    ? `Heute: <b>${esc(hl.name)}</b> <span class="dim">· ${esc(h.quelle)}</span>${same ? "" : ` <button class="btn2 wbback">Lage von heute</button>`}`
-    : `<span class="dim">${esc(h.grund)}</span>`;
+    ? `${wann}: <b>${esc(hl.name)}</b> <span class="dim">· ${esc(h.quelle)}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
+    : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`;
   const b = el.querySelector(".wbback"); if(b) b.addEventListener("click", ()=>{ ST.auto = true; update(); });
   el.querySelectorAll(".wblagen button").forEach(c=>{ const on = c.dataset.t===ST.type, today = c.dataset.t===h.lage;
     c.setAttribute("aria-pressed", on); c.classList.toggle("today", today);
-    c.setAttribute("aria-label", c.textContent.trim() + (today ? ", Lage von heute" : "")); });
+    c.setAttribute("aria-label", c.textContent.trim() + (today ? ", "+zurueck : "")); });
   const l = lageOf(), V = varOf(), vb = el.querySelector(".wbvars");
   vb.hidden = l.vars.length<2;
   vb.innerHTML = l.vars.length<2 ? "" : l.vars.map(v=>`<button data-k="${v.key}" aria-pressed="${v.key===V.key}">${esc(v.label)}${v.status==="s"?" <i>geschätzt</i>":""}</button>`).join("");
