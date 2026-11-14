@@ -51,7 +51,7 @@ Jedes Silo hat denselben Rahmen aus fünf Zeilen. Er lädt die gebrauchten Silos
 | `einstellungen.js` | Einstellungsblatt | 16 |
 | `push.js` | Push für mehrere Nutzer, Verwaltung, GitHub-API | 159 |
 | `rueckblick.js` | Tage markieren, kalibrieren, Markierungen ablegen | 114 |
-| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht. Startseite: Lage von jetzt, an den Messungen ausgerichtet, Zahlen nur, wo gemessen wird (Chasseral in See und Bucht); Ausschnitt Region mit allen Upwind-Stationen und Mathod; La Neuveville in See und Region als Modellmittel (`fetchPunkt`, als «Modell» gekennzeichnet); Regler 24 h aus Messung und Prognose in drei Phasen: Messung führt (`FUEHRT`: Chasseral 2 h, nur See 6 h), dann Kombination, dann Prognose (`mischLage`, `mischKn`, `quote`). Blatt «Erklärungen»: typisches Muster jeder Lage mit Filtern (`WB.mode`) | 650 |
+| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht. Startseite: Lage von jetzt, an den Messungen ausgerichtet, Zahlen nur, wo gemessen wird (Chasseral in See und Bucht); Ausschnitt Region mit allen Upwind-Stationen und Mathod; La Neuveville in See und Region als Modellmittel (`fetchPunkt`, als «Modell» gekennzeichnet); Lage von jetzt zuerst aus der Messung (Chasseral, bei schwachem Chasseral der See), dann aus der Prognose; Regler 24 h in drei Phasen: Messung führt (`FUEHRT`: Chasseral 2 h, nur See 0 h), dann Kombination, dann Prognose (`mischLage`, `mischKn`, `quote`). Blatt «Erklärungen»: typisches Muster jeder Lage mit Filtern (`WB.mode`) | 650 |
 | `start.js` | Daten holen, auffrischen, Blätter Einstellungen und Erklärungen, Bedienelemente verdrahten | 164 |
 
 Das sind klassische Skripte. Sie teilen sich ihre Namen und werden in dieser Reihenfolge geladen. Die Grenzen sind hier
@@ -103,6 +103,7 @@ Zeile in der Fassade und ein `<script>` in `index.html`.
 | `node eval/measure.cjs --T 12` | Recall, FPR, Vorlauf gegen die Baseline | bei Modelländerungen, mit Reviewer |
 | `node eval/windbild.cjs --pruefen` | `data/windbild.json` neu rechnen, Abgleich mit `eval/schichten.cjs`, Vorwahl der App gegen das Archiv | bei jeder Modellprüfung und nach Änderungen an Skript oder Vorlage |
 | `node eval/lage-vorlauf.cjs` | Regler: Messung fortgeschrieben gegen Prognose und Mischregel, je Vorlauf; `--schreiben` legt die Quoten für `data/windbild.json` ab | bei Änderungen an `stunde()`, `mischLage()`, `mischKn()` und bei jeder Modellprüfung |
+| `node eval/kette.cjs` | Kette Messung → Regeln → Prognose: Lage von jetzt und Regler gegen die Prognose allein und gegen `origin/main`, je Quelle der Messung, Entwicklung, Holdout und danach getrennt | bei Änderungen an `vorwahl()` (Reihenfolge), `mischLage()` oder `FUEHRT` |
 | `node eval/windbild-stunde.cjs` | Lage je Stunde aus der Prognose (Regler) gegen die Messung auf dem Chasseral | bei Änderungen an `stunde()` oder `vorwahl()` und bei jeder Modellprüfung |
 | `python3 eval/windbild-test.py` | Sektion «Windbild» im Browser (390×844, hell und dunkel, künstliche Daten) | bei Änderungen an `app/windbild.js`; braucht Python-Playwright und Chrome |
 
