@@ -10,6 +10,9 @@
    Stundenmittel Chasseral, Vingelz und Ipsach), sonst «schwach». Gruppen nach der Messung zu t0: kamm (Chasseral ab
    kammMin oder Bise am See unter starkem Kamm), see (nur der See zeigt eine Lage), ohne (keine gemessene Lage).
    Zeiträume nach eval/split.json: Entwicklung, Holdout, danach. 95-%-Intervall: Bootstrap über Tage.
+   Abschnitt «Abendlage» (v36): Stunden, in denen die App jetzt eine Lage vom See zeigt (vorwahl() mit Fensterprognose wählt die
+   Seemessung, Chasseral misst schwach; nicht bei Bise am See unter starkem Chasseral). Abend = vorwahl() nur aus der Fensterprognose (Kamm im Fenster, stärkste Modellstunde im Restfenster), wie heute()
+   sie für «Abend: X (Prognose)» rechnet. Soll: Lage aus der Messung je Stunde 16–21 (ab t0), Paare (t0, Fensterstunde).
    Grenzen: ohne Upwind-Signal und Regel E (Stationen im Nachspielen nicht wie in der App); Fenster fest Abend.
    Aufruf: node eval/kette.cjs   Braucht: Cache aus eval/measure.cjs, eval/data/stunde_prognose.json, Branch live, origin/main. */
 "use strict";
@@ -47,7 +50,9 @@ const fenster = (day, hr) => { const ab = hr>=16 && hr<=21 ? hr : 16; let top = 
 const ws = x => x==="sued" ? "west" : x, LEADS = [0,1,2,3,4,6,9,12], FS = [0,1,3,6];
 const BIS = C.dayOfDate(new Date(Date.now()-864e5)), ZEIT = [["Entwicklung", "2026-10-16", split.devBis], ["Holdout", null, split.holdoutBis], ["danach", null, BIS], ["alle", "2026-10-16", BIS]];
 ZEIT[1][1] = C.dayOfDate(new Date(Date.parse(split.devBis+"T12:00:00Z")+864e5)); ZEIT[2][1] = C.dayOfDate(new Date(Date.parse(split.holdoutBis+"T12:00:00Z")+864e5));
-const R = {}, TAGE = {};
+const R = {}, TAGE = {}, AB = {};
+const addAb = (z, k, ok, day) => { const Q = ((AB[z] = AB[z] || {})[k] = AB[z][k] || {n:0, hit:0, d:{}, t0:new Set()}); Q.n++; if(ok) Q.hit++;
+  const dd = (Q.d[day] = Q.d[day] || [0,0]); dd[0]++; if(ok) dd[1]++; };
 const add = (z, g, m, h, ok, day) => { const Q = (((R[z] = R[z] || {})[g] = R[z][g] || {})[m] = R[z][g][m] || {})[h] = R[z][g][m][h] || {n:0, hit:0, d:{}};
   Q.n++; if(ok) Q.hit++; const dd = (Q.d[day] = Q.d[day] || [0,0]); dd[0]++; if(ok) dd[1]++; };
 for(let t0 = Date.parse("2026-10-16T00:00:00Z")-2*H; C.dayOfDate(new Date(t0))<=BIS; t0 += H){
@@ -58,6 +63,13 @@ for(let t0 = Date.parse("2026-10-16T00:00:00Z")-2*H; C.dayOfDate(new Date(t0))<=
   const vM = V(MAIN, f), vN = V(NEU, f), mess = V(NEU, base);
   const g = !mess.lage ? "ohne" : mess.kamm ? "kamm" : "see";
   zs.forEach(z=>((TAGE[z] = TAGE[z] || {})[g] = TAGE[z][g] || new Set()).add(day));
+  /* Abendlage neben der Lage vom See (v36) */
+  if(vN.lage && vN.art==="messung" && !vN.kamm && /^Seemessung/.test(vN.quelle) && km && !vN.ueber && !vN.unsicher && hr>=8 && hr<=21){
+    const ab = V(NEU, Object.assign({monat:+k.slice(5,7)}, fenster(day, hr))), anders = !!ab.lage && ws(ab.lage)!==ws(vN.lage);
+    for(let x=Math.max(hr,16); x<=21; x++){ const s = soll(kk(day, x)); if(s===undefined) continue;
+      const hit = y => y ? ws(y)===ws(s) : s==="schwach", tl = [["alle", true], ["abweichend", anders], ["gleich", !!ab.lage && !anders], ["ohne Abendlage", !ab.lage]];
+      zs.forEach(z=>tl.forEach(([teil, ja])=>{ if(!ja) return; addAb(z, teil+"|see", hit(vN.lage), day); addAb(z, teil+"|abend", hit(ab.lage), day);
+        addAb(z, teil+"|schwach", s==="schwach", day); AB[z][teil+"|see"].t0.add(k); })); } }
   const p0 = prog(k); if(!p0) continue;
   const jM = vM.lage && vM.kamm && vM.art==="messung" && !vM.unsicher ? {lage:vM.lage} : null;
   const jN = vN.lage && vN.art==="messung" ? {lage:vN.lage, kamm:!!vN.kamm && !vN.unsicher} : null;
@@ -76,3 +88,7 @@ ZEIT.forEach(([z, a, b])=>{ if(!R[z]) return; console.log(`\n=== ${z} ${a}–${b
     console.log(`  ${g}${g!=="alle" && TAGE[z][g] ? ` (${TAGE[z][g].size} Tage)` : ""}`.padEnd(30) + LEADS.map(h=>("+"+h+"h").padStart(5)).join("") + "  n(+1h)");
     Object.keys(Rg).filter(m=>g==="see" || !/^see/.test(m)).forEach(m=>console.log("    "+m.padEnd(26)+LEADS.map(h=>pct(Rg[m][h])).join("")+"  "+(Rg[m][1] ? Rg[m][1].n : 0)));
     console.log("    neu−prog, 95 % über Tage: "+[0,1,2,3,6].map(h=>`+${h}h ${boot(Rg.neu[h], Rg.prog[h])}`).join("  ")); }); });
+console.log("\n=== Abendlage neben der Lage vom See (v36). Paare (Stunde mit Lage vom See, Fensterstunde 16–21), Soll: Lage aus der Messung");
+console.log("    Zeitraum      Teil              Paare  Std.  Tage   See  Abend  Soll schwach  Abend−See, 95 % über Tage");
+ZEIT.forEach(([z])=>{ if(!AB[z]) return; ["alle","abweichend","gleich","ohne Abendlage"].forEach(teil=>{ const a = AB[z][teil+"|see"], b = AB[z][teil+"|abend"], c = AB[z][teil+"|schwach"]; if(!a) return;
+  console.log("    "+z.padEnd(14)+teil.padEnd(16)+String(a.n).padStart(7)+String(a.t0.size).padStart(6)+String(Object.keys(a.d).length).padStart(6)+pct(a)+" "+pct(b)+"      "+pct(c)+"     "+boot(b, a)); }); });

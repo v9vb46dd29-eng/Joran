@@ -292,6 +292,7 @@ with sync_playwright() as p:
     #    Jetzt Bise aus der Seemessung; ab +1 h Prognose: «kaum Wind» statt «keine Lage erkennbar», ohne Quote
     b,pg,i,errs,tm=run(p,"see-schwach","dark",60,1,{"vin":(5,67),"ips":(3,90)}, kamm=(200,3), smn={"cha":(8,202,4)}, shots=False)
     ok("K Jetzt: Bise aus der Seemessung", i["pressed"]==["bise"] and "Bise" in i["today"] and "Seemessung" in i["today"], i["today"])
+    ok("N Gegentest K: Prognose ohne Lage → keine Abendlage", "Abend:" not in i["today"], i["today"])
     # +1 h: Stärke noch zu zwei Dritteln aus der Messung (Vingelz ~4 kn), also nicht «kaum Wind»; +3 h: Modell führt
     for hh,want in ((1,"keine Lage erkennbar"),(3,"kaum Wind")):
         pg.evaluate(f"()=>{{const r=document.querySelector('.wbtime input'); r.value={hh}; r.dispatchEvent(new Event('input'));}}"); pg.wait_for_timeout(500)
@@ -301,6 +302,14 @@ with sync_playwright() as p:
     # L: Seemessung geht der Prognose fürs Zeitfenster vor (v35): Chasseral schwach, See 6 kn Bise, Modelle West 12 kn
     b,pg,i,errs,tm=run(p,"see-vor-prognose","light",240,12,{"vin":(6,70),"ips":(5,80)}, kamm=(200,3), smn={"cha":(6,200,4)}, shots=False)
     ok("L Jetzt: Bise aus der Seemessung, nicht West aus der Prognose", i["pressed"]==["bise"] and "Jetzt" in i["today"] and "Seemessung" in i["today"], i["today"])
+    # N (v36): Lage vom See, Fensterprognose West → «Abend: West oder Süd (Prognose)» daneben, solange das Fenster nicht vorbei ist
+    std=pg.evaluate("()=>C.localHour()"); t=" ".join(i["today"].split())
+    if std<=21:
+        ok("N Kopfzeile: Abend: West oder Süd (Prognose) neben der Lage vom See", "Abend: West oder Süd (Prognose)" in t, t)
+        j=pg.evaluate("()=>{const t=document.querySelector('.wbtoday'); return {h:t.getBoundingClientRect().height, lh:parseFloat(getComputedStyle(t).lineHeight)||20};}")
+        ok("N Kopfzeile höchstens 2 Zeilen", j["h"] < 3*j["lh"], j)
+        pg.locator(".wbtoday").screenshot(path=f"{OUT}/see-abend-kopf.png")
+    else: ok("N nach dem Fenster keine Abendlage", "Abend:" not in t, t)
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=2; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(500)
     j=pg.evaluate("()=>document.querySelector('.wbtoday').innerText")
     ok("L Regler +2 h: Prognose sagt Wechsel auf West oder Süd", "West oder Süd" in j and "Wechsel" in j, j)

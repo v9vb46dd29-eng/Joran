@@ -250,7 +250,19 @@ function heute(){
       x.kammFehlt = !x.kammM;
       const lp = C.lapseRate(D.stations, UPWIND.find(u=>u.abk==="cha"), UPWIND.find(u=>u.abk==="crm"), now);
       if(lp!=null) x.mixM = lp>=R.lapseMin; } }catch(e){}
-  const r = vorwahl(x); r.nc = x.nc || null; return r;
+  const r = vorwahl(x); r.nc = x.nc || null;
+  /* Abendlage neben der Lage vom See (v36): Kommt die Lage von jetzt aus der Seemessung (Chasseral schwach), steht die Lage
+     fürs Zeitfenster aus der Prognose daneben, wenn sie abweicht. Nur Anzeige, der Regler bleibt. eval/kette.cjs, 16.10.–13.11.,
+     Soll: Lage aus der Messung je Stunde 16–21: weicht sie ab, trifft die Fensterprognose 71 %, die Lage vom See 15 %
+     (140 Paare, 24 Stunden, 6 Tage; Holdout 40 % zu 0 %, 2 Tage). Nach dem Fenster nichts mehr. */
+  /* nur bei schwachem Chasseral: Misst er stark (Bise am See, «darüber …»), zeigt die Kopfzeile den Wind darüber; fehlt er, ist die Lage unsicher */
+  if(r.lage && r.art==="messung" && !r.kamm && /^Seemessung/.test(r.quelle) && x.kammM && !r.ueber && !r.unsicher && hour<=h1){
+    const p = vorwahl({monat:x.monat, s:x.s, kammP:x.kammP, jc:x.jc, mixP:x.mixP});
+    if(p.lage && !wsGleich(p.lage, r.lage)){ const l = DATA.lagen.find(z=>z.id===p.lage);
+      r.fenster = {lage:p.lage, name:p.lage==="west" || p.lage==="sued" ? "West oder Süd" : l ? l.name : p.lage,
+        wort:{abend:"Abend", nami:"Nachmittag", tag:"Später"}[S.win] || "Später"}; }
+  }
+  return r;
 }
 /* Lage einer kommenden Stunde aus der Prognose. Die Kammprognose ICON-CH2 zeigt Süd als Südwest: aus der Prognose gewählt
    trifft Süd 0 %, West 71 %, Bise 96 %, Nordlage 80 % (eval/windbild-stunde.cjs, 16.10.–5.11., mit regeln.kammFaktor). Darum
@@ -571,7 +583,10 @@ function head(){
   /* Startseite kurz: Lage und woher das Bild kommt; im Blatt «Erklärungen» mit Quelle */
   const wie = BILD.art==="live" ? "live" : BILD.art==="modell" ? "Prognose" : "typisch";
   /* Bise am See, darüber anderer Wind (vorwahl, seeBise): «Jetzt: Bise am See · darüber Südwest (Chasseral 16 kn)» */
-  const lname = !hl ? "" : h.seeBise ? `<span><b>${esc(hl.name)}</b> am See</span>` : `<b>${esc(hl.name)}</b>`, ueber = h.ueber ? ` · darüber ${esc(h.ueber.name)} (Chasseral ${h.ueber.kn} kn)` : "";
+  const lname = (!hl ? "" : h.seeBise ? `<span><b>${esc(hl.name)}</b> am See</span>` : `<b>${esc(hl.name)}</b>`)
+    /* Lage vom See, Prognose fürs Fenster anders (heute, v36): «Jetzt: Bise · Abend: West oder Süd (Prognose)» */
+    + (hl && h.fenster ? ` · ${h.fenster.wort}: <b>${esc(h.fenster.name)}</b> <span class="dim">(Prognose)</span>` : "");
+  const ueber = h.ueber ? ` · darüber ${esc(h.ueber.name)} (Chasseral ${h.ueber.kn} kn)` : "";
   el.querySelector(".wbtoday").innerHTML = !ST.full && ST.h>0
     ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : kaum() ? "kaum Wind" : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
     : !ST.full ? (hl ? `${wann}: ${lname} <span class="dim">${ueber ? ueber.slice(3)+" · " : "· "}${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
