@@ -1,6 +1,6 @@
 # Nächste Schritte
 
-Stand 11.11.2026 (v19), Windbild nachgeführt am 14.11.2026 (v35). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.md`.
+Stand 11.11.2026 (v19), Windbild nachgeführt am 14.11.2026 (v36). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.md`.
 Übergabe für einen neuen Chat: `eval/UEBERGABE-v35.md`.
 
 ## Was läuft
@@ -60,13 +60,17 @@ Stand 11.11.2026 (v19), Windbild nachgeführt am 14.11.2026 (v35). Verlauf und Z
     West, Süd oder Nordwest zeigt, und ob die Bise danach hielt. Bei der Einführung: 13 Werte, 10 davon am 14.11.
 16. `node eval/kette.cjs`: Schlägt die Kette (Messung → Regeln → Prognose) die Prognose allein weiterhin bei +0 bis +3 h?
     Lagen nur vom See: Hat «fortgeschrieben 1 h» inzwischen auf Holdout und neuen Tagen einen Vorsprung (14.11.: nein)?
+    Abendlage neben der Lage vom See (v36): Trifft sie bei Abweichung weiterhin deutlich öfter als die Lage vom See
+    (14.11.: 71 gegen 15 %, 6 Tage)? Sonst die Anzeige wieder entfernen.
 17. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Windbild: offen nach v35 (Simon, 14.11.2026: «für später»)
 
 Ziel von Simon: die Prognose kurzfristig schlagen, Kette Messung → Regeln → Prognose. Stand und Zahlen: `eval/ITERATIONEN.md`, v35.
 
-1. **Abendlage neben der Lage vom See.** Seit v35 zeigt die Kopfzeile bei schwachem Chasseral «Jetzt: …» aus der
+1. **Abendlage neben der Lage vom See.** Umgesetzt in v36 (`heute()`, `head()`; Zahlen in `eval/ITERATIONEN.md`, v36).
+   Bei der Überprüfung Ende Dezember mit `eval/kette.cjs` (letzter Abschnitt) nachmessen, vor allem auf neuen Tagen.
+   Ursprünglicher Vorschlag: Seit v35 zeigt die Kopfzeile bei schwachem Chasseral «Jetzt: …» aus der
    Seemessung. Die Abendlage aus der Prognose steht nur noch im Regler. Reviewer (Runde 2): An 16 Vormittagsstunden
    (6 Tage), an denen v35 anders wählt, traf die Abendlage aus der Prognose 14/16, die Lage vom See 0/16. Vorschlag:
    bei einer Lage vom See zusätzlich «Abend: X (Prognose)», wenn die Fensterprognose abweicht. Nur Anzeige, messbar

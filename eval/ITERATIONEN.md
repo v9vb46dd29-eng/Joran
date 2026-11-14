@@ -820,3 +820,42 @@ Kammprognose bei schwachem Chasseral, Chasseral fehlt, Nordwest am See ohne Zeic
 3. «Süd» aus dem See ist unzuverlässig, die Lage vom See greift schon ab 3 kn.
 4. `prog` im Nachspielen ist der Lauf des Tages für jeden Vorlauf (begünstigt Prognose und main, also konservativ).
 5. «kaum Wind» gilt unter 3 kn, 2.5–2.99 kn erscheinen gerundet als «3 kn».
+
+## v36 (14.11.2026): Abendlage neben der Lage vom See
+
+Hinweis 2 aus Review v35, Runde 2: Seit v35 zeigt die Kopfzeile bei schwachem Chasseral «Jetzt: …» aus der Seemessung;
+die Lage fürs Abendfenster aus der Prognose stand nur noch im Regler. Neu in `heute()`: Kommt die Lage von jetzt aus der
+Seemessung, misst der Chasseral (unter `kammMin`) und weicht die Lage fürs Zeitfenster aus der Prognose ab (West und Süd
+gleich), steht in der Kopfzeile zusätzlich «Abend: X (Prognose)» («Nachmittag», «Später» bei den anderen Fenstern). West
+und Süd aus der Prognose heissen «West oder Süd». Nach dem Fenster nichts mehr. Nicht bei Bise am See unter starkem
+Chasseral (dort steht schon «darüber …») und nicht ohne Chasseral (Lage unsicher). Nur Anzeige: Vorwahl, Regler und Kern
+unverändert (`eval/gleich.cjs`: 0 Abweichungen; übrige Ausgabe von `eval/kette.cjs` gleich wie v35).
+
+Gemessen vor dem Bau mit `eval/kette.cjs` (neuer letzter Abschnitt): Stunden 8–21 Uhr, in denen die App eine Lage vom See
+zeigt; je Stunde die Fensterstunden 16–21 (ab jetzt), Soll: Lage aus der Messung der Fensterstunde. Lage richtig:
+
+| Zeitraum | Teil | Paare | Std. | Tage | Lage vom See | Abendlage Prognose | Abend−See, 95 % über Tage |
+|---|---|---|---|---|---|---|---|
+| Entwicklung | abweichend | 81 | 14 | 3 | 21 % | 78 % | +40…+100 |
+| Holdout | abweichend | 30 | 5 | 2 | 0 % | 40 % | +0…+50 |
+| 11.–13.11. | abweichend | 29 | 5 | 1 | 14 % | 86 % | – |
+| alle | abweichend | 140 | 24 | 6 | 15 % | 71 % | +40…+81 |
+| alle | gleich (keine Anzeige) | 147 | 29 | 7 | 70 % | 70 % | – |
+| alle | ohne Abendlage | 6 | 1 | 1 | 0 % | – | – |
+
+Die Richtung stimmt in allen drei Zeiträumen; der Holdout hat nur 2 Tage. Die Messung bestätigt den Befund des Reviewers
+v35 (14/16 gegen 0/16) auf allen Stunden statt nur auf den umgestellten.
+
+Grenzen: wenige Tage (6 mit Abweichung); Fenster im Nachspielen fest Abend; die Abendlage im Nachspielen ohne Joran-Zeichen
+(`jc`) und Schichtung (`mixP`), die App übergibt beides (betrifft nur Joran und die Variante). Browser-Test N prüft die
+Anzeige bis 21 Uhr und den Gegentest (Prognose ohne Lage); der Zweig «nach dem Fenster» läuft nur, wenn der Test nach
+21 Uhr startet.
+
+### Review: ANNEHMEN
+
+Unabhängiger Reviewer, ohne blockierende Defekte. Er hat `eval/kette.cjs` selbst laufen lassen (Zahlen wie oben; übrige
+Kette identisch mit origin/main), dazu `aufbau`, `selftest`, `gleich` (0 Abweichungen), `windbild.cjs --pruefen`,
+`windbild-stunde`, `lage-vorlauf` und den Browser-Test (0 Fehler). Übernommen: Hinweis 1, die Anzeige gilt erst ab 8 Uhr wie
+im Nachspielen. Offen, nicht blockierend: Fenster «Nachmittag» und «Tag» ungemessen, Beschriftung «Später» unscharf;
+Zweig «nach dem Fenster» im Browser nur nach 21 Uhr geprüft; «· live» bricht bei 390 px allein auf die zweite Zeile;
+Paare je Stunde nicht unabhängig (begünstigt eher den See, also konservativ).
