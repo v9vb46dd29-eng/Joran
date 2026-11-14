@@ -508,3 +508,28 @@ Die Abweichungen liegen bei höchstens 2 Punkten je Vorlauf, wie vom Reviewer ge
 10 Stunden. `data/windbild.json` neu gerechnet (`lage-vorlauf.cjs --schreiben`, `windbild.cjs`): nur die Quote der
 Prognose im Regler ändert sich um höchstens 1 Punkt. Keine Regel und kein Parameter angepasst.
 
+
+## v29 (14.11.2026): «Noch kein Wind»; Seemitte bleibt in der Stufe
+
+Auslöser: Am 14.11. zeigte die App am Morgen «wahrscheinlich» (Bise, 9–11 Uhr). Gemessen: Vingelz 4–6 kn, Ipsach
+4–6 kn, kein Upwind-Signal (Grenchen 5 kn, Wynau 2 kn; Chasseral 20 kn OSO). Die Modelle an Vingelz und Ipsach lagen
+bei 6–9 kn, die zwei Treffer kamen nur aus Seemitte (AROME 12 kn, ICON-CH1 10–11 kn). Messung und Upwind konnten die
+Stufe bisher nur heben, nie senken.
+
+**Gebaut:** `nochKeinWind(nc, lake, St)` in `core/messung.js`. Startkarte und Blatt zeigen «Noch kein Wind», wenn heute
+die Modelle Wind spätestens in der nächsten Stunde erwarten (Stufe ≥ Alarmgrenze), kein Sturm, kein Upwind-Signal und
+keine Regel E vorliegt und alle frischen Seewerte unter der Schwelle liegen. Die Modellstufe steht darunter. Nur
+Anzeige: Stufe, Push, Bewertung und Rückblick unverändert (`eval/gleich.cjs`: 0 Abweichungen).
+
+**Verworfen: Seemitte nur als Hinweis** (Stufe nur aus Vingelz und Ipsach). Prognose am Vortag, alle Tage im Archiv:
+
+| Fenster | Schwelle | Tage mit anderer Stufe | davon foilbar |
+|---|---|---|---|
+| Abend | 12 kn | 17.10., 19.10., 4.11. | 17.10. (Bise/Nord) |
+| Tag | 12 kn | 17.10., 19.10. | 17.10. |
+| Abend/Tag | 14 kn | 6–8 Tage, alle fallen von «möglich» oder höher auf «knapp» | |
+
+Am 17.10. lagen die Modelle an Ipsach bei 11 kn, in Seemitte bei 13–14 kn, gemessen wurden an Ipsach 11–15 kn. Ohne
+Seemitte wäre der Abend verpasst. Gleiches Muster wie beim Bise-Faktor (`kDir.bise`): Die Modelle unterschätzen Bise
+an den Spots, Seemitte gleicht das aus. Auch ein Abschlag auf Seemitte trennt den 14.11. (12 kn) nicht vom 17.10.
+(13–14 kn). Erst mit mehr Bise-Abenden neu prüfen.

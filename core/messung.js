@@ -146,6 +146,15 @@ function nowcast(stations, St, now, lk){
   const joran = !!St.dirs.joran && (eOk || trusted.some(s=>s.u.sys && s.u.sys.id==="joran"));
   return {sig, trusted, e, eOk, front, upSys: joran ? "joran" : null};
 }
+/* «Noch kein Wind»: Am See ist es ruhig und keine Upwind-Station meldet etwas. lake = Ergebnis von lakeNow (gefiltert
+   nach Spots). Gibt die frischen Seewerte zurück, sonst null. Ob die Prognose schon Wind erwartet, prüft die Oberfläche.
+   Nur Anzeige: Push und Stufe bleiben, wie sie sind (Entscheid Simon, 14.11.2026). */
+function nochKeinWind(nc, lake, St){
+  if(!nc || nc.front.length || nc.eOk || nc.sig.length) return null;
+  const f = (lake||[]).filter(x=>x.fresh && x.last && x.last.mean!=null);
+  if(!f.length || f.some(x=>x.ok || x.last.mean>=St.T)) return null;
+  return f;
+}
 /* Hinweis bei Joran-Lage: Fallböen teilen sich zwischen Vingelz und Alfermée, Vingelz liegt oft im Windschatten
    (Beobachtung Simon, Oktober 2026). lake = Ergebnis von lakeNow. */
 function lageHint(nc, lake){
@@ -181,5 +190,5 @@ function joranType(onset, S){
 }
 
 return {frontCheck, fresh, ruleE, stTs, stTrust, stRel, stSecFn, inHrs, chaWest, upwindNow, isExtra, isTrusted,
-  lapseRate, nowcast, lageHint, joranType};
+  lapseRate, nowcast, nochKeinWind, lageHint, joranType};
 });

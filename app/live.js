@@ -37,6 +37,12 @@ function sigLine(nc, live, h0, k){
   if(weak.length) return `Ungeprüftes Signal: ${weak.slice(0,2).map(x=>x.up.name).join(", ")}`;
   return "Kein Upwind-Signal";
 }
+/* «Noch kein Wind»: Die Modelle erwarten Wind spätestens in der nächsten Stunde, am See ist es ruhig, kein Upwind-Signal.
+   Nur Anzeige, Stufe und Push bleiben. Gibt die frischen Seewerte zurück, sonst null. */
+function nochKein(s, hour, live, nc){
+  if(!live || s.level<S.cut || !s.win || hour<s.win.from-1) return null;
+  return C.nochKeinWind(nc, nc.lake, S);
+}
 const levelWord = lv => lv<0 ? "Keine Daten" : LEVELS[lv].charAt(0).toUpperCase()+LEVELS[lv].slice(1);
 function nowHTML(cur, hour, nc){
   const s = cur.s, today = cur.k===0, [h0,h1] = WINS[S.win];
@@ -56,6 +62,13 @@ function nowHTML(cur, hour, nc){
       const strong = nc.eOk || nc.trusted.some(x=>x.u.trust!=null || x.u.rel===1);
       cls = strong ? "c4" : "c3";
       word = s.level>=S.cut ? "Wind kommt" : "Upwind-Signal";
+    } else {
+      const ruhig = nochKein(s, hour, live, nc);
+      if(ruhig){
+        cls = "c0"; word = "Noch kein Wind";
+        l2 = "Modelle: " + l1;
+        l1 = `${ruhig.map(x=>`${x.L.name} ${r0(x.last.mean)} kn`).join(", ")} · kein Upwind-Signal`;
+      }
     }
   }
   return `<div class="verdict ${cls}"><div class="vtop"><span class="when">${today?"Heute":"Morgen"} · ${esc(WINS[S.win][2])}</span>
@@ -157,6 +170,13 @@ function verdictHTML(cur, hour, nc){
     word = s.level>=S.cut ? "Wind kommt" : "Upwind-Signal";
     why = `Messung: ${parts.join("; ")}. ` + why;
     basis = "Messung an Upwind-Stationen plus Prognose";
+  }
+  const ruhig = nochKein(s, hour, live, nc);
+  if(ruhig && !(live && (nc.eOk || nc.trusted.length))){
+    cls = "c0"; word = "Noch kein Wind";
+    why = `Gemessen am See: ${ruhig.map(x=>`${x.L.name} ${r0(x.last.mean)} kn ${card(x.last.dir)}`).join(", ")}. Kein Upwind-Signal. `
+      + `Die Modelle sagen «${LEVELS[s.level]}»: ` + why;
+    basis = "Messung am See und an den Upwind-Stationen. Die Prognose ist noch nicht eingetroffen.";
   }
   if(today && hour>h1) why += " Dein Zeitfenster heute ist vorbei.";
   if(live && nc.hint) why += " " + nc.hint;
