@@ -101,7 +101,7 @@ function fit(train, St){
 const LAGE_MIT = f => Object.assign({}, L0, {f});
 
 function messe(win, T, St){
-  St = St || C.merge(C.sanitizeCfg({T, win, minH:1, cut:2}));
+  St = St || C.merge(C.sanitizeCfg({T, win, minH:1}));
   const c = {b:{tp:0,fp:0}, n:{tp:0,fp:0}, ev:0, nev:0, diff:[]};
   tage.forEach(d=>{
     const tr = C.lakeDay(per[d], d, St); if(!tr.known) return;
@@ -120,7 +120,7 @@ const rate = (a,n) => n ? a/n : null;
 console.log(`Lage-Faktor, ${o.teil==="dev"?"Entwicklungstage":"Holdout"} ${tage[0]||"–"} bis ${tage[tage.length-1]||"–"}, `
   + (o.fest ? "hinterlegte Faktoren (aus allen Entwicklungstagen, nicht unabhängig)" : "Faktoren nur aus früheren Tagen"));
 FENSTER.forEach(win=>{
-  const St = C.merge(C.sanitizeCfg({T:o.T, win, minH:1, cut:2}));
+  const St = C.merge(C.sanitizeCfg({T:o.T, win, minH:1}));
   const F = fit(alleTage.filter(d=>d<=split.devBis), St);
   console.log(`\nFenster ${C.WINS[win][2]}. Faktoren aus allen Entwicklungstagen: ` + Object.keys(F.f).map(l=>`${l} (${F.info[l].tage} Tage) `
     + Object.keys(F.f[l]).map(id=>`${id} ${F.f[l][id]} [roh ${r2(F.info[l][id].roh)}, ${F.info[l][id].std} h]`).join(", ")).join("; "));
@@ -141,4 +141,4 @@ users.forEach(f=>{
   console.log(`${f.replace(".json","").padEnd(9)} ${String(St.T).padStart(5)} kn  ${St.win.padEnd(7)}  ${r2(rate(c.b.tp,c.ev))} | ${r2(rate(c.n.tp,c.ev))}    ${r2(rate(c.b.fp,c.nev))} | ${r2(rate(c.n.fp,c.nev))}    ${c.ev}/${c.nev}`);
   c.diff.forEach(x=>console.log(`          ${x.d} ${x.lage.padEnd(5)} ${x.ev?"foilbar":"ruhig  "} Stufe ${x.a} → ${x.b}${x.f?"  "+JSON.stringify(x.f):""}`));
 });
-console.log("\nB = ohne Lage-Faktor (wie die App heute), neu = mit. Stufe ≥ Alarmgrenze (möglich) zählt als Alarm.");
+console.log("\nB = ohne Lage-Faktor (wie die App heute), neu = mit. Stufe ≥ Alarmgrenze (fest «wahrscheinlich» seit v31) zählt als Alarm.");

@@ -10,7 +10,8 @@
 const {SPOTS, DIRS, WINS, UPWIND, DEF, FEST} = dep("konstanten");
 const {clone} = dep("helfer");
 
-const PUSH_FIELDS = ["T","maxMean","maxGust","win","minH","dirs","spots","k","kDir","cut","st","push","pushForecast","pushLive"];
+/* cut, maxMean, maxGust sind fest (FEST) und werden nicht mehr gespeichert */
+const PUSH_FIELDS = ["T","win","minH","dirs","spots","k","kDir","st","push","pushForecast","pushLive"];
 function pushCfg(St){ const o = {}; PUSH_FIELDS.forEach(k=>o[k]=clone(St[k])); return o; }
 function sanitizeCfg(x){
   if(!x || typeof x!=="object" || Array.isArray(x)) throw new Error("kein Einstellungs-Objekt");

@@ -598,7 +598,9 @@ wehten 5–6 kn: «Noch kein Wind» erschien nur ab der eigenen Grenze. Entschei
   `calibrate` sucht nur noch den Faktor.
 - Sturmgrenze fest ab 35 kn Mittel oder 45 kn Böen (`FEST.maxMean`, `FEST.maxGust`), Vergleich neu mit ≥ («ab»).
   Im Jahr 2026 ändert das ≥ an Cressier und Neuchâtel 4 Zehnminutenwerte (Böen gerundet genau 45 kn), keinen an einem
-  Entwicklungstag.
+  Entwicklungstag. Am See aber schon (Review): Am 25.10. (foilbar, Front-Joran) meldet Ipsach 4 Werte mit gerundet
+  45 kn Böen (11:16–11:46, 15:36). Dort zeigt die App neu «Nicht rausfahren» statt «Jetzt foilbar», und im Fenster Tag
+  käme der Push «Sturm — nicht rausfahren». Der Recall ändert sich nicht.
 - Wörter: Prognose zeigt die Stufen (unwahrscheinlich … sehr wahrscheinlich), «lohnt sich» gibt es nicht mehr. Live in
   dieser Reihenfolge: Nicht rausfahren › Jetzt foilbar › Wind kommt (bei jedem geprüften Signal oder Regel E, auch bei
   tiefer Stufe) › Noch kein Wind (schon ab «möglich»). «Upwind-Signal» als Stufenwort entfällt.
@@ -625,6 +627,14 @@ auf den Live-Push). Die verlorenen Tage:
 - **22.10. (West), 14 kn, Tag:** Wind am See ab 09:06, also schon zu Beginn des Fensters. Live-Push in der
   Kreuzvalidierung um 11:40 (zu spät), mit `--teil anpassung` um 07:20. **Teil 2 der Akzeptanz ist damit nicht erfüllt.**
   Entscheid Simon offen.
+
+`users/*.json` speichert `cut`, `maxMean`, `maxGust` nicht mehr (`PUSH_FIELDS`). `eval/lage-faktor.cjs` misst neu mit
+der festen Grenze; die v30-Tabelle (Alarm ab «möglich») ist damit nicht mehr direkt reproduzierbar.
+
+Review (unabhängiger Subagent): ANNEHMEN mit Auflagen. Tabelle in allen sechs Zeilen nachgerechnet, Teil 1 bestätigt
+(Live-Push in v30 und v31 gleich, 12/13/14 kn, Tag und Abend), 17.10. bestätigt. Blockierend: 22.10. (14 kn, Tag),
+Wind 09:06, Live-Push 11:40 auch mit dem Kern, wie er live läuft. Auflage: Simon entscheidet ausdrücklich, Entscheid
+steht vor dem Merge hier.
 
 Akzeptanz: Teil 1 erfüllt, Teil 2 an einem Tag (22.10., 14 kn, Tag) nicht erfüllt, Teil 3 erfüllt (6 → 5 von 14),
 Teil 4: 7 foilbare Tage, vorläufig.
