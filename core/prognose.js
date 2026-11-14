@@ -87,7 +87,8 @@ function windWindow(ok, St){
   return {from:use[0], to:use[use.length-1]+1, consensus:cons.length>0};
 }
 /* Lage des Tages aus der Kammprognose: Vektormittel der Richtung von 2 h vor dem Zeitfenster bis zu dessen Ende, nur
-   Stunden ab L.minKn. kamm = {"JJJJ-MM-TTTHH:00": {cv, cd}} wie daten.fetchJura. Rückgabe "nord", "bise" oder null. */
+   Stunden ab L.minKn. Keine Lage bei streuender Richtung (Vektorlänge < L.rMin) oder nahe einer Sektorgrenze (L.band).
+   kamm = {"JJJJ-MM-TTTHH:00": {cv, cd}} wie daten.fetchJura. Rückgabe "nord", "bise" oder null. */
 function lageTag(kamm, day, St, L){
   L = L || LAGE;
   if(!kamm) return null;
@@ -98,8 +99,9 @@ function lageTag(kamm, day, St, L){
     if(!k || k.cv==null || k.cd==null || k.cv<L.minKn) continue;
     x += Math.cos(k.cd*Math.PI/180); y += Math.sin(k.cd*Math.PI/180); n++;
   }
-  if(n<L.minStd) return null;
-  const d = (Math.atan2(y,x)*180/Math.PI+360)%360;
+  if(n<L.minStd || Math.hypot(x,y)/n<(L.rMin||0)) return null;
+  const d = (Math.atan2(y,x)*180/Math.PI+360)%360, ab = g => Math.abs(((d-g)%360+540)%360-180);
+  if(L.band && Object.values(L.sek).some(([a,b])=>ab(a)<L.band || ab(b)<L.band)) return null;
   for(const id of Object.keys(L.sek)){ const [a,b] = L.sek[id]; if(a<=b ? d>=a && d<b : d>=a || d<b) return id; }
   return null;
 }

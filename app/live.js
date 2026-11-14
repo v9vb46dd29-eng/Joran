@@ -198,7 +198,7 @@ function modelTable(cur){
   });
   h += `</table></div>`;
   if(cur.s.lage){ const f = C.LAGE.f[cur.s.lage]||{};
-    h += `<div class="note">Lage-Faktor (${cur.s.lage==="nord"?"Nordlage":"Bise"} nach der Kammprognose): ${esc(Object.keys(f).map(id=>`${spotName(id)} × ${f[id]}`).join(", "))}.</div>`; }
+    h += `<div class="note">Lage-Faktor (${cur.s.lage==="nord"?"Nordlage":"Bise"} nach der Kammprognose): ${esc(Object.keys(f).filter(id=>f[id]!==1).map(id=>`${spotName(id)} × ${f[id]}`).join(", "))}.</div>`; }
   if(cur.ens) h += `<div class="note">ICON-D2-Ensemble: <b>${cur.ens.hit} von ${cur.ens.n}</b> Läufen erreichen ${S.T} kn. ${cur.ens.hit/cur.ens.n>=0.5?"Die Läufe sind sich weitgehend einig.":cur.ens.hit>0?"Nur ein Teil der Läufe zeigt das Signal.":"Kein Lauf zeigt das Signal."}</div>`;
   return h;
 }

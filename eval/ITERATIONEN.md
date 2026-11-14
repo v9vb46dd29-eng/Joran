@@ -553,24 +553,37 @@ Entscheid Simon: Regel nach Lage inaktiv bauen, mit Reviewer.
 **Gebaut:** `LAGE` in `core/modell.js` (`active:false`), `lageTag` in `core/prognose.js`. `summarize(modelSpots, day,
 St, kamm, opt)` nimmt die Kammprognose (`fetchJura`) und multipliziert bei aktiver Regel den Modellwind je Spot.
 Lage nach dem Vektormittel der Kammrichtung von 2 h vor dem Zeitfenster bis zu dessen Ende (Stunden ab 3 kn,
-mindestens 3), Sektoren wie im Windbild: Nordlage N, Bise NO und O.
-- Nordlage: Vingelz/Ipsach nur heben (≥ 1), Seemitte bleibt. Kann nichts verpassen, was heute angekündigt wird.
-- Bise: Seemitte nur senken (0.5–1), Vingelz/Ipsach bleiben.
-- Hinterlegt: Nordlage Ipsach × 1.15, Bise Seemitte × 0.7 (aus allen Entwicklungstagen, zur sicheren Seite gerundet).
-- App übergibt `D.jura`; Push-Lauf noch nicht (lädt die Kammprognose nicht). `gleich.cjs`: 0 Abweichungen.
+mindestens 3), Sektoren wie im Windbild: Nordlage N, Bise NO und O. Keine Lage bei streuender Richtung (Vektorlänge
+unter 0.7) und innerhalb von 5° um eine Sektorgrenze (Auflage aus dem Review: Der 17.10. lag bei 352–10°, ein als
+Bise eingestufter Nordlage-Tag wäre verpasst).
+- Nordlage: Ipsach × 1.15, nur heben. Seemitte bleibt.
+- Bise: Seemitte × 0.7, nur senken (0.5–1). Vingelz/Ipsach bleiben.
+- Werte aus allen Entwicklungstagen (Nordlage Ipsach 1.17 aus 2 Tagen; Bise Seemitte 0.63 Abend, 0.69 Tag aus 9 Tagen).
+- App übergibt `D.jura`. Push-Lauf, Rückblick und `calibrate` rufen `summarize` ohne Kammprognose auf.
+- `gleich.cjs`: 0 Abweichungen im Verhalten, auch mit übergebener Kammprognose (Reviewer, 132 Vergleiche).
 
-**Messung** (`node eval/lage-faktor.cjs`, Prognose am Vortag, Entwicklungstage, Faktoren nur aus früheren Tagen):
+**Messung** (`node eval/lage-faktor.cjs`, Prognose am Vortag, Entwicklungstage, Faktoren nur aus früheren Tagen; in
+Klammern die hinterlegten Werte mit `--fest`):
 
-| Fenster | Schwelle | Recall B → neu | FPR B → neu | EV/NEV |
+| Fenster | Schwelle | Recall B → neu | FPR B → neu | foilbar/ruhig |
 |---|---|---|---|---|
-| Abend 16–21 | 12 kn | 1.00 → 1.00 | 0.50 → 0.44 | 5/16 |
-| Abend 16–21 | 14 kn | 1.00 → 1.00 | 0.35 → 0.00 | 4/17 |
-| Tag 9–21 | 12 kn | 1.00 → 1.00 | 0.42 → 0.42 | 9/12 |
-| Tag 9–21 | 14 kn | 1.00 → 1.00 | 0.47 → 0.07 | 6/15 |
+| Abend 16–21 | 12 kn | 1.00 → 1.00 (1.00) | 0.50 → 0.50 (0.44) | 5/16 |
+| Abend 16–21 | 14 kn | 1.00 → 1.00 (1.00) | 0.35 → 0.06 (0.00) | 4/17 |
+| Tag 9–21 | 12 kn | 1.00 → 1.00 (1.00) | 0.42 → 0.42 (0.33) | 9/12 |
+| Tag 9–21 | 14 kn | 1.00 → 1.00 (1.00) | 0.47 → 0.20 (0.13) | 6/15 |
+| **Tag 9–21, Simons Einstellung** | **13 kn** | **1.00 → 0.86 (0.86)** | 0.43 → 0.36 (0.36) | 7/14 |
 
-Mit den hinterlegten Werten (`--fest`, nicht unabhängig): 12 kn Abend FPR 0.50 → 0.38, Tag 0.42 → 0.33.
-Alle geänderten Tage sind Bise-Tage, alle ruhig. Der Nordlage-Faktor ändert an keinem Tag die Stufe.
+**Besteht die Akzeptanz nicht.** Bei Simons Einstellung (`users/simon.json`: 13 kn, Tag) verpasst die Regel den
+foilbaren Bise-Tag 2.11. (Stufe 4 → 1). Am Morgen kam die Bise an Vingelz mit 12–13 kn, die Modelle sagten dort
+8.5–9.6 kn, nur Seemitte 14 kn; × 0.7 ergibt 9.8 kn. Im Fenster Tag gibt es drei foilbare Bise-Tage (31.10., 1.11.,
+2.11.), im Abendfenster keinen. Gefunden hat das der Reviewer; die erste Fassung hatte nur 12 und 14 kn gemessen und
+fälschlich «kein foilbarer Bise-Abend im Archiv» geschrieben.
 
-**Was die Messung nicht zeigt:** Es gibt keinen foilbaren Bise-Abend im Archiv. Ob der Faktor einen solchen Abend
-verpasst, ist ungeprüft. Nordlage: 2 Tage, 1 foilbarer Abend. Der 14.11. (Bise am See, Kamm Südost, Seemitte zu hoch)
-fällt nicht unter die Regel; Südost auf dem Kamm gab es im Archiv erst an einem Tag (Seemitte roh 0.55).
+Folgerung: Das Verhältnis über alle Stunden trifft die Spitzen nicht. Seemitte streut bei Bise je Tag zwischen 0.62
+und 0.75; um den 2.11. zu halten, müsste der Faktor bei 0.93 liegen, dann bleibt kaum Nutzen. Ein Bise-Faktor auf
+Seemitte ist mit diesen Daten keine Lösung gegen Fehlalarme. Der Nordlage-Faktor ändert an keinem Tag die Stufe.
+
+Review (unabhängiger Subagent): ANNEHMEN mit Auflagen für den Merge im inaktiven Zustand. Umgesetzt: Beschreibung
+korrigiert, Messung je Nutzer-Einstellung im Skript, Band um die Sektorgrenzen, Mindestwert für die Vektorlänge,
+App-Notiz ohne «× 1». Offen als Hinweis: Vorwärts-Fit nutzt den ganzen Vortag (auch Messwerte nach der Ausgabe der
+Vortagsprognose); die Lage hängt vom Zeitfenster ab (28.10. Abend Bise, Tag Nordlage).

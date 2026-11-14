@@ -11,6 +11,7 @@
    (core.lakeDay, Archiv in origin/live). Standard: vorwärts gerechnet, die Faktoren eines Tages kommen nur aus früheren
    Tagen (unter LAGE.minTage Tagen der Lage bleibt der Faktor 1). --fest: hinterlegte Werte aus core/modell.js (aus allen
    Entwicklungstagen bestimmt, also nicht unabhängig).
+   Zusätzlich je Nutzer mit dessen Einstellung (users/*.json). Akzeptanz: Recall sinkt in keiner Zeile.
    Holdout (eval/split.json) nur mit --teil holdout. Vorab: git fetch origin "+live:refs/remotes/origin/live" */
 "use strict";
 const fs = require("fs"), path = require("path"), {execFileSync} = require("child_process");
@@ -99,8 +100,8 @@ function fit(train, St){
 }
 const LAGE_MIT = f => Object.assign({}, L0, {f});
 
-function messe(win, T){
-  const St = C.merge(C.sanitizeCfg({T, win, minH:1, cut:2}));
+function messe(win, T, St){
+  St = St || C.merge(C.sanitizeCfg({T, win, minH:1, cut:2}));
   const c = {b:{tp:0,fp:0}, n:{tp:0,fp:0}, ev:0, nev:0, diff:[]};
   tage.forEach(d=>{
     const tr = C.lakeDay(per[d], d, St); if(!tr.known) return;
@@ -129,5 +130,15 @@ FENSTER.forEach(win=>{
     console.log(`${String(T).padStart(5)} kn  ${r2(rate(c.b.tp,c.ev))} | ${r2(rate(c.n.tp,c.ev))}    ${r2(rate(c.b.fp,c.nev))} | ${r2(rate(c.n.fp,c.nev))}    ${c.ev}/${c.nev}`);
     c.diff.forEach(x=>console.log(`          ${x.d} ${x.lage.padEnd(5)} ${x.ev?"foilbar":"ruhig  "} Stufe ${x.a} → ${x.b}${x.f?"  "+JSON.stringify(x.f):""}`));
   });
+});
+/* Einstellungen der Nutzer (users/*.json): Schwelle, Fenster, Mindestdauer und Alarmgrenze wie im Push */
+const UD = path.join(ROOT,"users");
+const users = fs.existsSync(UD) ? fs.readdirSync(UD).filter(f=>f.endsWith(".json")) : [];
+if(users.length) console.log("\nEinstellungen der Nutzer\nNutzer    Schwelle  Fenster  Recall B|neu   FPR B|neu      EV/NEV");
+users.forEach(f=>{
+  let St; try{ St = C.merge(C.sanitizeCfg(JSON.parse(fs.readFileSync(path.join(UD,f),"utf8")))); }catch(e){ console.log(f, "nicht lesbar:", e.message); return; }
+  const c = messe(St.win, St.T, St);
+  console.log(`${f.replace(".json","").padEnd(9)} ${String(St.T).padStart(5)} kn  ${St.win.padEnd(7)}  ${r2(rate(c.b.tp,c.ev))} | ${r2(rate(c.n.tp,c.ev))}    ${r2(rate(c.b.fp,c.nev))} | ${r2(rate(c.n.fp,c.nev))}    ${c.ev}/${c.nev}`);
+  c.diff.forEach(x=>console.log(`          ${x.d} ${x.lage.padEnd(5)} ${x.ev?"foilbar":"ruhig  "} Stufe ${x.a} → ${x.b}${x.f?"  "+JSON.stringify(x.f):""}`));
 });
 console.log("\nB = ohne Lage-Faktor (wie die App heute), neu = mit. Stufe ≥ Alarmgrenze (möglich) zählt als Alarm.");
