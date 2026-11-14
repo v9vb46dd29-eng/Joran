@@ -13,7 +13,7 @@ const SILOS = {
   modell: "CAL MODEL modelOf HOEHE",
   see: "parseMeteobase mergeLake lakeRows lakeNow lakeDay LAKE_COVER lakeStorm",
   prognose: "joranCheck evalHours evalDay levelOf windWindow summarize clsOf ensShare hoeheDay hoeheOk describe",
-  messung: `joranType isExtra frontCheck fresh ruleE stTs stTrust stRel isTrusted stSecFn upwindNow nowcast
+  messung: `joranType isExtra frontCheck fresh ruleE stTs stTrust stRel isTrusted stSecFn upwindNow nowcast nochKeinWind
     lageHint chaWest lapseRate`,
   kalibrierung: "contingency calibrate fitModel evOf isEv stationDayMax calibrateStation",
   daten: `getJSON ortszeit fetchModel updateLake fetchLake fetchLakeNow fetchEnsemble fetchJura fetchHistory

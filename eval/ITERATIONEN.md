@@ -508,3 +508,39 @@ Die Abweichungen liegen bei höchstens 2 Punkten je Vorlauf, wie vom Reviewer ge
 10 Stunden. `data/windbild.json` neu gerechnet (`lage-vorlauf.cjs --schreiben`, `windbild.cjs`): nur die Quote der
 Prognose im Regler ändert sich um höchstens 1 Punkt. Keine Regel und kein Parameter angepasst.
 
+
+## v29 (14.11.2026): «Noch kein Wind»; Seemitte bleibt in der Stufe
+
+Auslöser: Am 14.11. zeigte die App am Morgen «wahrscheinlich» (Bise, 9–11 Uhr). Gemessen: Vingelz 4–6 kn, Ipsach
+4–6 kn, kein Upwind-Signal (Grenchen 5 kn, Wynau 2 kn; Chasseral 20 kn OSO). Die Modelle an Vingelz und Ipsach lagen
+bei 6–9 kn, die zwei Treffer kamen nur aus Seemitte (AROME 12 kn, ICON-CH1 10–11 kn). Messung und Upwind konnten die
+Stufe bisher nur heben, nie senken.
+
+**Gebaut:** `nochKeinWind(nc, lake, St)` in `core/messung.js`. Startkarte und Blatt zeigen «Noch kein Wind», wenn heute
+die Modelle Wind spätestens in der nächsten Stunde erwarten (Stufe ≥ Alarmgrenze), kein Sturm, kein Upwind-Signal und
+keine Regel E vorliegt und alle frischen Seewerte unter der Schwelle liegen. Die Modellstufe steht darunter. Nur
+Anzeige: Stufe, Push, Bewertung und Rückblick unverändert (`eval/gleich.cjs`: 0 Abweichungen).
+
+**Verworfen: Seemitte nur als Hinweis** (Stufe nur aus Vingelz und Ipsach). Prognose am Vortag, alle Tage im Archiv:
+
+| Fenster | Schwelle | Tage mit anderer Stufe | davon foilbar |
+|---|---|---|---|
+| Abend | 12 kn | 17.10., 19.10., 4.11. | 17.10. (Bise/Nord) |
+| Tag | 12 kn | 17.10., 19.10. | 17.10. |
+| Abend/Tag | 14 kn | 6–8 Tage, alle fallen von «möglich» oder höher auf «knapp» | |
+
+Am 17.10. lagen die Modelle an Ipsach bei 11 kn, in Seemitte bei 13–14 kn, gemessen wurden an Ipsach 11–15 kn. Ohne
+Seemitte wäre der Abend verpasst. Ein fester Abschlag auf Seemitte trennt den 14.11. (12 kn) nicht vom 17.10.
+(13–14 kn).
+
+**Nachgerechnet je Lage** (Stunden 9–21 Uhr mit Wind aus N bis O an Ipsach, Prognose vom Vortag, Mittel der 4 Modelle,
+16.10.–10.11.; Lage nach der Kammprognose vom Vortag, 9–20 Uhr):
+
+| Lage (Kammprognose) | Tage | gemessen Ipsach / Modell Ipsach | gemessen Ipsach / Modell Seemitte |
+|---|---|---|---|
+| Nordlage (Kamm 355°, 1°): 17.10., 28.10. | 2 | 1.25, 1.15 | 1.15, 0.94 |
+| Bise (Kamm 63–114°): 18., 19., 29.10.–4.11. | 9 | 0.80–1.04 | 0.56–0.66 |
+
+Bei Bise treffen die Modelle Ipsach gut, Seemitte liegt rund 40 % zu hoch. Unterschätzt wird nur die Nordlage, und
+die Kammprognose vom Vortag erkennt sie. Mögliche Regel: Nordlage → Ipsach × rund 1.2, Bise → Seemitte × rund 0.6.
+Nicht gebaut: Nordlage hat 2 Tage und 1 foilbaren Abend, der Faktor käme aus genau dem Abend, den er retten soll.
