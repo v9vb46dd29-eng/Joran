@@ -37,10 +37,11 @@ function sigLine(nc, live, h0, k){
   if(weak.length) return `Ungeprüftes Signal: ${weak.slice(0,2).map(x=>x.up.name).join(", ")}`;
   return "Kein Upwind-Signal";
 }
-/* «Noch kein Wind»: Die Modelle erwarten Wind spätestens in der nächsten Stunde, am See ist es ruhig, kein Upwind-Signal.
-   Nur Anzeige, Stufe und Push bleiben. Gibt die frischen Seewerte zurück, sonst null. */
+/* «Noch kein Wind»: Die Modelle erwarten Wind spätestens in der nächsten Stunde (schon ab «möglich»), am See ist es ruhig,
+   kein Upwind-Signal. Nur Anzeige, Stufe und Push bleiben. Gibt die frischen Seewerte zurück, sonst null. */
+const NKW_AB = 2;   /* «möglich» */
 function nochKein(s, hour, live, nc){
-  if(!live || s.level<S.cut || !s.win || hour<s.win.from-1) return null;
+  if(!live || s.level<NKW_AB || !s.win || hour<s.win.from-1) return null;
   return C.nochKeinWind(nc, nc.lake, S);
 }
 const levelWord = lv => lv<0 ? "Keine Daten" : LEVELS[lv].charAt(0).toUpperCase()+LEVELS[lv].slice(1);
@@ -51,7 +52,7 @@ function nowHTML(cur, hour, nc){
   if(live && nc.front.length){
     cls = "danger"; word = "Nicht rausfahren";
     l1 = "Sturm: " + nc.front.map(x=>x.up.name+" "+x.f.join(", ")).join("; ");
-    l2 = `Über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen)`;
+    l2 = `Sturmgrenze: ${S.maxMean} kn Mittel oder ${S.maxGust} kn Böen`;
   } else {
     const lakeOk = live ? nc.lake.filter(x=>x.ok) : [];
     if(lakeOk.length){
@@ -61,7 +62,7 @@ function nowHTML(cur, hour, nc){
     } else if(live && (nc.eOk || nc.trusted.length)){
       const strong = nc.eOk || nc.trusted.some(x=>x.u.trust!=null || x.u.rel===1);
       cls = strong ? "c4" : "c3";
-      word = s.level>=S.cut ? "Wind kommt" : "Upwind-Signal";
+      word = "Wind kommt";
     } else {
       const ruhig = nochKein(s, hour, live, nc);
       if(ruhig){
@@ -139,7 +140,7 @@ function verdictHTML(cur, hour, nc){
   if(live && nc.front.length){
     return `<div class="verdict danger"><span class="word">Nicht rausfahren</span>
       <div class="why">Sturm gemessen: ${esc(nc.front.map(x=>x.up.name+": "+x.f.join(", ")).join("; "))}.</div>
-      <div class="basis">Messung, über deinen Grenzen (${S.maxMean} kn Mittel, ${S.maxGust} kn Böen). Geht der Prognose vor.</div>${thrChip()}</div>`;
+      <div class="basis">Messung ab der Sturmgrenze (${S.maxMean} kn Mittel oder ${S.maxGust} kn Böen). Geht der Prognose vor.</div>${thrChip()}</div>`;
   }
   if(s.level<0) return `<div class="verdict"><span class="word">Keine Daten</span><div class="why">Kein Modell liefert Werte für diesen Tag und dieses Zeitfenster.</div></div>`;
 
@@ -152,7 +153,7 @@ function verdictHTML(cur, hour, nc){
   } else why = "Kein Modell zeigt Wind aus deinen Richtungen.";
   if(cur.ens) why += ` Ensemble: ${cur.ens.hit} von ${cur.ens.n} Läufen erreichen die Schwelle.`;
   if(s.n===1) why += " Nur ein Modell reicht so weit, die Aussage ist unsicher.";
-  basis = `Prognose, ${WINS[S.win][2]}` + (s.level>=S.cut ? ", lohnt sich nach deiner Einstellung" : "");
+  basis = `Prognose, ${WINS[S.win][2]}`;
 
   const lakeOk = live ? nc.lake.filter(x=>x.ok) : [];
   if(lakeOk.length){
@@ -167,7 +168,7 @@ function verdictHTML(cur, hour, nc){
       parts.push(`${x.up.name} ${r0(x.u.mean30)} kn ${x.u.sys?x.u.sys.name:""}${x.u.since?" seit "+hhmm(x.u.since):""}${x.u.trust==null&&x.u.rel===undefined?" (ungeprüft)":""}`); });
     const strong = nc.eOk || nc.trusted.some(x=>x.u.trust!=null || x.u.rel===1);
     cls = strong ? "c4" : "c3";
-    word = s.level>=S.cut ? "Wind kommt" : "Upwind-Signal";
+    word = "Wind kommt";
     why = `Messung: ${parts.join("; ")}. ` + why;
     basis = "Messung an Upwind-Stationen plus Prognose";
   }
@@ -208,7 +209,7 @@ function warnings(cur){
   const cape = Math.max(0, ...s.ok.map(x=>x.e.capeMax||0));
   if(cape>=1000) w.push({short:"Gewitter möglich", text:`CAPE bis ${Math.round(cape)} J/kg: Gewitter möglich. Eine Böenfront zeigt sich an den Upwind-Stationen zuerst (Temperatursturz, Windsprung).`});
   const gMax = Math.max(0, ...s.ok.map(x=>x.e.top && x.e.top.g!=null ? x.e.top.g : 0));
-  if(gMax*S.k > S.maxGust) w.push({short:`Böen bis ${r0(gMax*S.k)} kn`, text:`Böen bis ${r0(gMax*S.k)} kn möglich (mit Modellfaktor), über deiner Grenze von ${S.maxGust} kn.`});
+  if(gMax*S.k >= S.maxGust) w.push({short:`Böen bis ${r0(gMax*S.k)} kn`, text:`Böen bis ${r0(gMax*S.k)} kn möglich (mit Modellfaktor), ab der Sturmgrenze von ${S.maxGust} kn.`});
   const tops = s.ok.filter(x=>x.e.top).map(x=>x.e.top.v);
   if(tops.length>1 && Math.max(...tops)-Math.min(...tops)>=6) w.push({short:"", text:`Modelle uneinig: ${r0(Math.max(...tops)-Math.min(...tops))} kn Spannweite.`});
   return w;

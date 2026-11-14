@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Joran · Wingfoil Bielersee</title>
-<link rel="stylesheet" href="app/app.css?v=30">
+<link rel="stylesheet" href="app/app.css?v=31">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v30</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v31</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -60,7 +60,6 @@
           <div class="sl"><input type="range" id="thr" min="10" max="30" step="1" value="14" aria-label="Schwelle in Knoten">
           <div class="scale"><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span></div></div></div>
       </div>
-      <div class="it"><div class="lab">Sturmgrenze<small>Erst darüber heisst es «nicht rausfahren» (Mittelwind / Böen)</small></div><div class="chips" id="setMax"></div></div>
       <div class="it"><div class="lab">Windrichtungen, die zählen</div><div class="chips" id="setDir"></div></div>
       <div class="it"><div class="lab">Spots<small>Es reicht, wenn einer die Schwelle erreicht</small></div><div class="chips" id="setSpot"></div></div>
     </div>
@@ -69,7 +68,6 @@
     <div class="grp">
       <div class="it"><div class="lab">Zeitfenster</div><div class="chips" id="setWin"></div></div>
       <div class="it"><div class="lab">Mindestdauer über der Schwelle</div><div class="chips" id="setMin"></div></div>
-      <div class="it"><div class="lab">Ein Tag gilt als «lohnt sich» ab</div><div class="chips" id="setCut"></div></div>
       <div class="it">
         <div class="lab">Modellfaktor <span class="kval" id="kVal">1.00</span><small>Gleicht aus, dass die Modelle den Wind auf dem See unterschätzen. Am besten über den Rückblick kalibrieren.</small></div>
         <input type="range" id="kSl" min="0.8" max="2" step="0.05" value="1" aria-label="Modellfaktor">
@@ -106,18 +104,18 @@
     <h2>Methode und Quellen</h2>
     <div class="note meth">
 <p><b>Prognose.</b> Vier Wettermodelle rechnen den Wind über dem See (ICON-CH1, ICON-CH2, ICON-D2, AROME). Je Stunde zählt der stärkste deiner Spots.</p>
-<p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen (und mindestens zwei). <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines hält die Schwelle lange genug, aber das stärkste liegt höchstens 3 kn darunter. Ab übermorgen rechnet nur noch ICON-CH2.</p>
+<p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen (und mindestens zwei). <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines hält die Schwelle lange genug, aber das stärkste liegt höchstens 3 kn darunter. Ein Tag zählt ab «wahrscheinlich»: Erst dann kommt der Push am Vortag. Ab übermorgen rechnet nur noch ICON-CH2.</p>
 <p><b>Wann?</b> Angezeigt werden die Stunden, in denen mindestens die Hälfte der Modelle deine Schwelle erreicht. Gibt es keine, zählen Stunden mit einem einzelnen Modell («nur einzelne Modelle»).</p>
 <p><b>Am See jetzt.</b> Messwerte von Vingelz und Ipsach (meteoBase.ch), alle 10 Minuten. Die Kachel wird blau, wenn deine Schwelle erreicht ist. Im Tagesdiagramm stehen die Messwerte als Punkte.</p>
-<p><b>Wind kommt.</b> Messstationen in Anströmrichtung (SwissMetNet) zeigen den Wind oft 30 bis 90 Minuten früher. Eine Station meldet, wenn der Wind 30 Minuten lang aus der passenden Richtung kommt und stark genug ist. Für Joran gilt zusätzlich eine eigene Regel in Cressier.</p>
-<p><b>Noch kein Wind.</b> Erwarten die Modelle den Wind in der nächsten Stunde oder schon jetzt, am See weht aber weniger als deine Schwelle und keine Upwind-Station meldet etwas, steht «Noch kein Wind». Die Stufe der Modelle steht darunter. Push bleibt gleich.</p>
+<p><b>Wind kommt.</b> Messstationen in Anströmrichtung (SwissMetNet) zeigen den Wind oft 30 bis 90 Minuten früher. Eine Station meldet, wenn der Wind 30 Minuten lang aus der passenden Richtung kommt und stark genug ist. Dann steht «Wind kommt», egal was die Modelle sagen. Für Joran gilt zusätzlich eine eigene Regel in Cressier.</p>
+<p><b>Noch kein Wind.</b> Erwarten die Modelle ab «möglich» den Wind in der nächsten Stunde oder schon jetzt, am See weht aber weniger als deine Schwelle und keine Upwind-Station meldet etwas, steht «Noch kein Wind». Die Stufe der Modelle steht darunter. Push bleibt gleich.</p>
 <p><b>Höhenwind.</b> Wind auf rund 1500 m (ICON-EU). Er kommt nur bis auf den See, wenn die Luft durchmischt ist. Ist sie stabil geschichtet, bleibt er oben. Vorerst ein Hinweis, er ändert die Bewertung nicht.</p>
 <p><b>Joran.</b> Der Front-Joran kommt mit einer Kaltfront von Westen, zu jeder Jahreszeit. Der Abend-Joran entsteht nach warmen, ruhigen Tagen von Mai bis August. Zwei Zeichen sprechen für Joran: Nordwestwind auf dem Chasseral und steigender Druck über dem Jura. Am See teilt sich der Joran oft: Ipsach hat Wind, Vingelz liegt im Windschatten.</p>
 <p><b>Nordlage und Taubenlöchler.</b> Bei Nordwind auf dem Jura kommt Wind aus Nord bis Nordost in die Bucht, vermutlich durchs Taubenloch. Am Jurasüdfuss bleibt es dabei oft still. Die Station Courtelary gibt ein Zeichen dafür. Wie verlässlich es ist, wird noch geprüft.</p>
 <p><b>Windbild.</b> Die Karte zeigt den Wind über See und Bucht für die Lage von jetzt. Welche Lage gilt, bestimmt der Wind auf dem Chasseral, zuerst die Messung, dann die Prognose: Am See kommt er oft gedreht an. Nordwest auf dem Kamm gilt als Joran-Lage, auch ohne Joran-Zeichen; mit Zeichen (Regel E in Cressier) kommt er meist auch am See an. Das Muster der Lage ist an den Messungen von jetzt ausgerichtet: Vingelz, Ipsach und die Stationen zeigen ihren Messwert, die Fläche dazwischen ist geschätzt. Zahlen stehen nur dort, wo gemessen wird. Einzige Ausnahme ist La Neuveville: Dort gibt es keine öffentliche Messung, die Zahl ist das Mittel der vier Modelle und trägt «Modell». Im Ausschnitt Region stehen alle Upwind-Stationen, ein Signal ist orange umrandet. Mathod (Orbe-Ebene bei Yverdon) ist nur zur Anzeige dabei: Am Westende des Neuenburgersees gibt es keine öffentliche Station mit Wind.</p>
 <p><b>Regler.</b> Er spult die Karte bis 24 Stunden vor. Die Lage von jetzt hält meist länger, als die Prognose trifft. Darum bleibt die gemessene Lage stehen, bis die Prognose selbst einen Wechsel voraussagt. Die Stärke an Vingelz und Ipsach mischt die Messung von jetzt mit dem Mittel der Modelle: nach 1 h zählt die Messung zu zwei Dritteln, nach 6 h noch zu einem Zehntel, und nie liegt der Wert unter dem Modell. Dazu steht, wie oft die Lage in der Vergangenheit stimmte. Die Prognose unterscheidet Süd nicht von West, darum heisst die Lage aus der Prognose «West oder Süd». Erkennt sie keine Lage, zeigt die Karte nur die Pfeile an den Spots.</p>
 <p><b>Windlagen.</b> In den Erklärungen zeigt die Karte das typische Muster jeder Lage, gerechnet aus der Seemessung. Lagen ohne Messung sind als «geschätzt» markiert. Die Zahlen werden bei jeder Modellprüfung neu gerechnet.</p>
-<p><b>Sturm.</b> Über deiner Sturmgrenze (Standard 30 kn Mittel, 39 kn Böen) oder bei einer Böenfront warnt Joran, auch wenn sonst alles passt.</p>
+<p><b>Sturm.</b> Ab 35 kn Mittelwind oder 45 kn Böen oder bei einer Böenfront warnt Joran mit «Nicht rausfahren», auch wenn sonst alles passt.</p>
 <p><b>Push.</b> Zwischen 6 und 21 Uhr prüft ein Programm auf GitHub alle 10 Minuten dieselben Regeln mit deinen Einstellungen und schickt die Nachricht über ntfy.</p>
 <p><b>Wie gut ist das?</b> Die Seemessung wird jeden Tag gespeichert und mit Prognose und Signalen verglichen. Dabei gilt: lieber ein Fehlalarm als ein verpasster Abend. Ein genaueres Modell mit eigenen Schwellen je Station und Windlage und mit Höhenwind ist vorbereitet, aber noch nicht aktiv. Es braucht mehr Windtage. Details stehen im Repo unter <code>eval/METHODE.md</code> und <code>eval/ITERATIONEN.md</code>.</p>
 <p><b>Daten.</b> Einstellungen bleiben in diesem Browser. Nur was du für Push speicherst, steht öffentlich im Repo, ohne ntfy-Thema. Quellen: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), MeteoSchweiz (OGD), meteoBase.ch.</p>
@@ -128,23 +126,23 @@
 
 <!-- Rechenkern: Silos in der Reihenfolge ihrer Abhängigkeit, dann die Fassade. Oberfläche: Reihenfolge wie aufgeführt.
      Bei jeder Änderung die Version an allen Dateien und in der Kopfzeile gleich hochzählen (node eval/aufbau.cjs prüft das). -->
-<script src="core/konstanten.js?v=30"></script>
-<script src="core/helfer.js?v=30"></script>
-<script src="core/modell.js?v=30"></script>
-<script src="core/see.js?v=30"></script>
-<script src="core/prognose.js?v=30"></script>
-<script src="core/messung.js?v=30"></script>
-<script src="core/kalibrierung.js?v=30"></script>
-<script src="core/daten.js?v=30"></script>
-<script src="core/einstellungen.js?v=30"></script>
-<script src="core.js?v=30"></script>
-<script src="app/basis.js?v=30"></script>
-<script src="app/see.js?v=30"></script>
-<script src="app/live.js?v=30"></script>
-<script src="app/einstellungen.js?v=30"></script>
-<script src="app/push.js?v=30"></script>
-<script src="app/rueckblick.js?v=30"></script>
-<script src="app/windbild.js?v=30"></script>
-<script src="app/start.js?v=30"></script>
+<script src="core/konstanten.js?v=31"></script>
+<script src="core/helfer.js?v=31"></script>
+<script src="core/modell.js?v=31"></script>
+<script src="core/see.js?v=31"></script>
+<script src="core/prognose.js?v=31"></script>
+<script src="core/messung.js?v=31"></script>
+<script src="core/kalibrierung.js?v=31"></script>
+<script src="core/daten.js?v=31"></script>
+<script src="core/einstellungen.js?v=31"></script>
+<script src="core.js?v=31"></script>
+<script src="app/basis.js?v=31"></script>
+<script src="app/see.js?v=31"></script>
+<script src="app/live.js?v=31"></script>
+<script src="app/einstellungen.js?v=31"></script>
+<script src="app/push.js?v=31"></script>
+<script src="app/rueckblick.js?v=31"></script>
+<script src="app/windbild.js?v=31"></script>
+<script src="app/start.js?v=31"></script>
 </body>
 </html>

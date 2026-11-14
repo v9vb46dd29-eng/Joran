@@ -72,4 +72,20 @@ wird committet, aber nicht aktiv gesetzt (`MODEL.active` bleibt `false`). Die 10
 (Entscheid 11.11.2026): Ein System mit 10 Abenden kann für sich zur Aktivierung vorgeschlagen werden. Die letzte Zeile der
 Ausgabe zeigt den Stand je System.
 
+### Grenze der Stufe und Push am Vortag (seit 14.11.2026)
+
+Ein Tag zählt fest ab «wahrscheinlich» (`FEST.cut` in `core/konstanten.js`), für Anzeige, Push am Vortag und Rückblick.
+Eine Änderung an der Stufe oder an dieser Grenze wird angenommen, wenn gilt:
+
+1. **Live (hart):** Der Recall des Live-Pushs («Wind kommt», «Am See erreicht») sinkt bei keiner Schwelle (12, 13, 14 kn)
+   und in keinem Fenster.
+2. **Vortag:** Bei Simons Einstellung (`users/simon.json`) sinkt der Recall nicht. Bei 12 und 14 kn darf ein Tag nur
+   wegfallen, wenn der Live-Push ihn mindestens 30 min vor dem Wind am See erkennt. Jeder verlorene Tag steht mit Datum
+   in `eval/ITERATIONEN.md`.
+3. **Nutzen:** Die Fehlalarme sinken bei Simons Einstellung.
+4. **Fallzahl:** Unter 10 foilbaren Tagen gilt das Ergebnis als vorläufig.
+
+Vorrang bleibt: Ein verpasster Abend wiegt schwerer als ein Fehlalarm. Neu zählt, ob der Abend am Ende verpasst wird,
+nicht nur, ob ihn die Prognose vom Vortag ankündigt.
+
 Iterationen und Reviewer-Entscheide: `eval/ITERATIONEN.md`. Entscheide des Laufs vom 16.10.2026: `eval/REVIEW.md`.

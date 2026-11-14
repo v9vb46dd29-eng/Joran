@@ -7,7 +7,7 @@
   if(typeof module!=="undefined" && module.exports) module.exports = api; else (root.Joran = root.Joran || {}).helfer = api;
 })(typeof self!=="undefined" ? self : this, function(dep){
 "use strict";
-const {SPOTS, DIRS, DEF} = dep("konstanten");
+const {SPOTS, DIRS, DEF, FEST} = dep("konstanten");
 
 const clone = o => JSON.parse(JSON.stringify(o));
 const r0 = v => v==null||isNaN(v) ? "–" : String(Math.round(v));
@@ -21,7 +21,7 @@ const kFor = (d,St) => { const x = dirOf(d); return (x && St.kDir && St.kDir[x.i
 const spotName = id => (SPOTS.find(s=>s.id===id)||{}).name || id;
 const merge = s => { const o = Object.assign(clone(DEF), s||{});
   o.dirs = Object.assign({}, DEF.dirs, (s&&s.dirs)||{}); o.spots = Object.assign({}, DEF.spots, (s&&s.spots)||{});
-  o.kDir = Object.assign({}, (s&&s.kDir)||{}); o.st = Object.assign({}, (s&&s.st)||{}); return o; };
+  o.kDir = Object.assign({}, (s&&s.kDir)||{}); o.st = Object.assign({}, (s&&s.st)||{}); return Object.assign(o, FEST); };
 
 function fmtCH(dt, opts){ return new Intl.DateTimeFormat("de-CH", Object.assign({timeZone:"Europe/Zurich"}, opts)).format(dt); }
 const hhmm = dt => fmtCH(dt,{hour:"2-digit",minute:"2-digit"});

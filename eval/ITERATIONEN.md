@@ -587,3 +587,44 @@ Review (unabhängiger Subagent): ANNEHMEN mit Auflagen für den Merge im inaktiv
 korrigiert, Messung je Nutzer-Einstellung im Skript, Band um die Sektorgrenzen, Mindestwert für die Vektorlänge,
 App-Notiz ohne «× 1». Offen als Hinweis: Vorwärts-Fit nutzt den ganzen Vortag (auch Messwerte nach der Ausgabe der
 Vortagsprognose); die Lage hängt vom Zeitfenster ab (28.10. Abend Bise, Tag Nordlage).
+
+## v31 (14.11.2026): Grenze fest ab «wahrscheinlich», Sturm fest 35/45, Stufenwörter
+
+Auslöser: Simon hatte «lohnt sich ab wahrscheinlich» eingestellt. Am 14.11. mittags zeigte die App «Möglich», am See
+wehten 5–6 kn: «Noch kein Wind» erschien nur ab der eigenen Grenze. Entscheide Simon (Fragerunde 14.11.):
+
+- Ein Tag zählt fest ab «wahrscheinlich» (`FEST.cut = 3`), für Anzeige, Push am Vortag und Rückblick. Die Einstellung
+  entfällt; `merge()` und `sanitizeCfg()` überschreiben ältere Werte (`users/simon.json` hat noch `cut: 2`).
+  `calibrate` sucht nur noch den Faktor.
+- Sturmgrenze fest ab 35 kn Mittel oder 45 kn Böen (`FEST.maxMean`, `FEST.maxGust`), Vergleich neu mit ≥ («ab»).
+  Im Jahr 2026 ändert das ≥ an Cressier und Neuchâtel 4 Zehnminutenwerte (Böen gerundet genau 45 kn), keinen an einem
+  Entwicklungstag.
+- Wörter: Prognose zeigt die Stufen (unwahrscheinlich … sehr wahrscheinlich), «lohnt sich» gibt es nicht mehr. Live in
+  dieser Reihenfolge: Nicht rausfahren › Jetzt foilbar › Wind kommt (bei jedem geprüften Signal oder Regel E, auch bei
+  tiefer Stufe) › Noch kein Wind (schon ab «möglich»). «Upwind-Signal» als Stufenwort entfällt.
+- Neue Akzeptanz für die Grenze der Stufe: `eval/README.md`, Abschnitt «Grenze der Stufe und Push am Vortag».
+
+**Messung Prognose am Vortag** (Entwicklungstage 16.10.–5.11., `core.summarize` mit Prognose vom Vortag,
+`eval/data/prognose_vortag.json`), Alarm ab «möglich» → ab «wahrscheinlich»:
+
+| Fenster | Schwelle | foilbar erkannt | Fehlalarme | verloren |
+|---|---|---|---|---|
+| Abend 16–21 | 12 kn | 5/5 → 4/5 | 8 → 8 von 16 | 17.10. (Stufe 2) |
+| Abend 16–21 | 13 kn | 4/4 → 4/4 | 8 → 6 von 17 | – |
+| Abend 16–21 | 14 kn | 4/4 → 4/4 | 6 → 4 von 17 | – |
+| Tag 9–21 | 12 kn | 9/9 → 8/9 | 5 → 5 von 12 | 17.10. (Stufe 2) |
+| **Tag 9–21, Simons Einstellung** | **13 kn** | **7/7 → 7/7** | **6 → 5 von 14** | – |
+| Tag 9–21 | 14 kn | 6/6 → 5/6 | 7 → 4 von 15 | 22.10. (Stufe 2) |
+
+**Live-Push** (`node eval/measure.cjs`, Tag und Abend, 12 und 14 kn): unverändert gegenüber v30 (die Grenze wirkt nicht
+auf den Live-Push). Die verlorenen Tage:
+
+- **17.10. (Nordlage), 12 kn:** Signal vom Chasseral (Startwert, nicht angepasst) um 11:00 (Tag) bzw. 14:00 (Abend),
+  Wind am See ab 15:46 bzw. 16:06. Erkannt, mehr als 30 min vorher. Der Tag liegt im ersten Block, die Zeiten stammen aus
+  `--teil anpassung`.
+- **22.10. (West), 14 kn, Tag:** Wind am See ab 09:06, also schon zu Beginn des Fensters. Live-Push in der
+  Kreuzvalidierung um 11:40 (zu spät), mit `--teil anpassung` um 07:20. **Teil 2 der Akzeptanz ist damit nicht erfüllt.**
+  Entscheid Simon offen.
+
+Akzeptanz: Teil 1 erfüllt, Teil 2 an einem Tag (22.10., 14 kn, Tag) nicht erfüllt, Teil 3 erfüllt (6 → 5 von 14),
+Teil 4: 7 foilbare Tage, vorläufig.

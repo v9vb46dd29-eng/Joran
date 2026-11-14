@@ -12,13 +12,13 @@ function renderHist(){
   const fails = MODELS.filter(m=>H.err[m.id]);
   if(fails.length) h += `<div class="note bad">Nicht geladen: ${fails.map(m=>m.name+" ("+esc(H.err[m.id])+")").join(", ")}.</div>`;
 
-  h += `<h2>Prognose</h2><div class="note"><b>Bilanz mit den aktuellen Einstellungen</b> (Schwelle ${S.T} kn, Faktor ${S.k.toFixed(2)}, lohnt sich ab «${LEVELS[S.cut]}»):<br>
+  h += `<h2>Prognose</h2><div class="note"><b>Bilanz mit den aktuellen Einstellungen</b> (Schwelle ${S.T} kn, Faktor ${S.k.toFixed(2)}, zählt ab «${LEVELS[S.cut]}»):<br>
     ${b.ev+b.nev===0 ? "Noch keine Tage markiert." :
     `Windtage erkannt: <b>${b.tp} von ${b.ev}</b>. Fehlalarme: <b>${b.fp} von ${b.nev}</b>.${b.pss!=null?` Peirce-Score ${b.pss.toFixed(2)} (1 = perfekt, 0 = wertlos).`:""}`}</div>`;
   if(cal.best){
     const c = cal.best.c, pd = cal.perDir, pdk = Object.keys(pd);
-    const isSet = Math.abs(cal.best.k-S.k)<1e-9 && cal.best.cut===S.cut && JSON.stringify(Object.fromEntries(pdk.map(id=>[id,pd[id].k])))===JSON.stringify(S.kDir||{});
-    h += `<div class="note"><b>Beste Einstellung:</b> Faktor ${cal.best.k.toFixed(2)}, lohnt sich ab «${LEVELS[cal.best.cut]}». Erkannt ${c.tp} von ${c.ev}, Fehlalarme ${c.fp} von ${c.nev}, Peirce ${c.pss.toFixed(2)}.
+    const isSet = Math.abs(cal.best.k-S.k)<1e-9 && JSON.stringify(Object.fromEntries(pdk.map(id=>[id,pd[id].k])))===JSON.stringify(S.kDir||{});
+    h += `<div class="note"><b>Bester Faktor:</b> ${cal.best.k.toFixed(2)}. Erkannt ${c.tp} von ${c.ev}, Fehlalarme ${c.fp} von ${c.nev}, Peirce ${c.pss.toFixed(2)}.
       ${pdk.length?`<br>Eigener Faktor je Windsystem: ${pdk.map(id=>`${(DIRS.find(d=>d.id===id)||{}).name} ${pd[id].k.toFixed(2)} (${pd[id].ev} Windtage)`).join(", ")}.`:""}
       ${b.ev<10?"<br><small>Weniger als zehn Windtage markiert, das Ergebnis ist vorläufig.</small>":""}
       ${isSet?"<br><small>Ist bereits eingestellt.</small>":`<br><button class="btn2" id="apply" style="margin-top:8px">Übernehmen</button>`}</div>`;
@@ -75,7 +75,7 @@ function renderHist(){
     saveT(tr); renderHist();
   }));
   const ap = $("#apply");
-  if(ap) ap.addEventListener("click",()=>{ S.k = cal.best.k; S.cut = cal.best.cut; S.kDir = Object.fromEntries(Object.keys(cal.perDir).map(id=>[id,cal.perDir[id].k])); saveS(); renderAll(); });
+  if(ap) ap.addEventListener("click",()=>{ S.k = cal.best.k; S.kDir = Object.fromEntries(Object.keys(cal.perDir).map(id=>[id,cal.perDir[id].k])); saveS(); renderAll(); });
   const sg = $("#sgo"); if(sg) sg.addEventListener("click", runStations);
   const sa = $("#sapply");
   if(sa) sa.addEventListener("click",()=>{ const st = {}; HS.res.forEach(x=>{ if(x.r && x.r.best) st[x.up.abk] = Object.assign({ts:x.r.best.ts, pss:x.r.best.pss, n:x.r.ev}, x.r.best.rel!=null ? {rel:x.r.best.rel} : {});  /* ts null = Startwert behalten */ }); S.st = st; saveS(); renderAll(); });
