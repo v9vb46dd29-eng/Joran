@@ -530,6 +530,17 @@ Anzeige: Stufe, Push, Bewertung und Rückblick unverändert (`eval/gleich.cjs`: 
 | Abend/Tag | 14 kn | 6–8 Tage, alle fallen von «möglich» oder höher auf «knapp» | |
 
 Am 17.10. lagen die Modelle an Ipsach bei 11 kn, in Seemitte bei 13–14 kn, gemessen wurden an Ipsach 11–15 kn. Ohne
-Seemitte wäre der Abend verpasst. Gleiches Muster wie beim Bise-Faktor (`kDir.bise`): Die Modelle unterschätzen Bise
-an den Spots, Seemitte gleicht das aus. Auch ein Abschlag auf Seemitte trennt den 14.11. (12 kn) nicht vom 17.10.
-(13–14 kn). Erst mit mehr Bise-Abenden neu prüfen.
+Seemitte wäre der Abend verpasst. Ein fester Abschlag auf Seemitte trennt den 14.11. (12 kn) nicht vom 17.10.
+(13–14 kn).
+
+**Nachgerechnet je Lage** (Stunden 9–21 Uhr mit Wind aus N bis O an Ipsach, Prognose vom Vortag, Mittel der 4 Modelle,
+16.10.–10.11.; Lage nach der Kammprognose vom Vortag, 9–20 Uhr):
+
+| Lage (Kammprognose) | Tage | gemessen Ipsach / Modell Ipsach | gemessen Ipsach / Modell Seemitte |
+|---|---|---|---|
+| Nordlage (Kamm 355°, 1°): 17.10., 28.10. | 2 | 1.25, 1.15 | 1.15, 0.94 |
+| Bise (Kamm 63–114°): 18., 19., 29.10.–4.11. | 9 | 0.80–1.04 | 0.56–0.66 |
+
+Bei Bise treffen die Modelle Ipsach gut, Seemitte liegt rund 40 % zu hoch. Unterschätzt wird nur die Nordlage, und
+die Kammprognose vom Vortag erkennt sie. Mögliche Regel: Nordlage → Ipsach × rund 1.2, Bise → Seemitte × rund 0.6.
+Nicht gebaut: Nordlage hat 2 Tage und 1 foilbaren Abend, der Faktor käme aus genau dem Abend, den er retten soll.
