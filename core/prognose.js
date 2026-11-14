@@ -54,8 +54,9 @@ function evalHours(spots, day, St, h0, h1){
   }
   return any ? {hours, capeMax} : null;
 }
-function evalDay(spots, day, St){
-  const [h0,h1] = WINS[St.win];
+/* ab (optional): erste Stunde, die zählt. Für heute ab Fensterbeginn die laufende Stunde (Restprognose, nur Anzeige). */
+function evalDay(spots, day, St, ab){
+  const [w0,h1] = WINS[St.win], h0 = ab!=null ? Math.max(w0, ab) : w0;
   const r = evalHours(spots, day, St, h0, h1);
   if(!r) return null;
   let run = 0, maxRun = 0, top = null;
@@ -106,12 +107,14 @@ function lageTag(kamm, day, St, L){
   return null;
 }
 /* Stufe über alle Modelle. kamm (optional): Kammprognose für den Lage-Faktor. opt.lage: Parameter wie LAGE, die auch
-   bei LAGE.active = false gelten (zum Messen); opt.lage = null schaltet ihn ab. */
+   bei LAGE.active = false gelten (zum Messen); opt.lage = null schaltet ihn ab. opt.ab: erste Stunde, die zählt
+   (Restprognose für heute, nur Anzeige; Push, Rückblick und Messung rechnen ohne). */
 function summarize(modelSpots, day, St, kamm, opt){
   const L = opt && opt.lage!==undefined ? opt.lage : (LAGE.active ? LAGE : null);
   const lage = L && kamm ? lageTag(kamm, day, St, L) : null;
   if(lage && L.f[lage]) St = Object.assign({}, St, {spotF:L.f[lage]});
-  const per = MODELS.map(m=>({m, e: modelSpots[m.id] ? evalDay(modelSpots[m.id], day, St) : null}));
+  const ab = opt ? opt.ab : undefined;
+  const per = MODELS.map(m=>({m, e: modelSpots[m.id] ? evalDay(modelSpots[m.id], day, St, ab) : null}));
   const ok = per.filter(x=>x.e);
   const hits = ok.filter(x=>x.e.hit).length;
   let top = null, topM = null;
@@ -121,10 +124,10 @@ function summarize(modelSpots, day, St, kamm, opt){
   return res;
 }
 const clsOf = (lv, St) => lv<0 ? 0 : lv>=St.cut ? (lv>=4?4:3) : lv>=2 ? 2 : lv===1 ? 1 : 0;
-function ensShare(ens, day, St){
+function ensShare(ens, day, St, ab){
   if(!ens) return null;
   let n = 0, hit = 0;
-  ens.members.forEach(sp=>{ const e = evalDay(sp, day, St); if(e){ n++; if(e.hit) hit++; } });
+  ens.members.forEach(sp=>{ const e = evalDay(sp, day, St, ab); if(e){ n++; if(e.hit) hit++; } });
   return n ? {n, hit} : null;
 }
 

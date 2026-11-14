@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Joran · Wingfoil Bielersee</title>
-<link rel="stylesheet" href="app/app.css?v=32">
+<link rel="stylesheet" href="app/app.css?v=33">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v32</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v33</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -108,7 +108,8 @@
 <p><b>Wann?</b> Angezeigt werden die Stunden, in denen mindestens die Hälfte der Modelle deine Schwelle erreicht. Gibt es keine, zählen Stunden mit einem einzelnen Modell («nur einzelne Modelle»).</p>
 <p><b>Am See jetzt.</b> Messwerte von Vingelz und Ipsach (meteoBase.ch), alle 10 Minuten. Die Kachel wird blau, wenn deine Schwelle erreicht ist. Im Tagesdiagramm stehen die Messwerte als Punkte.</p>
 <p><b>Wind kommt.</b> Messstationen in Anströmrichtung (SwissMetNet) zeigen den Wind oft 30 bis 90 Minuten früher. Eine Station meldet, wenn der Wind 30 Minuten lang aus der passenden Richtung kommt und stark genug ist. Dann steht «Wind kommt», egal was die Modelle sagen. Für Joran gilt zusätzlich eine eigene Regel in Cressier.</p>
-<p><b>Noch kein Wind.</b> Erwarten die Modelle ab «möglich» den Wind in der nächsten Stunde oder schon jetzt, am See weht aber weniger als deine Schwelle und keine Upwind-Station meldet etwas, steht «Noch kein Wind». Die Stufe der Modelle steht darunter. Push bleibt gleich.</p>
+<p><b>Heute.</b> Ab Beginn deines Zeitfensters zählen für heute nur noch die Stunden ab der vorigen Stunde. Ist die erwartete Windzeit vorbei, steht, was erwartet war und was am See gemessen wurde. Der Push rechnet weiter mit dem ganzen Zeitfenster.</p>
+<p><b>Noch kein Wind.</b> Erwarten die Modelle ab «möglich» den Wind in der nächsten Stunde oder schon jetzt, am See weht aber weniger als deine Schwelle und keine Upwind-Station meldet etwas, steht «Noch kein Wind». Das gilt bis eine Stunde nach der erwarteten Windzeit. Die Stufe der Modelle steht darunter. Push bleibt gleich.</p>
 <p><b>Höhenwind.</b> Wind auf rund 1500 m (ICON-EU). Er kommt nur bis auf den See, wenn die Luft durchmischt ist. Ist sie stabil geschichtet, bleibt er oben. Vorerst ein Hinweis, er ändert die Bewertung nicht.</p>
 <p><b>Joran.</b> Der Front-Joran kommt mit einer Kaltfront von Westen, zu jeder Jahreszeit. Der Abend-Joran entsteht nach warmen, ruhigen Tagen von Mai bis August. Zwei Zeichen sprechen für Joran: Nordwestwind auf dem Chasseral und steigender Druck über dem Jura. Am See teilt sich der Joran oft: Ipsach hat Wind, Vingelz liegt im Windschatten.</p>
 <p><b>Nordlage und Taubenlöchler.</b> Bei Nordwind auf dem Jura kommt Wind aus Nord bis Nordost in die Bucht, vermutlich durchs Taubenloch. Am Jurasüdfuss bleibt es dabei oft still. Die Station Courtelary gibt ein Zeichen dafür. Wie verlässlich es ist, wird noch geprüft.</p>
@@ -126,23 +127,23 @@
 
 <!-- Rechenkern: Silos in der Reihenfolge ihrer Abhängigkeit, dann die Fassade. Oberfläche: Reihenfolge wie aufgeführt.
      Bei jeder Änderung die Version an allen Dateien und in der Kopfzeile gleich hochzählen (node eval/aufbau.cjs prüft das). -->
-<script src="core/konstanten.js?v=32"></script>
-<script src="core/helfer.js?v=32"></script>
-<script src="core/modell.js?v=32"></script>
-<script src="core/see.js?v=32"></script>
-<script src="core/prognose.js?v=32"></script>
-<script src="core/messung.js?v=32"></script>
-<script src="core/kalibrierung.js?v=32"></script>
-<script src="core/daten.js?v=32"></script>
-<script src="core/einstellungen.js?v=32"></script>
-<script src="core.js?v=32"></script>
-<script src="app/basis.js?v=32"></script>
-<script src="app/see.js?v=32"></script>
-<script src="app/live.js?v=32"></script>
-<script src="app/einstellungen.js?v=32"></script>
-<script src="app/push.js?v=32"></script>
-<script src="app/rueckblick.js?v=32"></script>
-<script src="app/windbild.js?v=32"></script>
-<script src="app/start.js?v=32"></script>
+<script src="core/konstanten.js?v=33"></script>
+<script src="core/helfer.js?v=33"></script>
+<script src="core/modell.js?v=33"></script>
+<script src="core/see.js?v=33"></script>
+<script src="core/prognose.js?v=33"></script>
+<script src="core/messung.js?v=33"></script>
+<script src="core/kalibrierung.js?v=33"></script>
+<script src="core/daten.js?v=33"></script>
+<script src="core/einstellungen.js?v=33"></script>
+<script src="core.js?v=33"></script>
+<script src="app/basis.js?v=33"></script>
+<script src="app/see.js?v=33"></script>
+<script src="app/live.js?v=33"></script>
+<script src="app/einstellungen.js?v=33"></script>
+<script src="app/push.js?v=33"></script>
+<script src="app/rueckblick.js?v=33"></script>
+<script src="app/windbild.js?v=33"></script>
+<script src="app/start.js?v=33"></script>
 </body>
 </html>

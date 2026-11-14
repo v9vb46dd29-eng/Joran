@@ -211,7 +211,8 @@ function heute(){
   const day = localDay(0), hour = C.localHour(), [h0,h1] = WINS[S.win], now = new Date();
   const x = {monat:+day.slice(5,7), lake:C.lakeNow(LK, S), mixP:null, mixM:null, kammFehlt:true};
   const R = Object.assign({lapseMin:4}, DATA.regeln || {});
-  try{ if(D && D.models && Object.keys(D.models).length) x.s = summarize(D.models, day, S, D.jura); }catch(e){}
+  /* Restprognose wie auf der Startseite (restAb in live.js): vergangene Stunden wählen keine Lage mehr */
+  try{ if(D && D.models && Object.keys(D.models).length) x.s = summarize(D.models, day, S, D.jura, {ab:restAb(hour)}); }catch(e){}
   try{ if(D && D.stations && hour>=h0-2 && hour<=h1) x.nc = C.nowcast(D.stations, S, undefined, LK); }catch(e){}
   try{ if(D && D.jura){ x.jc = C.joranCheck(D.jura, day, S, 0);
     const rs = []; for(let hr=h0; hr<=h1; hr++){ const j = D.jura[day+"T"+String(hr).padStart(2,"0")+":00"]; if(j) rs.push({kn:j.cv, dir:j.cd}); }

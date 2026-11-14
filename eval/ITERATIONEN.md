@@ -687,3 +687,43 @@ Keine dieser Lagen wurde später am Tag mit ab 12 kn aus West, Süd oder Joran f
 ein oder kommt aus SO, er dreht nicht auf West. Darum bleibt der Regler bei «nur jetzt». Auflage A1 (Bise-Signal
 blockiert die Regel) umgesetzt, Browsertest J zeigt die Kopfzeile mit gemessenem Chasseral.
 
+
+## v33 (14.11.2026): Restprognose für heute, «Noch kein Wind» endet mit dem Prognosefenster
+
+Anlass (iPhone, 14.11., 13:11, Schwelle 10 kn, Fenster Tag): «Noch kein Wind», obwohl die Modelle Wind nur 9–11 Uhr
+erwarteten und danach nichts mehr. Zwei Ursachen:
+
+- `nochKein()` prüfte nur den Beginn des Prognosefensters (`hour < win.from-1`), nicht sein Ende.
+- `summarize()` rechnete die Stufe für heute über das ganze Zeitfenster, mit den vergangenen Stunden. Kachel und Urteil
+  blieben darum den ganzen Tag auf «wahrscheinlich».
+
+Änderung (nur Anzeige):
+
+| Teil | vorher | v33 |
+|---|---|---|
+| Stufe für heute ab Fensterbeginn | ganzes Zeitfenster | Stunden ab der vorigen, eine Stunde Spielraum (`summarize(…, {ab})`, `restAb` in `app/live.js`) |
+| «Noch kein Wind» | ab 1 h vor dem Prognosefenster, ohne Ende | bis 1 h nach dem Ende des Prognosefensters |
+| Prognosefenster vorbei, Reststufe tiefer | – | «Erwartet war 9–12 Uhr bis 12 kn, gemessen höchstens 7 kn.» (kn: stärkste Modellstunde im Prognosefenster) |
+| Ensemble für heute | ganzes Zeitfenster | wie die Stufe |
+| Vorwahl im Windbild (Prognose am Boden) | stärkste Stunde des ganzen Fensters | stärkste Stunde der Restprognose |
+| `nochKeinWind`: Seewert gegen Schwelle | ungerundet | gerundet wie angezeigt (`over`) |
+| `NKW_AB` | `app/live.js` | `core/konstanten.js` |
+
+Push, Rückblick und Messung rechnen weiter das ganze Zeitfenster: Der Push für heute kommt nur vor Fensterbeginn, dann
+ist die Restprognose gleich dem ganzen Fenster. `measure.cjs --T 12` gibt dieselbe Ausgabe wie `origin/main`,
+`gleich.cjs --erlaubt evalDay,summarize,ensShare,nochKeinWind,NKW_AB`: 408'364 Vergleiche, 0 Abweichungen.
+Browser (390×844, künstliche Daten, Uhr fest): 13:11 nach Treffern 9–11 Uhr zeigt «Unwahrscheinlich» mit «Erwartet war
+9–12 Uhr …», 9:40 während des Fensters und 16:11 nach Treffern 14–15 Uhr (Spielraum) weiter «Noch kein Wind», 17:11 dann
+«Erwartet war 14–16 Uhr …».
+
+**Review** (separater Reviewer, eigene Nachrechnung): ANNEHMEN mit Auflagen. Kern ohne `ab` gleich, `ensShare`
+zusätzlich 450 Vergleiche ohne Abweichung; kein Push- oder Eval-Pfad nutzt `ab`. Nachgespielt (Startseite v32 gegen v33,
+10-min-Schritte, 27 Tage 15.10.–11.11., Prognose vom Vortag, 7 Einstellungen inkl. simon): an keinem Tag stand v33 tiefer
+oder «Erwartet war …», und danach kam noch foilbarer Wind; das falsche «Noch kein Wind» fällt je nach Einstellung an 3–8
+Tagen weg. Verspäteter Wind kommt in diesen Daten nicht vor, ist also nicht messbar (vorläufig).
+Umgesetzt: A1 (kn-Zahl stammte aus der stärksten Stunde des ganzen Fensters, z. B. «bis 22 kn» von einem späteren
+Einzelmodell), eine Stunde Spielraum gegen verspäteten Wind, Methodentext «Ist die erwartete Windzeit vorbei»,
+Satzfolge bei «Noch kein Wind». Offen, klein: Nach 21 Uhr zeigt die Zeile «Heute» wieder die Stufe des ganzen Fensters
+(die Startseite zeigt dann morgen).
+
+Aufgeräumt: Zahlen in `ARCHITEKTUR.md` (Zeilen, 103 öffentliche Namen), doppelter Kommentar in `app/start.js`.

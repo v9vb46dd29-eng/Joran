@@ -83,9 +83,11 @@ const JTYP = {dp:1.5, dT:3, sw:8, swSec:[215,280], months:[5,8]};
 /* Fest für alle (Simon, 14.11.2026): Ein Tag zählt ab «wahrscheinlich» (Anzeige, Push, Rückblick); Sturm ab 35 kn Mittel
    oder 45 kn Böen. merge() und sanitizeCfg() überschreiben ältere Werte aus users/*.json und dem Zwischenspeicher. */
 const FEST = {cut:3, maxMean:35, maxGust:45};
+/* «Noch kein Wind» steht erst, wenn die Modelle mindestens diese Stufe zeigen (2 = «möglich»). Nur Anzeige. */
+const NKW_AB = 2;
 const DEF = {T:14, maxMean:FEST.maxMean, maxGust:FEST.maxGust, win:"abend", minH:1, dirs:{n:1,bise:1,so:1,s:1,w:1,joran:1}, spots:{vin:1,ips:1,mit:1},
   k:1, kDir:{}, cut:FEST.cut, st:{}, push:false, pushForecast:true, pushLive:true};
 
 return {SPOTS, JURA, CREST, BES, NEUP, LAKE, LAKE_KEEP_H, KN, MODELS, ENS_IDS, DIRS, WINS, LEVELS, UPWIND, TL,
-  LAKE_LEVEL, FRONT, REGEL_E, JORAN_X, JTYP, FEST, DEF};
+  LAKE_LEVEL, FRONT, REGEL_E, JORAN_X, JTYP, FEST, NKW_AB, DEF};
 });
