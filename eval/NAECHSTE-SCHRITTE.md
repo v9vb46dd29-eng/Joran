@@ -54,7 +54,10 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
     ein Faktor auf die Spitze (stärkste Stunde) oder nur bei «Noch kein Wind» am Tag selbst besser trennt.
 14. Grenze fest ab «wahrscheinlich» (v31) neu messen, Akzeptanz in `eval/README.md`. Ausnahme bisher nur der 22.10.
     (14 kn, Fenster Tag, Wind ab Fensterbeginn). Kommt ein zweiter verpasster Tag dazu, den Entscheid Simon vorlegen.
-15. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+15. Bise am See im Windbild (v32): `node eval/windbild.cjs --pruefen` zählt, wo die Regel greift. Zusätzlich über das
+    ganze Archiv zählen, wie oft Vingelz und Ipsach beide Bise ab `regeln.seeBiseMin` messen, während der Chasseral
+    West, Süd oder Nordwest zeigt, und ob die Bise danach hielt. Bei der Einführung: 13 Werte, 10 davon am 14.11.
+16. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 

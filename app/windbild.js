@@ -143,6 +143,24 @@ function vorwahl(x, lagen, regeln){
     const f = (x.lake||[]).filter(z=>z.fresh && z.last && z.last.dir!=null && z.last.mean>=3).sort((a,b)=>b.last.mean-a.last.mean)[0];
     if(f) r = vonBoden(dirOf(f.last.dir), `Seemessung ${f.L.name}`, x.mixM);
   }
+  /* Bise am See geht vor (v32, Simon 14.11.): Messen Vingelz und Ipsach beide frisch Bise (Sektor «bise» am Boden, je ab
+     regeln.seeBiseMin kn), gilt Bise, auch wenn der Chasseral West, Süd oder Nordwest misst. Die Bise liegt dann unter einer
+     Inversion, darüber weht ein anderer Wind (14.11., 10–12 Uhr: See 5–8 kn O, Chasseral 12–17 kn S bis W, stabil).
+     Nordlage und Südost bleiben: Bei diesen Lagen kommt der Wind am See ohnehin aus Nordost (Muster passt).
+     Regel E und ein Upwind-Signal mit anderer Lage (West, Süd, Südost, Joran) gehen weiter vor: Dann kommt Wind, der die
+     Bise ablöst. Ein Signal für Bise oder Nordlage (Grenchen, Wynau) blockiert die Regel nicht (Review v32, A1).
+     Die Regel greift auch gegen die Kammprognose und die Prognose am Boden, wenn der Chasseral schwach misst oder fehlt. Im Archiv 16.10.–14.11. greift die
+     Regel bei der Einführung an 13 von 2255 Zehnminutenwerten, 10 davon am 14.11.; nie foilbar (höchstens 8.5 kn).
+     eval/windbild.cjs --pruefen prüft sie auf den Entwicklungstagen. */
+  const signal = !!(nc && (nc.eOk || (nc.trusted||[]).some(t=>t.u && t.u.sys && !["bise","n"].includes(t.u.sys.id))));
+  if(r && !signal && ["west","sued","joran"].includes(r.lage)){
+    const see = ["vin","ips"].map(id=>(x.lake||[]).find(z=>z.L && z.L.id===id));
+    const bise = z => !!(z && z.fresh && z.last && z.last.dir!=null && z.last.mean>=(R.seeBiseMin ?? 4) && dirOf(z.last.dir).id==="bise");
+    if(see.every(bise)){
+      const k = stark(x.kammM) ? x.kammM : null;
+      r = {lage:"bise", quelle:"Seemessung Vingelz und Ipsach", mix:false, see:true, ueber:k ? {name:SEKNAME[sec8(k.dir)], kn:Math.round(k.kn)} : null};
+      art = "messung"; kamm = false; }   /* Lage vom See: der Regler schreibt sie nicht fort (nur jetzt) */
+  }
   if(!r) return {lage:null, vk:null, quelle:"", grund:"Lage von heute noch offen.", art:null, unsicher:false, kamm:false};
   const unsicher = !kamm && !!x.kammFehlt;
   if(!r.lage) return {lage:null, vk:null, quelle:r.quelle, art, unsicher, kamm,
@@ -150,7 +168,7 @@ function vorwahl(x, lagen, regeln){
   const l = lagen.find(z=>z.id===r.lage); let vk = null;
   if(r.lage==="joran") vk = x.jc && x.jc.bnOk ? "front" : x.monat>=5 && x.monat<=8 ? "abend" : "front";
   else if(l && l.vars.length>1){ const v = l.vars.find(z=>z.schicht===(r.mix===false ? "stabil" : "gemischt")); vk = v ? v.key : l.vars[0].key; }
-  return {lage:r.lage, vk, quelle:r.quelle, grund:"", art, unsicher, kamm};
+  return {lage:r.lage, vk, quelle:r.quelle, grund:"", art, unsicher, kamm, ueber:r.ueber || null, seeBise:!!r.see};
 }
 /* Regler: Lage einer kommenden Stunde. Die Messung von jetzt hält kurzfristig länger, als die Prognose trifft
    (eval/lage-vorlauf.cjs, Entwicklungstage: fortgeschrieben 88 % nach 1 h und 62 % nach 18 h, Prognose 72–76 %; die
@@ -522,11 +540,13 @@ function head(){
   const vorbehalt = h.unsicher ? ` <span class="dim">· Chasseral misst nicht, Lage unsicher</span>` : "";
   /* Startseite kurz: Lage und woher das Bild kommt; im Blatt «Erklärungen» mit Quelle */
   const wie = BILD.art==="live" ? "live" : BILD.art==="modell" ? "Prognose" : "typisch";
+  /* Bise am See, darüber anderer Wind (vorwahl, seeBise): «Jetzt: Bise am See · darüber Südwest (Chasseral 16 kn)» */
+  const lname = !hl ? "" : h.seeBise ? `<span><b>${esc(hl.name)}</b> am See</span>` : `<b>${esc(hl.name)}</b>`, ueber = h.ueber ? ` · darüber ${esc(h.ueber.name)} (Chasseral ${h.ueber.kn} kn)` : "";
   el.querySelector(".wbtoday").innerHTML = !ST.full && ST.h>0
     ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
-    : !ST.full ? (hl ? `${wann}: <b>${esc(hl.name)}</b> <span class="dim">· ${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
+    : !ST.full ? (hl ? `${wann}: ${lname} <span class="dim">${ueber ? ueber.slice(3)+" · " : "· "}${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
       : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`)
-    : hl ? `${wann}: <b>${esc(hl.name)}</b> <span class="dim">· ${esc(h.quelle)}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
+    : hl ? `${wann}: ${lname} <span class="dim">· ${esc(h.quelle)}${ueber}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
     : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`;
   const rg = el.querySelector(".wbtime input"); if(rg){ if(+rg.value!==ST.h) rg.value = ST.h; rg.setAttribute("aria-valuetext", ST.h>0 ? zeit(BILD.T)+", Prognose" : "jetzt"); }
   el.querySelector(".wbtoday").dataset.quelle = h.quelle || "";

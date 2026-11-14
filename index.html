@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Joran · Wingfoil Bielersee</title>
-<link rel="stylesheet" href="app/app.css?v=31">
+<link rel="stylesheet" href="app/app.css?v=32">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v31</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v32</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -112,7 +112,7 @@
 <p><b>Höhenwind.</b> Wind auf rund 1500 m (ICON-EU). Er kommt nur bis auf den See, wenn die Luft durchmischt ist. Ist sie stabil geschichtet, bleibt er oben. Vorerst ein Hinweis, er ändert die Bewertung nicht.</p>
 <p><b>Joran.</b> Der Front-Joran kommt mit einer Kaltfront von Westen, zu jeder Jahreszeit. Der Abend-Joran entsteht nach warmen, ruhigen Tagen von Mai bis August. Zwei Zeichen sprechen für Joran: Nordwestwind auf dem Chasseral und steigender Druck über dem Jura. Am See teilt sich der Joran oft: Ipsach hat Wind, Vingelz liegt im Windschatten.</p>
 <p><b>Nordlage und Taubenlöchler.</b> Bei Nordwind auf dem Jura kommt Wind aus Nord bis Nordost in die Bucht, vermutlich durchs Taubenloch. Am Jurasüdfuss bleibt es dabei oft still. Die Station Courtelary gibt ein Zeichen dafür. Wie verlässlich es ist, wird noch geprüft.</p>
-<p><b>Windbild.</b> Die Karte zeigt den Wind über See und Bucht für die Lage von jetzt. Welche Lage gilt, bestimmt der Wind auf dem Chasseral, zuerst die Messung, dann die Prognose: Am See kommt er oft gedreht an. Nordwest auf dem Kamm gilt als Joran-Lage, auch ohne Joran-Zeichen; mit Zeichen (Regel E in Cressier) kommt er meist auch am See an. Das Muster der Lage ist an den Messungen von jetzt ausgerichtet: Vingelz, Ipsach und die Stationen zeigen ihren Messwert, die Fläche dazwischen ist geschätzt. Zahlen stehen nur dort, wo gemessen wird. Einzige Ausnahme ist La Neuveville: Dort gibt es keine öffentliche Messung, die Zahl ist das Mittel der vier Modelle und trägt «Modell». Im Ausschnitt Region stehen alle Upwind-Stationen, ein Signal ist orange umrandet. Mathod (Orbe-Ebene bei Yverdon) ist nur zur Anzeige dabei: Am Westende des Neuenburgersees gibt es keine öffentliche Station mit Wind.</p>
+<p><b>Windbild.</b> Die Karte zeigt den Wind über See und Bucht für die Lage von jetzt. Welche Lage gilt, bestimmt der Wind auf dem Chasseral, zuerst die Messung, dann die Prognose: Am See kommt er oft gedreht an. Messen Vingelz und Ipsach beide Bise, gilt Bise, auch wenn auf dem Chasseral West oder Süd weht: Die Bise liegt dann unter einer Inversion. Nordwest auf dem Kamm gilt als Joran-Lage, auch ohne Joran-Zeichen; mit Zeichen (Regel E in Cressier) kommt er meist auch am See an. Das Muster der Lage ist an den Messungen von jetzt ausgerichtet: Vingelz, Ipsach und die Stationen zeigen ihren Messwert, die Fläche dazwischen ist geschätzt. Zahlen stehen nur dort, wo gemessen wird. Einzige Ausnahme ist La Neuveville: Dort gibt es keine öffentliche Messung, die Zahl ist das Mittel der vier Modelle und trägt «Modell». Im Ausschnitt Region stehen alle Upwind-Stationen, ein Signal ist orange umrandet. Mathod (Orbe-Ebene bei Yverdon) ist nur zur Anzeige dabei: Am Westende des Neuenburgersees gibt es keine öffentliche Station mit Wind.</p>
 <p><b>Regler.</b> Er spult die Karte bis 24 Stunden vor. Die Lage von jetzt hält meist länger, als die Prognose trifft. Darum bleibt die gemessene Lage stehen, bis die Prognose selbst einen Wechsel voraussagt. Die Stärke an Vingelz und Ipsach mischt die Messung von jetzt mit dem Mittel der Modelle: nach 1 h zählt die Messung zu zwei Dritteln, nach 6 h noch zu einem Zehntel, und nie liegt der Wert unter dem Modell. Dazu steht, wie oft die Lage in der Vergangenheit stimmte. Die Prognose unterscheidet Süd nicht von West, darum heisst die Lage aus der Prognose «West oder Süd». Erkennt sie keine Lage, zeigt die Karte nur die Pfeile an den Spots.</p>
 <p><b>Windlagen.</b> In den Erklärungen zeigt die Karte das typische Muster jeder Lage, gerechnet aus der Seemessung. Lagen ohne Messung sind als «geschätzt» markiert. Die Zahlen werden bei jeder Modellprüfung neu gerechnet.</p>
 <p><b>Sturm.</b> Ab 35 kn Mittelwind oder 45 kn Böen oder bei einer Böenfront warnt Joran mit «Nicht rausfahren», auch wenn sonst alles passt.</p>
@@ -126,23 +126,23 @@
 
 <!-- Rechenkern: Silos in der Reihenfolge ihrer Abhängigkeit, dann die Fassade. Oberfläche: Reihenfolge wie aufgeführt.
      Bei jeder Änderung die Version an allen Dateien und in der Kopfzeile gleich hochzählen (node eval/aufbau.cjs prüft das). -->
-<script src="core/konstanten.js?v=31"></script>
-<script src="core/helfer.js?v=31"></script>
-<script src="core/modell.js?v=31"></script>
-<script src="core/see.js?v=31"></script>
-<script src="core/prognose.js?v=31"></script>
-<script src="core/messung.js?v=31"></script>
-<script src="core/kalibrierung.js?v=31"></script>
-<script src="core/daten.js?v=31"></script>
-<script src="core/einstellungen.js?v=31"></script>
-<script src="core.js?v=31"></script>
-<script src="app/basis.js?v=31"></script>
-<script src="app/see.js?v=31"></script>
-<script src="app/live.js?v=31"></script>
-<script src="app/einstellungen.js?v=31"></script>
-<script src="app/push.js?v=31"></script>
-<script src="app/rueckblick.js?v=31"></script>
-<script src="app/windbild.js?v=31"></script>
-<script src="app/start.js?v=31"></script>
+<script src="core/konstanten.js?v=32"></script>
+<script src="core/helfer.js?v=32"></script>
+<script src="core/modell.js?v=32"></script>
+<script src="core/see.js?v=32"></script>
+<script src="core/prognose.js?v=32"></script>
+<script src="core/messung.js?v=32"></script>
+<script src="core/kalibrierung.js?v=32"></script>
+<script src="core/daten.js?v=32"></script>
+<script src="core/einstellungen.js?v=32"></script>
+<script src="core.js?v=32"></script>
+<script src="app/basis.js?v=32"></script>
+<script src="app/see.js?v=32"></script>
+<script src="app/live.js?v=32"></script>
+<script src="app/einstellungen.js?v=32"></script>
+<script src="app/push.js?v=32"></script>
+<script src="app/rueckblick.js?v=32"></script>
+<script src="app/windbild.js?v=32"></script>
+<script src="app/start.js?v=32"></script>
 </body>
 </html>
