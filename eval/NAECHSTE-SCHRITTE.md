@@ -52,7 +52,9 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
     nicht bei den Einstellungen der Nutzer (Stand 14.11.: bei 13 kn, Fenster Tag, geht der 2.11. verloren). Ist Südost
     auf dem Kamm (14.11.: Bise am See, Seemitte zu hoch) eine eigene Lage wert? Statt eines festen Faktors prüfen, ob
     ein Faktor auf die Spitze (stärkste Stunde) oder nur bei «Noch kein Wind» am Tag selbst besser trennt.
-14. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+14. Grenze fest ab «wahrscheinlich» (v31) neu messen, Akzeptanz in `eval/README.md`. Ausnahme bisher nur der 22.10.
+    (14 kn, Fenster Tag, Wind ab Fensterbeginn). Kommt ein zweiter verpasster Tag dazu, den Entscheid Simon vorlegen.
+15. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 

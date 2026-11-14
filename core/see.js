@@ -92,8 +92,8 @@ function lakeStorm(lk, St, now){
   lakeNow(lk, St, now).forEach(x=>{
     if(!x.fresh) return;
     const l = x.last, f = [];
-    if(l.gust!=null && Math.round(l.gust)>St.maxGust) f.push(`Böen ${Math.round(l.gust)} kn über deiner Grenze ${St.maxGust} kn`);
-    if(Math.round(l.mean)>St.maxMean) f.push(`Mittelwind ${Math.round(l.mean)} kn über deiner Grenze ${St.maxMean} kn`);
+    if(l.gust!=null && Math.round(l.gust)>=St.maxGust) f.push(`Böen ${Math.round(l.gust)} kn (Sturmgrenze ${St.maxGust} kn)`);
+    if(Math.round(l.mean)>=St.maxMean) f.push(`Mittelwind ${Math.round(l.mean)} kn (Sturmgrenze ${St.maxMean} kn)`);
     if(f.length) out.push({up:{name:x.L.name}, f});
   });
   return out;

@@ -8,7 +8,7 @@
   if(typeof module!=="undefined" && module.exports) module.exports = api; else (root.Joran = root.Joran || {}).kalibrierung = api;
 })(typeof self!=="undefined" ? self : this, function(dep){
 "use strict";
-const {WINS, UPWIND} = dep("konstanten");
+const {WINS, UPWIND, FEST} = dep("konstanten");
 const {dirOf, localHour, dayOfDate} = dep("helfer");
 const {MODEL, CAL} = dep("modell");
 const {lakeDay} = dep("see");
@@ -37,7 +37,7 @@ function calibrate(days, St, models, truth){
   const base = contingency(days, St, models, truth);
   if(base.ev<3 || base.nev<3) return {base, best:null, perDir:{}};
   let best = null;
-  for(const cut of [2,3]){
+  for(const cut of [FEST.cut]){      /* Grenze fest ab «wahrscheinlich», gesucht wird nur der Faktor */
     const m = plateauMid(K_GRID.map(k=>({k, c:contingency(days, Object.assign({}, St, {k, cut, kDir:{}}), models, truth)})));
     if(m && (!best || m.max>best.c.pss+1e-9 || (Math.abs(m.max-best.c.pss)<1e-9 && cut>best.cut))) best = {k:m.k, cut, c:m.c};
   }

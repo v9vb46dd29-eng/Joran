@@ -12,7 +12,7 @@ const {r1, inArc, dirOf, localHour, dayOfDate} = dep("helfer");
 const {modelOf, CAL} = dep("modell");
 const {lakeStorm} = dep("see");
 
-/* Nicht rausfahren nur bei Sturm: Messung über deinen Grenzen oder echte Böenfront (alle Merkmale zugleich) */
+/* Nicht rausfahren nur bei Sturm: Messung ab der Sturmgrenze (FEST: 35 kn Mittel, 45 kn Böen) oder echte Böenfront (alle Merkmale zugleich) */
 function frontCheck(rows, St){
   St = St || DEF;
   const fr = [];
@@ -20,8 +20,8 @@ function frontCheck(rows, St){
   const mm = St.maxMean||DEF.maxMean, mg = St.maxGust||DEF.maxGust;
   for(let i=Math.max(2,rows.length-3); i<rows.length; i++){
     const c=rows[i], pp=rows[i-2], p=rows[i-1];
-    if(c.gust!=null && Math.round(c.gust)>mg) fr.push(`Böen ${Math.round(c.gust)} kn über deiner Grenze ${mg} kn`);
-    if(c.mean!=null && Math.round(c.mean)>mm) fr.push(`Mittelwind ${Math.round(c.mean)} kn über deiner Grenze ${mm} kn`);
+    if(c.gust!=null && Math.round(c.gust)>=mg) fr.push(`Böen ${Math.round(c.gust)} kn (Sturmgrenze ${mg} kn)`);
+    if(c.mean!=null && Math.round(c.mean)>=mm) fr.push(`Mittelwind ${Math.round(c.mean)} kn (Sturmgrenze ${mm} kn)`);
     const ref = [p,pp].filter(r=>r && r.temp!=null && r.mean!=null);
     if(c.temp!=null && ref.length){
       const warm = Math.max(...ref.map(r=>r.temp)), calm = Math.min(...ref.map(r=>r.mean));

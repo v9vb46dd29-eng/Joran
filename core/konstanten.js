@@ -80,9 +80,12 @@ const JORAN_X = {crestSector:[270,360], crest:12, dpRise:0.5, cape:500, bn:2};
 /* Joran-Typ eines Tages aus Messwerten (Erfahrungswerte, nicht kalibriert; siehe joranType) */
 const JTYP = {dp:1.5, dT:3, sw:8, swSec:[215,280], months:[5,8]};
 
-const DEF = {T:14, maxMean:30, maxGust:39, win:"abend", minH:1, dirs:{n:1,bise:1,so:1,s:1,w:1,joran:1}, spots:{vin:1,ips:1,mit:1},
-  k:1, kDir:{}, cut:2, st:{}, push:false, pushForecast:true, pushLive:true};
+/* Fest für alle (Simon, 14.11.2026): Ein Tag zählt ab «wahrscheinlich» (Anzeige, Push, Rückblick); Sturm ab 35 kn Mittel
+   oder 45 kn Böen. merge() und sanitizeCfg() überschreiben ältere Werte aus users/*.json und dem Zwischenspeicher. */
+const FEST = {cut:3, maxMean:35, maxGust:45};
+const DEF = {T:14, maxMean:FEST.maxMean, maxGust:FEST.maxGust, win:"abend", minH:1, dirs:{n:1,bise:1,so:1,s:1,w:1,joran:1}, spots:{vin:1,ips:1,mit:1},
+  k:1, kDir:{}, cut:FEST.cut, st:{}, push:false, pushForecast:true, pushLive:true};
 
 return {SPOTS, JURA, CREST, BES, NEUP, LAKE, LAKE_KEEP_H, KN, MODELS, ENS_IDS, DIRS, WINS, LEVELS, UPWIND, TL,
-  LAKE_LEVEL, FRONT, REGEL_E, JORAN_X, JTYP, DEF};
+  LAKE_LEVEL, FRONT, REGEL_E, JORAN_X, JTYP, FEST, DEF};
 });

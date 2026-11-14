@@ -249,6 +249,23 @@ with sync_playwright() as p:
             return r.abort()
         pg.route("**/*", rt); pg.goto("http://127.0.0.1:8765/index.html"); pg.wait_for_selector("#now .verdict", timeout=30000); pg.wait_for_timeout(800)
         ok("G Datei "+nm+": Meldung statt Karte, kein Fehler", "nicht abrufbar" in pg.inner_text("#wb") and not er, (pg.inner_text("#wb"), er)); bb.close()
+    # H: Stufenwörter (v31). Grenze fest ab «wahrscheinlich»; «Noch kein Wind» schon ab «möglich»; «Wind kommt» bei jedem Signal
+    b,pg,i,errs,tm=run(p,"stufen","dark",60,16,{"ips":(5,90),"vin":(6,90)}, shots=False)
+    r=pg.evaluate("""()=>{ const days=D?Object.keys(D.models).length:0; const cur={k:0, s:Object.assign({}, C.summarize(D.models, C.localDay(0), S), {level:2})};
+      const ruhig={front:[], eOk:false, trusted:[], sig:[], lake:[{fresh:true, ok:false, L:{name:'Vingelz'}, last:{mean:6, dir:90}}]};
+      const w=(nc,h)=>{ const d=document.createElement('div'); d.innerHTML=nowHTML(cur, h, nc); return d.querySelector('.word').textContent; };
+      const hr=cur.s.win?cur.s.win.from:16;
+      const sig=Object.assign({}, ruhig, {trusted:[{up:{name:'Grenchen', abk:'gre'}, u:{mean30:12, trust:5}}], sig:[{}]});
+      const sturm=Object.assign({}, ruhig, {front:[{up:{name:'Cressier'}, f:['Böen 45 kn (Sturmgrenze 45 kn)']}]});
+      const c0=Object.assign({}, cur, {s:Object.assign({}, cur.s, {level:0})});
+      const d=document.createElement('div'); d.innerHTML=nowHTML(c0, hr, sig);
+      return {cut:S.cut, mm:S.maxMean, mg:S.maxGust, nkw:w(ruhig, hr), sig:w(sig, hr), sigTief:d.querySelector('.word').textContent, sturm:w(sturm, hr),
+        chips:!!document.querySelector('#setCut,#setMax')}; }""")
+    ok("H Grenze und Sturm fest (wahrscheinlich, 35/45), keine Einstellung dafür", r["cut"]==3 and r["mm"]==35 and r["mg"]==45 and not r["chips"], r)
+    ok("H «Noch kein Wind» schon bei «möglich»", r["nkw"]=="Noch kein Wind", r)
+    ok("H «Wind kommt» bei Signal, auch bei tiefer Stufe", r["sig"]=="Wind kommt" and r["sigTief"]=="Wind kommt", r)
+    ok("H Sturm geht vor", r["sturm"]=="Nicht rausfahren", r)
+    ok("H keine Konsolenfehler", not errs, errs); b.close()
     # D: reduzierte Bewegung
     b,pg,i,errs,tm=run(p,"west-ruhig","dark",240,16,{"ips":(17,235),"vin":(8,240)}, reduced=True)
     f=pg.evaluate("()=>{const c=document.querySelectorAll('.wbmap canvas')[1]; const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let n=0; for(let k=3;k<d.length;k+=4) if(d[k]) n++; return n;}")
