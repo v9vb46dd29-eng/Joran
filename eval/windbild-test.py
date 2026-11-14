@@ -162,6 +162,10 @@ with sync_playwright() as p:
        ['Ältere Datei ohne Sektoren: Sektor am Boden', {kammM:K(0,22), s:{top:{d:60,v:9}}, _alt:true}, 'bise',null,'Prognose im Zeitfenster'],
        ['Seemessung West, Chasseral schwach', {kammM:K(250,5), lake:lk(250,9)}, 'west','mix','Seemessung Ipsach'],
        ['Seemessung zu schwach', {lake:lk(250,2)}, null,null,''],
+       // v35: Seemessung vor der Prognose, wenn der Chasseral schwach misst; fehlt er, bleibt die Prognose vorne
+       ['Chasseral schwach: See West vor starker Kammprognose N', {kammM:K(200,6), kammP:K(5,24), s:{top:{d:50,v:13}}, lake:lk(250,9)}, 'west','mix','Seemessung Ipsach'],
+       ['Chasseral fehlt: Kammprognose N vor See West', {kammP:K(5,24), s:{top:{d:50,v:13}}, lake:lk(250,9)}, 'nord',null,'Prognose, Wind auf dem Chasseral'],
+       ['Chasseral schwach, See NW ohne Joran-Zeichen → Prognose', {kammM:K(200,6), s:{top:{d:240,v:9}}, monat:11, lake:lk(315,8)}, 'west','mix','Prognose im Zeitfenster'],
        // Bise am See geht vor (v32): beide Seestationen Bise ab 4 kn, Chasseral West, Süd oder Nordwest
        ['See Bise, Chasseral SW gemessen (14.11.) → Bise', {kammM:K(225,16), mixM:false, lake:lk2(80,6,75,5)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
        ['See Bise, Chasseral S gemessen → Bise', {kammM:K(190,13), lake:lk2(70,7,85,8)}, 'bise',null,'Seemessung Vingelz und Ipsach'],

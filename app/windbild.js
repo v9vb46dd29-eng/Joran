@@ -102,7 +102,8 @@ const BODEN = {w:"west", s:"sued", so:"suedost", bise:"bise", n:"nord", joran:"j
         kammM: {kn, dir} Chasseral jetzt gemessen, mixP / mixM: Luft durchmischt laut Prognose / Messung (true, false, null),
         s: Ergebnis von summarize für heute, lake: Ergebnis von lakeNow, jc: Ergebnis von joranCheck, monat: 1–12,
         kammFehlt: true, wenn der Chasseral keinen frischen Wert liefert}
-   Reihenfolge der Quellen: Upwind-Signal, Messung auf dem Chasseral, Prognose, Seemessung. Die Messung geht der Prognose vor:
+   Reihenfolge der Quellen (v35): Upwind-Signal, Messung auf dem Chasseral, Seemessung (nur wenn der Chasseral schwach misst,
+   nicht wenn er fehlt), Kamm- und Fensterprognose, danach die Seemessung ohne Chasseral. Die Messung geht der Prognose vor:
    ICON-CH2 sagt auf dem Chasseral im Mittel nur halb so viel Wind voraus, wie gemessen wird, und zeigt bei Süd Südwest.
    Ergebnis: art = "messung" (Lage von jetzt) oder "prognose" (Lage fürs Zeitfenster); unsicher = true, wenn die Lage ohne
    Messung auf dem Chasseral gewählt ist. Dann kann hinter «West» auch Süd stehen und hinter «Bise» die Nordlage: Keine

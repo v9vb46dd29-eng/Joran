@@ -804,3 +804,19 @@ also eine andere; ob die Karte bei «jetzt» die Stunde zeigen soll, ist ein eig
 Grenzen: ohne Upwind-Signal und Regel E im Nachspielen; Fenster fest Abend 16–21; die Prognose der Stunde ohne `kFor`
 und ohne Joran-Prüfung (trifft alle Methoden gleich). Am 14.11. fehlt die Prognose noch im Archiv; der Fall ist im
 Browser-Test K nachgestellt, die Reihenfolge in L, der Gegentest zu «kaum Wind» in M.
+
+### Review Runde 2: ANNEHMEN
+
+Neuer, unabhängiger Reviewer, ohne Kenntnis von Runde 1. Kein blockierender Defekt. Kernzahl unabhängig nachgerechnet (eigene
+Zeitschleife, zwei Soll-Definitionen): nur See, +0 h, neu 76 / main 54 / Prognose 52 % (Mehrheit der 10-min-Lagen: 70/50/48);
+ohne je einen Tag neu−main +9…+27 Punkte, hängt also nicht an einem Tag. Übernommen: Kopfkommentar von `vorwahl()` mit der
+neuen Reihenfolge, Zeilenzahl in ARCHITEKTUR.md, Text #info (10 kn, 3 kn, Chasseral fehlt), drei Vorwahl-Tests (starke
+Kammprognose bei schwachem Chasseral, Chasseral fehlt, Nordwest am See ohne Zeichen). Offen, nicht blockierend:
+
+1. Der Gewinn bei +0 h ist Beständigkeit über 0–60 min, kein Vorhersagegewinn; der kurzfristige Vorsprung (+1…+3 h) kommt
+   aus der Chasseral-Fortschreibung, die schon v34 hatte. Holdout und danach tragen bei «nur See» 14 Stunden an 3 Tagen.
+2. Am Vormittag bei schwachem Chasseral zeigt die Kopfzeile neu «Jetzt: …» aus dem See, die Abendlage aus der Prognose
+   steht nur noch im Regler. Vorschlag: bei einer Lage vom See zusätzlich «Abend: X (Prognose)», wenn sie abweicht.
+3. «Süd» aus dem See ist unzuverlässig, die Lage vom See greift schon ab 3 kn.
+4. `prog` im Nachspielen ist der Lauf des Tages für jeden Vorlauf (begünstigt Prognose und main, also konservativ).
+5. «kaum Wind» gilt unter 3 kn, 2.5–2.99 kn erscheinen gerundet als «3 kn».
