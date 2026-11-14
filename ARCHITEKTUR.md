@@ -1,6 +1,6 @@
 # Aufbau der App
 
-Stand v33 (14.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
+Stand v34 (14.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
 Repo liegen, die Action und die Auswertung laden denselben Rechenkern mit `require`.
 
 ## Wozu der Umbau
@@ -66,7 +66,7 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 2. Nur `daten` geht ins Netz. Der Rechenkern kennt weder Seite noch Browser-Speicher.
 3. Action, Auswertung und Oberfläche brauchen nur die Fassade, nie ein Silo direkt.
 4. `index.html` lädt die Silos in der Reihenfolge der Fassade, danach `core.js`, danach `app/`, `start.js` zuletzt.
-5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=33`, «v33»). Bei jeder Änderung an allen Stellen
+5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=34`, «v34»). Bei jeder Änderung an allen Stellen
    gleich hochzählen, sonst mischt der Browser alte und neue Dateien.
 6. Nur `app/push.js` spricht mit der GitHub-API. Wetterdaten holt die Oberfläche nur über den Rechenkern.
 7. `MODEL.active` und `LAGE.active` sind `false`, bis Simon eine Aktivierung mergt.
