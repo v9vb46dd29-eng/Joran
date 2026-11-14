@@ -254,9 +254,9 @@ function heute(){
   /* Abendlage neben der Lage vom See (v36): Kommt die Lage von jetzt aus der Seemessung (Chasseral schwach), steht die Lage
      fürs Zeitfenster aus der Prognose daneben, wenn sie abweicht. Nur Anzeige, der Regler bleibt. eval/kette.cjs, 16.10.–13.11.,
      Soll: Lage aus der Messung je Stunde 16–21: weicht sie ab, trifft die Fensterprognose 71 %, die Lage vom See 15 %
-     (140 Paare, 24 Stunden, 6 Tage; Holdout 40 % zu 0 %, 2 Tage). Nach dem Fenster nichts mehr. */
+     (140 Paare, 24 Stunden, 6 Tage; Holdout 40 % zu 0 %, 2 Tage). Gemessen 8–21 Uhr: davor und nach dem Fenster nichts. */
   /* nur bei schwachem Chasseral: Misst er stark (Bise am See, «darüber …»), zeigt die Kopfzeile den Wind darüber; fehlt er, ist die Lage unsicher */
-  if(r.lage && r.art==="messung" && !r.kamm && /^Seemessung/.test(r.quelle) && x.kammM && !r.ueber && !r.unsicher && hour<=h1){
+  if(r.lage && r.art==="messung" && !r.kamm && /^Seemessung/.test(r.quelle) && x.kammM && !r.ueber && !r.unsicher && hour>=8 && hour<=h1){
     const p = vorwahl({monat:x.monat, s:x.s, kammP:x.kammP, jc:x.jc, mixP:x.mixP});
     if(p.lage && !wsGleich(p.lage, r.lage)){ const l = DATA.lagen.find(z=>z.id===p.lage);
       r.fenster = {lage:p.lage, name:p.lage==="west" || p.lage==="sued" ? "West oder Süd" : l ? l.name : p.lage,

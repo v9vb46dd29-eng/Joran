@@ -850,3 +850,12 @@ Grenzen: wenige Tage (6 mit Abweichung); Fenster im Nachspielen fest Abend; die 
 (`jc`) und Schichtung (`mixP`), die App übergibt beides (betrifft nur Joran und die Variante). Browser-Test N prüft die
 Anzeige bis 21 Uhr und den Gegentest (Prognose ohne Lage); der Zweig «nach dem Fenster» läuft nur, wenn der Test nach
 21 Uhr startet.
+
+### Review: ANNEHMEN
+
+Unabhängiger Reviewer, ohne blockierende Defekte. Er hat `eval/kette.cjs` selbst laufen lassen (Zahlen wie oben; übrige
+Kette identisch mit origin/main), dazu `aufbau`, `selftest`, `gleich` (0 Abweichungen), `windbild.cjs --pruefen`,
+`windbild-stunde`, `lage-vorlauf` und den Browser-Test (0 Fehler). Übernommen: Hinweis 1, die Anzeige gilt erst ab 8 Uhr wie
+im Nachspielen. Offen, nicht blockierend: Fenster «Nachmittag» und «Tag» ungemessen, Beschriftung «Später» unscharf;
+Zweig «nach dem Fenster» im Browser nur nach 21 Uhr geprüft; «· live» bricht bei 390 px allein auf die zweite Zeile;
+Paare je Stunde nicht unabhängig (begünstigt eher den See, also konservativ).
