@@ -110,6 +110,7 @@ with sync_playwright() as p:
     # Vorwahl mit künstlichen Daten, je Lage und Quelle
     res=pg.evaluate("""()=>{ const lk=(d,kn)=>[{fresh:true,L:{name:'Ipsach'},last:{dir:d,mean:kn}}]; const sig=(id,n)=>({eOk:false,trusted:[{up:{name:n},u:{sys:id?{id}:null}}]});
       const K=(dir,kn)=>({dir,kn}), jo={crestOk:true,dpOk:true};
+      const lk2=(dv,kv,di,ki,alt)=>[{fresh:!alt,L:{id:'vin',name:'Vingelz'},last:{dir:dv,mean:kv}},{fresh:true,L:{id:'ips',name:'Ipsach'},last:{dir:di,mean:ki}}];
       const T=[
        // Lage nach dem Wind auf dem Chasseral, auch wenn der Wind am See gedreht ankommt
        ['Prognose: Chasseral N, am See NO → Nordlage', {kammP:K(5,24), s:{top:{d:50,v:13}}}, 'nord',null,'Chasseral'],
@@ -146,6 +147,18 @@ with sync_playwright() as p:
        ['Ältere Datei ohne Sektoren: Sektor am Boden', {kammM:K(0,22), s:{top:{d:60,v:9}}, _alt:true}, 'bise',null,'Prognose im Zeitfenster'],
        ['Seemessung West, Chasseral schwach', {kammM:K(250,5), lake:lk(250,9)}, 'west','mix','Seemessung Ipsach'],
        ['Seemessung zu schwach', {lake:lk(250,2)}, null,null,''],
+       // Bise am See geht vor (v32): beide Seestationen Bise ab 4 kn, Chasseral West, Süd oder Nordwest
+       ['See Bise, Chasseral SW gemessen (14.11.) → Bise', {kammM:K(225,16), mixM:false, lake:lk2(80,6,75,5)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
+       ['See Bise, Chasseral S gemessen → Bise', {kammM:K(190,13), lake:lk2(70,7,85,8)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
+       ['See Bise, Kammprognose W → Bise', {kammP:K(260,12), lake:lk2(70,5,60,6)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
+       ['See Bise, Chasseral NW ohne Zeichen → Bise', {kammM:K(315,14), monat:11, lake:lk2(70,5,60,6)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
+       ['See Bise nur an Ipsach → West bleibt', {kammM:K(225,16), mixM:false, lake:lk2(200,5,75,6)}, 'west','stab','Messung Chasseral'],
+       ['See Bise unter 4 kn → West bleibt', {kammM:K(225,16), mixM:false, lake:lk2(80,6,75,3)}, 'west','stab','Messung Chasseral'],
+       ['See Bise, Vingelz nicht frisch → West bleibt', {kammM:K(225,16), mixM:false, lake:lk2(80,6,75,6,true)}, 'west','stab','Messung Chasseral'],
+       ['See Bise, Chasseral N → Nordlage bleibt', {kammM:K(5,22), lake:lk2(60,6,40,9)}, 'nord',null,'Messung Chasseral'],
+       ['See Bise, Chasseral SO → Südost bleibt', {kammM:K(120,20), lake:lk2(60,6,50,6)}, 'suedost','mix','Messung Chasseral'],
+       ['See Bise, Signal Neuchâtel West → West bleibt', {nc:sig('w','Neuchâtel'), kammM:K(230,18), mixM:false, lake:lk2(80,6,75,6)}, 'west','stab','Neuchâtel'],
+       ['See Bise, Regel E → Joran bleibt', {nc:{eOk:true,trusted:[]}, monat:11, lake:lk2(80,6,75,6)}, 'joran','front','Cressier'],
        ['nichts', {}, null,null,''] ];
       const alt=[{id:'west',vars:[{key:'mix'}]},{id:'bise',vars:[{key:'mix'}]}];
       return T.map(([n,x,l,v,q])=>{ const r=x._alt ? WB.vorwahl(x, alt, {}) : WB.vorwahl(x); return [n, r.lage===l && r.vk===v && r.quelle.includes(q), JSON.stringify(r)]; }); }""")
@@ -162,7 +175,8 @@ with sync_playwright() as p:
        ['Signal Grenchen ohne Chasseral → jetzt, unsicher', {nc:sig('bise','Grenchen'), kammFehlt:true}, 'messung', true],
        ['Signal Grenchen mit Chasseral → jetzt, sicher, Quelle nennt die Messung', {nc:sig('bise','Grenchen'), kammM:K(10,25), kammFehlt:false}, 'messung', false],
        ['Regel E ohne Chasseral → jetzt, sicher', {nc:{eOk:true,trusted:[]}, monat:7, kammFehlt:true}, 'messung', false],
-       ['Kein Windbild ohne Chasseral → unsicher', {s:{top:{d:135,v:9}}, kammFehlt:true}, 'prognose', true] ];
+       ['Kein Windbild ohne Chasseral → unsicher', {s:{top:{d:135,v:9}}, kammFehlt:true}, 'prognose', true],
+       ['See Bise bei Kammprognose West → jetzt, sicher', {kammP:K(260,12), kammFehlt:false, lake:[{fresh:true,L:{id:'vin'},last:{dir:70,mean:5}},{fresh:true,L:{id:'ips'},last:{dir:60,mean:6}}]}, 'messung', false] ];
       return T.map(([n,x,a,u])=>{ const r=WB.vorwahl(x); return [n, r.art===a && r.unsicher===u && (!n.includes('Quelle nennt') || r.quelle.startsWith('Messung Chasseral')), JSON.stringify(r)]; }); }""")
     for n,c,r in res: ok("Vorwahl: "+n, c, r)
     # Muster an der Messung ausrichten: Punkte mit Wert übernehmen ihn, die übrigen folgen dem Verhältnis der nahen Punkte
@@ -237,6 +251,16 @@ with sync_playwright() as p:
     ok("F Nordlage trotz Nordost am See", i["pressed"]==["nord"] and "Nordlage" in i["today"], i["today"])
     ok("F besserer Spot nach Anteil der Zeit", "Ipsach" in i["panel"] and "öfter ab" in i["panel"], i["panel"])
     ok("F keine Konsolenfehler", not errs, errs); b.close()
+    # I: Bise am See unter Südwest auf dem Kamm (v32, Fall 14.11.): Bise vorgewählt, Kopfzeile «am See», höchstens 2 Zeilen,
+    #    Regler ab +1 h wieder aus der Prognose
+    b,pg,i,errs,tm=run(p,"see-bise","light",225,7,{"vin":(6,80),"ips":(5,75)}, kamm=(225,8))
+    ok("I See Bise geht vor Kamm Südwest", i["pressed"]==["bise"] and "Jetzt: Bise am See" in " ".join(i["today"].split()) and "Seemessung Vingelz und Ipsach" in i["today"], i["today"])
+    j=pg.evaluate("()=>{const t=document.querySelector('.wbtoday'); return {h:t.getBoundingClientRect().height, lh:parseFloat(getComputedStyle(t).lineHeight)||20};}")
+    ok("I Kopfzeile höchstens 2 Zeilen", j["h"] <= 2*j["lh"]+2, j)
+    pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=2; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(600)
+    j=pg.evaluate("()=>document.querySelector('.wbtoday').innerText")
+    ok("I Regler +2 h: Lage aus der Prognose, Bise nicht fortgeschrieben", "West oder Süd" in j and "fortgeschrieben" not in j, j)
+    ok("I keine Konsolenfehler", not errs, errs); b.close()
     # G: Datei fehlt oder ist unvollständig: Hauptansicht steht, Meldung in der Sektion
     for nm,body in (("fehlt",None),("unvollständig",'{"stand":"2026-11-12","lagen":[{"id":"west","name":"West","vars":[]}]}')):
         bb=p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"]); pg=bb.new_page(viewport={"width":390,"height":844}); er=[]

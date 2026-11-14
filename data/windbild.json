@@ -1,15 +1,16 @@
 {
- "stand": "2026-11-13",
+ "stand": "2026-11-14",
  "von": "2026-10-16",
  "bis": "2026-11-05",
  "tage": 21,
  "quelle": "Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
- "format": "kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; die Kammprognose zählt mal regeln.kammFaktor; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+ "format": "regeln.seeBiseMin = Bise am See geht vor, wenn Vingelz und Ipsach beide ab so viel kn aus dem Sektor bise messen (West, Süd und Nordwest auf dem Chasseral werden dann zu Bise). kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; die Kammprognose zählt mal regeln.kammFaktor; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
  "regeln": {
   "kammMin": 10,
   "lapseMin": 4,
   "tagWerte": 6,
-  "kammFaktor": 2
+  "kammFaktor": 2,
+  "seeBiseMin": 4
  },
  "lagen": [
   {

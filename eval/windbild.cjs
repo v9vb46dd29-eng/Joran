@@ -26,7 +26,8 @@ const SCHWELLEN = []; for(let t=10; t<=30; t++) SCHWELLEN.push(t);
 const LAPSE = 4, KAMM_MIN = 10, MIN_WERTE = 12;                    /* wie eval/schichten.cjs */
 /* Kammprognose ICON-CH2 mal diesen Faktor (Median Prognose/Messung 0.49, eval/windbild-stunde.cjs) */
 const KAMM_FAKTOR = 2;
-const MIN_TAGE = 4, TAG_WERTE = 6;                                 /* ein Tag zählt ab einer Stunde Messwerten in der Lage; ab MIN_TAGE Tagen gilt sie als gemessen */
+const MIN_TAGE = 4, TAG_WERTE = 6;
+const SEE_BISE_MIN = 4;                                            /* Bise am See geht vor: Vingelz und Ipsach je ab so viel kn im Sektor bise (vorwahl, v32) */                                 /* ein Tag zählt ab einer Stunde Messwerten in der Lage; ab MIN_TAGE Tagen gilt sie als gemessen */
 const LAND = ["cha","crm","gre","coy","neu"], SEE = C.LAKE.map(x=>x.id), MESS = LAND.concat(SEE);
 
 /* ---------- Daten: gleiche Auswahl wie eval/schichten.cjs ---------- */
@@ -85,8 +86,8 @@ function summe(x, y){
 const days = [...new Set(rows.map(r=>r.day))].sort();
 const out = {stand:C.localDay(0), von:days[0], bis:days[days.length-1], tage:days.length,
   quelle:"Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
-  format:"kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; die Kammprognose zählt mal regeln.kammFaktor; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
-  regeln:{kammMin:KAMM_MIN, lapseMin:LAPSE, tagWerte:TAG_WERTE, kammFaktor:KAMM_FAKTOR},
+  format:"regeln.seeBiseMin = Bise am See geht vor, wenn Vingelz und Ipsach beide ab so viel kn aus dem Sektor bise messen (West, Süd und Nordwest auf dem Chasseral werden dann zu Bise). kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; die Kammprognose zählt mal regeln.kammFaktor; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
+  regeln:{kammMin:KAMM_MIN, lapseMin:LAPSE, tagWerte:TAG_WERTE, kammFaktor:KAMM_FAKTOR, seeBiseMin:SEE_BISE_MIN},
   lagen:[]};
 const done = {};
 TPL.lagen.forEach(l=>{ const Lg = {id:l.id, name:l.name, kamm:l.kamm || [...new Set(l.vars.flatMap(V=>V.regel ? V.regel.kamm : []))], vars:[]};
@@ -163,6 +164,24 @@ if(has("--pruefen")){
       all[want] = (all[want]||0)+1; if(got.lage===want) hit[want] = (hit[want]||0)+1; });
     Object.keys(all).forEach(id=>{ const p = Math.round(100*(hit[id]||0)/all[id]);
       ok(`Vorwahl aus der Messung trifft die Lage ${id} (${p} % von ${all[id]} Werten, verlangt 80 %)`, p>=80); });
+    /* Bise am See (v32): Die Regel darf nur greifen, wenn beide Seestationen Bise ab seeBiseMin kn messen und der Chasseral
+       West, Südwest, Süd oder Nordwest zeigt. Nordlage und Südost bleiben, sonst wird die Nordlage wieder zu Bise. */
+    const istB = z => z && z.dir!=null && z.mean>=SEE_BISE_MIN && C.dirOf(z.dir).id==="bise";
+    let biseN = 0, biseFalsch = 0; const biseTage = new Set(), biseKamm = {};
+    rows.forEach(r=>{ const letzte = [0,1,2].map(k=>S.cha.get(r.t-k*600e3)).filter(Boolean).map(c=>({kn:c.mean, dir:c.dir}));
+      const lake = C.LAKE.map(Lk=>({fresh:true, L:Lk, last:r[Lk.id]})), kM = app.mittel(letzte);
+      const got = app.vorwahl({kammM:kM, mixM:r.schicht==="gemischt", lake, monat:+r.day.slice(5,7)}, out.lagen, out.regeln);
+      if(!got.seeBise) return; biseN++; biseTage.add(r.day); const k = kM ? sec8(kM.dir) : "–"; biseKamm[k] = (biseKamm[k]||0)+1;
+      if(got.lage!=="bise" || !istB(r.ips) || !istB(r.vin) || !["W","SW","S","NW"].includes(k)) biseFalsch++; });
+    ok(`Bise am See greift nur bei Bise an beiden Seestationen und West, Süd oder Nordwest auf dem Chasseral (${biseN} Werte an ${biseTage.size} Tagen: ${Object.entries(biseKamm).map(([k,n])=>k+" "+n).join(", ")||"keine"})`, biseFalsch===0, `${biseFalsch} Werte ausserhalb`);
+    const nordSo = rows.filter(r=>r.kamm==="N" || r.kamm==="SO").filter(r=>{ const lake = C.LAKE.map(Lk=>({fresh:true, L:Lk, last:r[Lk.id]}));
+      return app.vorwahl({kammM:{kn:r.cha.mean, dir:r.cha.dir}, mixM:r.schicht==="gemischt", lake, monat:+r.day.slice(5,7)}, out.lagen, out.regeln).seeBise; }).length;
+    ok("Bise am See überschreibt nie Nordlage oder Südost", nordSo===0, `${nordSo} Werte`);
+    const sig = app.vorwahl({nc:{trusted:[{up:{name:"Neuchâtel"}, u:{sys:{id:"w"}}}]}, kammM:{kn:16, dir:225}, lake:C.LAKE.map(Lk=>({fresh:true, L:Lk, last:{mean:6, dir:80}})), monat:11}, out.lagen, out.regeln);
+    const ohneSig = app.vorwahl({kammM:{kn:16, dir:225}, mixM:false, lake:C.LAKE.map(Lk=>({fresh:true, L:Lk, last:{mean:6, dir:80}})), monat:11}, out.lagen, out.regeln);
+    ok("Fall 14.11. 12:03 (See 5–6 kn O, Chasseral 16 kn SW): Bise, darüber Südwest; mit Upwind-Signal bleibt West",
+      ohneSig.lage==="bise" && ohneSig.seeBise && ohneSig.ueber && ohneSig.ueber.name==="Südwest" && ohneSig.art==="messung" && !ohneSig.kamm && sig.lage==="west" && !sig.seeBise,
+      JSON.stringify({ohneSig:[ohneSig.lage, ohneSig.ueber], sig:sig.lage}));
     ok("Vorwahl gegen das Archiv für West, Süd, Bise und Nordlage geprüft", ["west","sued","bise","nord"].every(id=>all[id]>0), Object.keys(all).join(", "));
     /* Vorbehalt: Eingabe und Soll stammen aus derselben Messung auf dem Chasseral. Die Quoten oben zeigen, was Mittelung und
        Sektorgrenzen kosten, nicht, ob die Lage bis zum Abend hält. Signal, Prognose und Joran-Zeichen fehlen im Archiv.

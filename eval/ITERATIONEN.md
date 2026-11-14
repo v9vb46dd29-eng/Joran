@@ -645,3 +645,34 @@ neu ansehen; kommt ein zweiter solcher Tag dazu, geht der Entscheid an Simon zur
 
 Akzeptanz: Teil 1 erfüllt, Teil 2 an einem Tag (22.10., 14 kn, Tag) nicht erfüllt, Teil 3 erfüllt (6 → 5 von 14),
 Teil 4: 7 foilbare Tage, vorläufig.
+
+## v32 (14.11.2026): Windbild – Bise am See geht vor
+
+Auslöser: 14.11., 12:03. Vingelz 6 kn O, Ipsach 5 kn O (Bise, Richtung stabil), Chasseral 16 kn SW. Das Windbild zeigte
+«Jetzt: West/Südwest · live». Entscheide Simon (Fragerunde 14.11.):
+
+- Messen Vingelz und Ipsach beide frisch Bise (Sektor `bise` am Boden, 20–110°), je ab **4 kn** (`regeln.seeBiseMin`),
+  gilt Bise, wenn der Chasseral (oder die Prognose) West, Süd oder Nordwest ergibt. Nordlage und Südost bleiben: Dort
+  kommt der Wind am See ohnehin aus Nordost, das Muster passt.
+- Ein Upwind-Signal und Regel E gehen weiter vor (Vorschlag Claude, im PR gemeldet): Dann kommt Wind, der die Bise ablöst.
+- Text: «Jetzt: **Bise** am See · darüber Südwest (Chasseral 16 kn)». Im Blatt mit Quelle «Seemessung Vingelz und Ipsach».
+- Regler: nur jetzt. Ab +1 h gilt wie bisher die Prognose; die Bise vom See wird nicht fortgeschrieben (`kamm = false`).
+- Eine stabile Bise-Variante gibt es nicht. Gezeigt wird das Bise-Muster, ausgerichtet an den Messungen.
+
+**Archiv 16.10.–14.11.** (2255 Zehnminutenwerte, 8–22 Uhr, einmalig gezählt, auch Holdout und 11.–14.11.): Vingelz und
+Ipsach beide Bise, Chasseral ab 10 kn aus W, SW, S oder NW:
+
+| Mindeststärke am See | Werte | Tage | davon 14.11. | höchster Wind am See |
+|---|---|---|---|---|
+| 3 kn | 17 | 5 | 10 | 8.5 kn |
+| **4 kn (gewählt)** | **13** | **4** | **10** | 8.5 kn |
+| 5 kn | 5 | 1 | 5 | 8.5 kn |
+
+Zum Vergleich, wo der See beide Bise misst (ab 3 kn): Chasseral O 370, SO 130, NO 105, N 67, unter 10 kn 170 Werte.
+
+Wirkung: Auf den Entwicklungstagen greift die Regel an 2 Werten (17.10. NW, 26.10. SW). Die Trefferquoten der Vorwahl
+aus der Messung bleiben (West 96 %, Süd 90 %, Bise 96 %, Nordlage 87 %, Südost 90 %). Kein Fall war foilbar. Ob «Bise»
+in diesen Fällen richtig ist, lässt sich nicht als Quote messen: Die Lage ist in den Daten über den Chasseral festgelegt.
+Belegt ist nur, dass das West-Muster am See falsch liegt (West stabil typisch: Ipsach 198°, Vingelz 191°; gemessen O).
+Rechenkern, Push und Stufe unverändert (`gleich.cjs`: 0 Abweichungen).
+
