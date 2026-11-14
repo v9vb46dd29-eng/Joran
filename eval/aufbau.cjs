@@ -42,6 +42,7 @@ let C = null, err = "";
 try{ C = require(path.join(ROOT, "core.js")); }catch(e){ err = e.message; }
 ok("Fassade lädt, jeder öffentliche Name ist vorhanden", !!C, err);
 ok("MODEL.active ist false (App rechnet mit den Startwerten)", !!C && C.MODEL.active===false);
+ok("LAGE.active ist false (Lage-Faktor rechnet nicht mit)", !!C && C.LAGE && C.LAGE.active===false);
 const inner = [];
 ["push", "eval", "proxy"].forEach(d=>{ if(!fs.existsSync(path.join(ROOT, d))) return; ls(d, /\.(c?js)$/).forEach(f=>{ if(f==="aufbau.cjs") return;
   /* nur Zeilen, die etwas laden */

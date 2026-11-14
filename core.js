@@ -10,9 +10,9 @@ const SILOS = {
     TL DEF`,
   helfer: `clone merge r0 r1 card dirOf dirOn over kFor spotName fmtCH hhmm localDay localHour dayOfDate
     dayLabel`,
-  modell: "CAL MODEL modelOf HOEHE",
+  modell: "CAL MODEL modelOf HOEHE LAGE",
   see: "parseMeteobase mergeLake lakeRows lakeNow lakeDay LAKE_COVER lakeStorm",
-  prognose: "joranCheck evalHours evalDay levelOf windWindow summarize clsOf ensShare hoeheDay hoeheOk describe",
+  prognose: "joranCheck lageTag evalHours evalDay levelOf windWindow summarize clsOf ensShare hoeheDay hoeheOk describe",
   messung: `joranType isExtra frontCheck fresh ruleE stTs stTrust stRel isTrusted stSecFn upwindNow nowcast nochKeinWind
     lageHint chaWest lapseRate`,
   kalibrierung: "contingency calibrate fitModel evOf isEv stationDayMax calibrateStation",
