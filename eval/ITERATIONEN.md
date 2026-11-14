@@ -727,3 +727,18 @@ Satzfolge bei «Noch kein Wind». Offen, klein: Nach 21 Uhr zeigt die Zeile «He
 (die Startseite zeigt dann morgen).
 
 Aufgeräumt: Zahlen in `ARCHITEKTUR.md` (Zeilen, 103 öffentliche Namen), doppelter Kommentar in `app/start.js`.
+
+## v34 (14.11.2026): Spielraum nur für «Noch kein Wind», nicht für die Stufe
+
+Fehler in v33 (iPhone, 13:52, Schwelle 12 kn): «Knapp», obwohl die Modelle ab jetzt nichts mehr zeigen. Die Restprognose
+rechnete wegen der Stunde Spielraum ab der vorigen Stunde (12 Uhr, stärkstes Modell 9 kn = höchstens 3 kn unter der
+Schwelle). Neu:
+
+| Teil | v33 | v34 |
+|---|---|---|
+| Stufe für heute ab Fensterbeginn | Stunden ab der vorigen | Stunden ab der laufenden |
+| Spielraum gegen verspäteten Wind | über die Stufe | nur in `nochKein()`: in der Stunde direkt nach dem Prognosefenster (Prognose fürs ganze Fenster ab «möglich») bleibt «Noch kein Wind», dazu «Erwartet war …» |
+
+Browser (Uhr fest, künstliche Daten): 13:52 nach Treffern um 9 Uhr und 9 kn um 12 Uhr zeigt «Unwahrscheinlich»;
+16:11 nach Treffern 14–15 Uhr weiter «Noch kein Wind» mit «Erwartet war 14–16 Uhr …», 17:11 «Unwahrscheinlich».
+Rechenkern unverändert gegenüber v33.

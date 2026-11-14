@@ -43,10 +43,9 @@ function sigLine(nc, live, h0, k){
   if(weak.length) return `Ungeprüftes Signal: ${weak.slice(0,2).map(x=>x.up.name).join(", ")}`;
   return "Kein Upwind-Signal";
 }
-/* Restprognose für heute: Ab Fensterbeginn zählen nur die Stunden ab der vorigen (v33). Die Stunde Spielraum hält
-   «Noch kein Wind», wenn der Wind etwas später kommt als die Modelle. Vorher und nach dem Fenster das ganze Fenster.
-   Nur Anzeige: Push, Rückblick und Messung rechnen das ganze Fenster. */
-const restAb = hour => { const [w0,w1] = WINS[S.win]; return hour>=w0 && hour<=w1 ? Math.max(w0, hour-1) : undefined; };
+/* Restprognose für heute: Ab Fensterbeginn zählen nur die Stunden ab der laufenden (v33). Vorher und nach dem Fenster das
+   ganze Fenster. Nur Anzeige: Push, Rückblick und Messung rechnen das ganze Fenster. */
+const restAb = hour => { const [w0,w1] = WINS[S.win]; return hour>=w0 && hour<=w1 ? hour : undefined; };
 /* Stärkster Modellwind (bester Spot, aktive Richtung) in den Stunden from bis to−1 */
 function fensterMax(day, from, to){
   let m = null;
@@ -70,12 +69,17 @@ function vorbeiTxt(x, hour){
   const v = fensterMax(x.day, f.win.from, f.win.to), m = seeMax(x.day, f.win.from, f.win.to);
   return `Erwartet war ${winTxt(f.win)}${v!=null ? ` bis ${r0(v)} kn` : ""}${m!=null ? `, gemessen höchstens ${r0(m)} kn` : ""}.`;
 }
-/* «Noch kein Wind»: Die Modelle erwarten Wind spätestens in der nächsten Stunde (ab C.NKW_AB, «möglich»), das Fenster
-   läuft noch, am See ist es ruhig, kein Upwind-Signal. Nur Anzeige, Stufe und Push bleiben. Gibt die frischen Seewerte
-   zurück, sonst null. */
-function nochKein(s, hour, live, nc){
-  if(!live || s.level<C.NKW_AB || !s.win || hour<s.win.from-1 || hour>s.win.to) return null;
-  return C.nochKeinWind(nc, nc.lake, S);
+/* «Noch kein Wind»: Die Modelle erwarten Wind spätestens in der nächsten Stunde (ab C.NKW_AB, «möglich») und das
+   Prognosefenster läuft noch, oder es ist vor höchstens einer Stunde zu Ende gegangen (Spielraum, wenn der Wind etwas
+   später kommt; die Stufe rechnet dann schon ohne). Am See ruhig, kein Upwind-Signal. Nur Anzeige, Stufe und Push
+   bleiben. Gibt {rows: frische Seewerte, spiel} zurück, sonst null. */
+function nochKein(cur, hour, live, nc){
+  const s = cur.s, f = cur.full;
+  const jetzt = s.level>=C.NKW_AB && !!s.win && hour>=s.win.from-1 && hour<s.win.to;
+  const spiel = !jetzt && !!f && f.level>=C.NKW_AB && !!f.win && hour===f.win.to;
+  if(!live || !(jetzt || spiel)) return null;
+  const rows = C.nochKeinWind(nc, nc.lake, S);
+  return rows ? {rows, spiel} : null;
 }
 const levelWord = lv => lv<0 ? "Keine Daten" : LEVELS[lv].charAt(0).toUpperCase()+LEVELS[lv].slice(1);
 function nowHTML(cur, hour, nc){
@@ -97,11 +101,11 @@ function nowHTML(cur, hour, nc){
       cls = strong ? "c4" : "c3";
       word = "Wind kommt";
     } else {
-      const ruhig = nochKein(s, hour, live, nc), vt = vorbeiTxt(cur, hour);
+      const ruhig = nochKein(cur, hour, live, nc), vt = vorbeiTxt(cur, hour);
       if(ruhig){
         cls = "c0"; word = "Noch kein Wind";
-        l2 = "Modelle: " + l1;
-        l1 = `${ruhig.map(x=>`${x.L.name} ${r0(x.last.mean)} kn`).join(", ")} · kein Upwind-Signal`;
+        l2 = ruhig.spiel && vt ? vt : "Modelle: " + l1;
+        l1 = `${ruhig.rows.map(x=>`${x.L.name} ${r0(x.last.mean)} kn`).join(", ")} · kein Upwind-Signal`;
       } else if(vt) l2 = vt;
     }
   }
@@ -207,11 +211,12 @@ function verdictHTML(cur, hour, nc){
     why = `Messung: ${parts.join("; ")}. ` + why;
     basis = "Messung an Upwind-Stationen plus Prognose";
   }
-  const ruhig = nochKein(s, hour, live, nc);
+  const ruhig = nochKein(cur, hour, live, nc);
   if(ruhig && !(live && (nc.eOk || nc.trusted.length))){
     cls = "c0"; word = "Noch kein Wind";
-    why = `Gemessen am See: ${ruhig.map(x=>`${x.L.name} ${r0(x.last.mean)} kn ${card(x.last.dir)}`).join(", ")}. Kein Upwind-Signal. `
-      + `Die Modelle sagen «${LEVELS[s.level]}»: ` + whyM + (vt ? " " + vt : "");
+    why = `Gemessen am See: ${ruhig.rows.map(x=>`${x.L.name} ${r0(x.last.mean)} kn ${card(x.last.dir)}`).join(", ")}. Kein Upwind-Signal. `
+      + (ruhig.spiel ? `${vt ? vt + " " : ""}Die Modelle sagten «${LEVELS[cur.full.level]}», für den Rest des Tages «${LEVELS[s.level]}».`
+        : `Die Modelle sagen «${LEVELS[s.level]}»: ` + whyM + (vt ? " " + vt : ""));
     basis = "Messung am See und an den Upwind-Stationen. Die Prognose ist noch nicht eingetroffen.";
   }
   if(today && hour>h1) why += " Dein Zeitfenster heute ist vorbei.";
