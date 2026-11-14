@@ -5,9 +5,15 @@
 /* Startseite: «Wind kommt?» (heute, nach dem Zeitfenster morgen) und die nächsten 4 Tage, je kurz.
    Alles Ausführliche steht im Blatt «Erklärungen» (#detail). */
 function renderLive(){
-  const hour = localHourNow();
+  const hour = localHourNow(), ab = restAb(hour);
   const days = [0,1,2,3].map(k=>({k, day:localDay(k)}));
-  days.forEach(x=>{ x.s = summarize(D.models, x.day, S, D.jura); x.ens = x.k<=1 ? ensShare(D.ens, x.day, S) : null; });
+  days.forEach(x=>{
+    const r = x.k===0 ? ab : undefined;
+    x.s = summarize(D.models, x.day, S, D.jura, {ab:r});
+    x.ens = x.k<=1 ? ensShare(D.ens, x.day, S, r) : null;
+    /* Restprognose: dazu die Prognose fürs ganze Zeitfenster, für den Satz «Erwartet war …» */
+    if(r!=null){ x.ab = r; x.full = summarize(D.models, x.day, S, D.jura); }
+  });
   const k0 = hour>WINS[S.win][1] ? 1 : 0;
   if(SEL==null) SEL = k0;
   const nc = C.nowcast(D.stations, S, undefined, LK);
@@ -37,11 +43,30 @@ function sigLine(nc, live, h0, k){
   if(weak.length) return `Ungeprüftes Signal: ${weak.slice(0,2).map(x=>x.up.name).join(", ")}`;
   return "Kein Upwind-Signal";
 }
-/* «Noch kein Wind»: Die Modelle erwarten Wind spätestens in der nächsten Stunde (schon ab «möglich»), am See ist es ruhig,
-   kein Upwind-Signal. Nur Anzeige, Stufe und Push bleiben. Gibt die frischen Seewerte zurück, sonst null. */
-const NKW_AB = 2;   /* «möglich» */
+/* Restprognose für heute: Ab Fensterbeginn zählen nur die Stunden ab der laufenden (v33). Vorher und nach dem Fenster
+   das ganze Fenster. Nur Anzeige: Push, Rückblick und Messung rechnen das ganze Fenster. */
+const restAb = hour => { const [w0,w1] = WINS[S.win]; return hour>=w0 && hour<=w1 ? hour : undefined; };
+/* Höchster Mittelwind am See heute zwischen from und to Uhr (aktive Spots), sonst null */
+function seeMax(day, from, to){
+  let m = null;
+  C.lakeNow(LK, S).filter(x=>S.spots[x.L.id]).forEach(x=>x.rows.forEach(r=>{
+    if(r.mean==null || C.dayOfDate(r.t)!==day) return;
+    const h = C.localHour(r.t); if(h>=from && h<to && (m==null || r.mean>m)) m = r.mean; }));
+  return m;
+}
+/* Ist das Prognosefenster von heute vorbei und die Stufe für den Rest tiefer: «Erwartet war 9–11 Uhr bis 12 kn, gemessen
+   höchstens 8 kn.» Sonst "". */
+function vorbeiTxt(x, hour){
+  const f = x.full;
+  if(!f || !f.win || !f.top || f.win.to>hour || x.s.level>=f.level) return "";
+  const m = seeMax(x.day, f.win.from, f.win.to);
+  return `Erwartet war ${winTxt(f.win)} bis ${r0(f.top.v)} kn${m!=null ? `, gemessen höchstens ${r0(m)} kn` : ""}.`;
+}
+/* «Noch kein Wind»: Die Modelle erwarten Wind spätestens in der nächsten Stunde (ab C.NKW_AB, «möglich»), das Fenster
+   läuft noch, am See ist es ruhig, kein Upwind-Signal. Nur Anzeige, Stufe und Push bleiben. Gibt die frischen Seewerte
+   zurück, sonst null. */
 function nochKein(s, hour, live, nc){
-  if(!live || s.level<NKW_AB || !s.win || hour<s.win.from-1) return null;
+  if(!live || s.level<C.NKW_AB || !s.win || hour<s.win.from-1 || hour>=s.win.to) return null;
   return C.nochKeinWind(nc, nc.lake, S);
 }
 const levelWord = lv => lv<0 ? "Keine Daten" : LEVELS[lv].charAt(0).toUpperCase()+LEVELS[lv].slice(1);
@@ -64,12 +89,12 @@ function nowHTML(cur, hour, nc){
       cls = strong ? "c4" : "c3";
       word = "Wind kommt";
     } else {
-      const ruhig = nochKein(s, hour, live, nc);
+      const ruhig = nochKein(s, hour, live, nc), vt = vorbeiTxt(cur, hour);
       if(ruhig){
         cls = "c0"; word = "Noch kein Wind";
         l2 = "Modelle: " + l1;
         l1 = `${ruhig.map(x=>`${x.L.name} ${r0(x.last.mean)} kn`).join(", ")} · kein Upwind-Signal`;
-      }
+      } else if(vt) l2 = vt;
     }
   }
   return `<div class="verdict ${cls}"><div class="vtop"><span class="when">${today?"Heute":"Morgen"} · ${esc(WINS[S.win][2])}</span>
@@ -153,7 +178,9 @@ function verdictHTML(cur, hour, nc){
   } else why = "Kein Modell zeigt Wind aus deinen Richtungen.";
   if(cur.ens) why += ` Ensemble: ${cur.ens.hit} von ${cur.ens.n} Läufen erreichen die Schwelle.`;
   if(s.n===1) why += " Nur ein Modell reicht so weit, die Aussage ist unsicher.";
-  basis = `Prognose, ${WINS[S.win][2]}`;
+  basis = cur.ab!=null ? `Prognose für den Rest des Tages (ab ${cur.ab} Uhr), ${WINS[S.win][2]}` : `Prognose, ${WINS[S.win][2]}`;
+  const vt = vorbeiTxt(cur, hour);
+  if(vt) why = vt + " " + why;
 
   const lakeOk = live ? nc.lake.filter(x=>x.ok) : [];
   if(lakeOk.length){

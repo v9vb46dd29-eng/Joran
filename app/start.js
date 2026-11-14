@@ -154,11 +154,11 @@ let lastRun = Date.now(), lastLake = Date.now();
 renderAll();
 readMine();
 run();
-/* Auto-Aktualisierung: Seemessung alle 5 min, Modelle alle 30 min — nur wenn die Seite sichtbar ist */
+/* Auto-Aktualisierung alle 5 min, nur wenn die Seite sichtbar ist: Messungen immer frisch, Modelle nur, wenn älter als 20 min (M_MAX) */
 function tick(){
   $("#go").classList.toggle("stale", !$("#go").disabled && Date.now()-lastRun > 20*60000);
   if(document.hidden) return;
-  if(Date.now()-lastLake > 5*60000) run();          /* Messungen frisch, Modelle nur wenn älter als 20 min */      /* alle 5 min: alle Messstationen neu */
+  if(Date.now()-lastLake > 5*60000) run();
 }
 setInterval(tick, 60000);
 document.addEventListener("visibilitychange", tick);

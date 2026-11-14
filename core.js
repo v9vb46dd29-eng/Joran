@@ -7,7 +7,7 @@
 "use strict";
 const SILOS = {
   konstanten: `SPOTS JURA CREST BES NEUP JTYP LAKE JORAN_X MODELS DIRS WINS LEVELS UPWIND LAKE_LEVEL REGEL_E FRONT
-    TL FEST DEF`,
+    TL FEST NKW_AB DEF`,
   helfer: `clone merge r0 r1 card dirOf dirOn over kFor spotName fmtCH hhmm localDay localHour dayOfDate
     dayLabel`,
   modell: "CAL MODEL modelOf HOEHE LAGE",

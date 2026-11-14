@@ -687,3 +687,32 @@ Keine dieser Lagen wurde später am Tag mit ab 12 kn aus West, Süd oder Joran f
 ein oder kommt aus SO, er dreht nicht auf West. Darum bleibt der Regler bei «nur jetzt». Auflage A1 (Bise-Signal
 blockiert die Regel) umgesetzt, Browsertest J zeigt die Kopfzeile mit gemessenem Chasseral.
 
+
+## v33 (14.11.2026): Restprognose für heute, «Noch kein Wind» endet mit dem Prognosefenster
+
+Anlass (iPhone, 14.11., 13:11, Schwelle 10 kn, Fenster Tag): «Noch kein Wind», obwohl die Modelle Wind nur 9–11 Uhr
+erwarteten und danach nichts mehr. Zwei Ursachen:
+
+- `nochKein()` prüfte nur den Beginn des Prognosefensters (`hour < win.from-1`), nicht sein Ende.
+- `summarize()` rechnete die Stufe für heute über das ganze Zeitfenster, mit den vergangenen Stunden. Kachel und Urteil
+  blieben darum den ganzen Tag auf «wahrscheinlich».
+
+Änderung (nur Anzeige):
+
+| Teil | vorher | v33 |
+|---|---|---|
+| Stufe für heute ab Fensterbeginn | ganzes Zeitfenster | Stunden ab der laufenden (`summarize(…, {ab})`, `restAb` in `app/live.js`) |
+| «Noch kein Wind» | ab 1 h vor dem Prognosefenster, ohne Ende | nur bis zum Ende des Prognosefensters |
+| Prognosefenster vorbei, Reststufe tiefer | – | «Erwartet war 9–12 Uhr bis 12 kn, gemessen höchstens 7 kn.» |
+| Ensemble für heute | ganzes Zeitfenster | wie die Stufe ab der laufenden Stunde |
+| Vorwahl im Windbild (Prognose am Boden) | stärkste Stunde des ganzen Fensters | stärkste Stunde ab jetzt |
+| `nochKeinWind`: Seewert gegen Schwelle | ungerundet | gerundet wie angezeigt (`over`) |
+| `NKW_AB` | `app/live.js` | `core/konstanten.js` |
+
+Push, Rückblick und Messung rechnen weiter das ganze Zeitfenster: Der Push für heute kommt nur vor Fensterbeginn, dann
+ist die Restprognose gleich dem ganzen Fenster. `measure.cjs --T 12` gibt dieselbe Ausgabe wie `origin/main`,
+`gleich.cjs --erlaubt evalDay,summarize,ensShare,nochKeinWind,NKW_AB`: 408'364 Vergleiche, 0 Abweichungen.
+Browser (390×844, künstliche Daten, Uhr fest): 13:11 nach Fenster 9–11 Uhr zeigt «Unwahrscheinlich» mit «Erwartet war
+…», 9:40 während des Fensters weiter «Noch kein Wind».
+
+Aufgeräumt: Zahlen in `ARCHITEKTUR.md` (Zeilen, 103 öffentliche Namen), doppelter Kommentar in `app/start.js`.

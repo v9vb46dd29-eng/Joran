@@ -8,7 +8,7 @@
 })(typeof self!=="undefined" ? self : this, function(dep){
 "use strict";
 const {UPWIND, TL, LAKE_LEVEL, FRONT, REGEL_E, JTYP, DEF} = dep("konstanten");
-const {r1, inArc, dirOf, localHour, dayOfDate} = dep("helfer");
+const {r1, inArc, dirOf, over, localHour, dayOfDate} = dep("helfer");
 const {modelOf, CAL} = dep("modell");
 const {lakeStorm} = dep("see");
 
@@ -152,7 +152,7 @@ function nowcast(stations, St, now, lk){
 function nochKeinWind(nc, lake, St){
   if(!nc || nc.front.length || nc.eOk || nc.sig.length) return null;
   const f = (lake||[]).filter(x=>x.fresh && x.last && x.last.mean!=null);
-  if(!f.length || f.some(x=>x.ok || x.last.mean>=St.T)) return null;
+  if(!f.length || f.some(x=>x.ok || over(x.last.mean, St))) return null;     /* gerundet, wie angezeigt */
   return f;
 }
 /* Hinweis bei Joran-Lage: Fallböen teilen sich zwischen Vingelz und Alfermée, Vingelz liegt oft im Windschatten
