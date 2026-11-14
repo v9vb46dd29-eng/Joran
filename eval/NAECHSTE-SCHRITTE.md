@@ -47,7 +47,11 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
 12. `node eval/regel-e.cjs`, danach `node eval/joran-prognose.cjs`. Das zweite Skript hängt die Läufe von ICON-CH2 an
     `eval/data/joran_prognose.json` an. Das Archiv der API reicht nur 92 Tage zurück: spätestens alle drei Monate laufen
     lassen, sonst entsteht eine Lücke. Joran-Typ aus den Markierungen (`jt:` im Rückblick) mit `joranType` vergleichen.
-13. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
+13. `node eval/lage-faktor.cjs` und `node eval/lage-faktor.cjs --fest` (vorher `eval/data/prognose_vortag.json` und
+    `stunde_prognose.json` neu laden): Lage-Faktor (`core.LAGE`, inaktiv). Ist ein foilbarer Bise-Abend dazugekommen und
+    bleibt er mit Faktor angekündigt? Passt Seemitte × 0.7 bei Bise und Ipsach × 1.15 bei Nordlage noch? Ist Südost auf dem
+    Kamm (14.11.: Bise am See, Seemitte zu hoch) eine eigene Lage für den Faktor wert?
+14. Bericht mit Tabelle je Seestation und je Upwind-Station, PR auf `main`, nicht mergen.
 
 ## Wartet auf mehr Daten
 
@@ -55,6 +59,7 @@ Stand 11.11.2026 (v19). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/
 |---|---|---|
 | Modell v2 für West aktivieren | 10 West-Abende (heute 4) | Ende Dezember 2026 |
 | Bise: eigener Faktor, Fehlalarme senken | 10 Bise- oder Nord-Abende (heute 1) | Sommer 2027 |
+| Lage-Faktor aktivieren (`core.LAGE`, `node eval/lage-faktor.cjs`): Bise senkt Seemitte, Nordlage hebt Ipsach | Bise: foilbare Bise-Abende im Archiv (heute 0), Nordlage: 10 Tage (heute 2). Vor der Aktivierung im Push-Lauf die Kammprognose laden (`fetchAll` mit `jura`) | Bise frühestens Winter 2026/27 |
 | Joran: Faktoren, H3 im Sommer prüfen, Drehung Vingelz/Ipsach (`node eval/joran.cjs`) | 10 Joran-Episoden (heute 1) | Juni bis Juli 2027 |
 | Taubenlöchler | Markierungen `tl:` im Rückblick und Abende mit Nord/Bise am See | offen |
 | Bieler Bucht: Joran-Äste, Taubenloch, Nordlage, Seewind (H-B1 bis H-B8 in `eval/IDEEN.md`, `node eval/bucht.cjs`) | Joran-Episoden je Typ, Nordlage-Abende, Seemessung im Sommer | Sommer 2027 |

@@ -544,3 +544,33 @@ Seemitte wäre der Abend verpasst. Ein fester Abschlag auf Seemitte trennt den 1
 Bei Bise treffen die Modelle Ipsach gut, Seemitte liegt rund 40 % zu hoch. Unterschätzt wird nur die Nordlage, und
 die Kammprognose vom Vortag erkennt sie. Mögliche Regel: Nordlage → Ipsach × rund 1.2, Bise → Seemitte × rund 0.6.
 Nicht gebaut: Nordlage hat 2 Tage und 1 foilbaren Abend, der Faktor käme aus genau dem Abend, den er retten soll.
+
+## v30 (14.11.2026): Lage-Faktor aus der Kammprognose, inaktiv
+
+Auslöser: Seemitte liegt bei Bise rund 40 % über der Messung (v29), wird aber für den 17.10. (Nordlage) gebraucht.
+Entscheid Simon: Regel nach Lage inaktiv bauen, mit Reviewer.
+
+**Gebaut:** `LAGE` in `core/modell.js` (`active:false`), `lageTag` in `core/prognose.js`. `summarize(modelSpots, day,
+St, kamm, opt)` nimmt die Kammprognose (`fetchJura`) und multipliziert bei aktiver Regel den Modellwind je Spot.
+Lage nach dem Vektormittel der Kammrichtung von 2 h vor dem Zeitfenster bis zu dessen Ende (Stunden ab 3 kn,
+mindestens 3), Sektoren wie im Windbild: Nordlage N, Bise NO und O.
+- Nordlage: Vingelz/Ipsach nur heben (≥ 1), Seemitte bleibt. Kann nichts verpassen, was heute angekündigt wird.
+- Bise: Seemitte nur senken (0.5–1), Vingelz/Ipsach bleiben.
+- Hinterlegt: Nordlage Ipsach × 1.15, Bise Seemitte × 0.7 (aus allen Entwicklungstagen, zur sicheren Seite gerundet).
+- App übergibt `D.jura`; Push-Lauf noch nicht (lädt die Kammprognose nicht). `gleich.cjs`: 0 Abweichungen.
+
+**Messung** (`node eval/lage-faktor.cjs`, Prognose am Vortag, Entwicklungstage, Faktoren nur aus früheren Tagen):
+
+| Fenster | Schwelle | Recall B → neu | FPR B → neu | EV/NEV |
+|---|---|---|---|---|
+| Abend 16–21 | 12 kn | 1.00 → 1.00 | 0.50 → 0.44 | 5/16 |
+| Abend 16–21 | 14 kn | 1.00 → 1.00 | 0.35 → 0.00 | 4/17 |
+| Tag 9–21 | 12 kn | 1.00 → 1.00 | 0.42 → 0.42 | 9/12 |
+| Tag 9–21 | 14 kn | 1.00 → 1.00 | 0.47 → 0.07 | 6/15 |
+
+Mit den hinterlegten Werten (`--fest`, nicht unabhängig): 12 kn Abend FPR 0.50 → 0.38, Tag 0.42 → 0.33.
+Alle geänderten Tage sind Bise-Tage, alle ruhig. Der Nordlage-Faktor ändert an keinem Tag die Stufe.
+
+**Was die Messung nicht zeigt:** Es gibt keinen foilbaren Bise-Abend im Archiv. Ob der Faktor einen solchen Abend
+verpasst, ist ungeprüft. Nordlage: 2 Tage, 1 foilbarer Abend. Der 14.11. (Bise am See, Kamm Südost, Seemitte zu hoch)
+fällt nicht unter die Regel; Südost auf dem Kamm gab es im Archiv erst an einem Tag (Seemitte roh 0.55).

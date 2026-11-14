@@ -9,7 +9,7 @@
 "use strict";
 const {MODELS, WINS, JORAN_X} = dep("konstanten");
 const {r0, card, dirOf, dirOn, over, kFor, spotName} = dep("helfer");
-const {HOEHE, modelOf} = dep("modell");
+const {HOEHE, modelOf, LAGE} = dep("modell");
 
 /* Höhenlage eines Tages: Mittel von 2 h vor dem Zeitfenster bis zu dessen Ende. lapse = Temperaturabnahme 2 m → 850 hPa in
    K je km; gekoppelt = durchmischte Luft, der Höhenwind kann bis auf den See. H = Stundenwerte wie daten.fetchHoehe. */
@@ -46,7 +46,7 @@ function evalHours(spots, day, St, h0, h1){
       any = true;
       const d = sp.h.wd[i], g = sp.h.wg ? sp.h.wg[i] : null;
       if(sp.h.cape && sp.h.cape[i]!=null && sp.h.cape[i]>capeMax) capeMax = sp.h.cape[i];
-      const vk = v*kFor(d,St);
+      const vk = v*kFor(d,St)*((St.spotF && St.spotF[sp.id]) || 1);
       if(!raw || vk>raw.v) raw = {v:vk, d};
       if(dirOn(d,St) && (!best || vk>best.v)) best = {v:vk, d, g, spot:sp.id};
     }
@@ -86,13 +86,37 @@ function windWindow(ok, St){
   const use = cons.length ? cons : hrs;
   return {from:use[0], to:use[use.length-1]+1, consensus:cons.length>0};
 }
-function summarize(modelSpots, day, St){
+/* Lage des Tages aus der Kammprognose: Vektormittel der Richtung von 2 h vor dem Zeitfenster bis zu dessen Ende, nur
+   Stunden ab L.minKn. kamm = {"JJJJ-MM-TTTHH:00": {cv, cd}} wie daten.fetchJura. Rückgabe "nord", "bise" oder null. */
+function lageTag(kamm, day, St, L){
+  L = L || LAGE;
+  if(!kamm) return null;
+  const [h0,h1] = WINS[St.win];
+  let x = 0, y = 0, n = 0;
+  for(let hr=Math.max(0,h0-2); hr<=h1; hr++){
+    const k = kamm[day+"T"+String(hr).padStart(2,"0")+":00"];
+    if(!k || k.cv==null || k.cd==null || k.cv<L.minKn) continue;
+    x += Math.cos(k.cd*Math.PI/180); y += Math.sin(k.cd*Math.PI/180); n++;
+  }
+  if(n<L.minStd) return null;
+  const d = (Math.atan2(y,x)*180/Math.PI+360)%360;
+  for(const id of Object.keys(L.sek)){ const [a,b] = L.sek[id]; if(a<=b ? d>=a && d<b : d>=a || d<b) return id; }
+  return null;
+}
+/* Stufe über alle Modelle. kamm (optional): Kammprognose für den Lage-Faktor. opt.lage: Parameter wie LAGE, die auch
+   bei LAGE.active = false gelten (zum Messen); opt.lage = null schaltet ihn ab. */
+function summarize(modelSpots, day, St, kamm, opt){
+  const L = opt && opt.lage!==undefined ? opt.lage : (LAGE.active ? LAGE : null);
+  const lage = L && kamm ? lageTag(kamm, day, St, L) : null;
+  if(lage && L.f[lage]) St = Object.assign({}, St, {spotF:L.f[lage]});
   const per = MODELS.map(m=>({m, e: modelSpots[m.id] ? evalDay(modelSpots[m.id], day, St) : null}));
   const ok = per.filter(x=>x.e);
   const hits = ok.filter(x=>x.e.hit).length;
   let top = null, topM = null;
   ok.forEach(x=>{ if(x.e.top && (!top || x.e.top.v>top.v)){ top = x.e.top; topM = x.m; } });
-  return {per, ok, n:ok.length, hits, top, topM, level:levelOf(hits, ok.length, top, St), win:windWindow(ok, St)};
+  const res = {per, ok, n:ok.length, hits, top, topM, level:levelOf(hits, ok.length, top, St), win:windWindow(ok, St)};
+  if(lage) res.lage = lage;
+  return res;
 }
 const clsOf = (lv, St) => lv<0 ? 0 : lv>=St.cut ? (lv>=4?4:3) : lv>=2 ? 2 : lv===1 ? 1 : 0;
 function ensShare(ens, day, St){
@@ -136,6 +160,6 @@ function describe(s, St){
   return `${r0(s.top.v)} kn ${dn?dn.name:card(s.top.d)}, ${w}, bester Spot ${spotName(s.top.spot)} (${s.hits} von ${s.n} Modellen ≥ ${St.T} kn)`;
 }
 
-return {hoeheDay, hoeheOk, evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare, joranCheck,
+return {hoeheDay, hoeheOk, lageTag, evalHours, evalDay, levelOf, windWindow, summarize, clsOf, ensShare, joranCheck,
   describe};
 });

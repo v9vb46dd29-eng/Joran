@@ -43,6 +43,18 @@ const MODEL = {active:false, minRecall:0.85, maxFpr:0.30, margin:0.9, minF:0.5, 
     cdf:{"w":{"f":0.72,"rec":1,"fpr":0.02,"ev":14,"days":4,"rel":1}},
     brl:{"w":{"f":0.86,"rec":1,"fpr":0.05,"ev":18,"days":5,"rel":1}}
   }};
+/* Lage-Faktor (vorläufig, 14.11.2026, siehe eval/ITERATIONEN.md v30): Die Kammprognose (ICON-CH2, Chasseral) legt die
+   Lage des Tages fest, mit denselben Sektoren wie das Windbild (nord = N, bise = NO und O). Je Lage wird der Modellwind
+   an einzelnen Spots mit f multipliziert. Nordlage: Die Modelle unterschätzen Vingelz/Ipsach, Faktoren nur ≥ 1, Seemitte
+   bleibt. Bise: Seemitte liegt über der Messung, Faktor nur zwischen minF und 1, Vingelz/Ipsach bleiben. So kann die
+   Regel bei Nordlage nichts verpassen, was heute angekündigt wird; bei Bise kann sie es (bisher kein foilbarer Bise-Abend
+   im Archiv). active = false: Die Stufe rechnet wie bisher. Messen: node eval/lage-faktor.cjs.
+   f: aus allen Entwicklungstagen bestimmt und zur sicheren Seite gerundet (nicht unabhängig gemessen): Nordlage Ipsach 1.17 aus
+   2 Tagen (Fenster Tag), Bise Seemitte 0.63 (Abend) und 0.69 (Tag) aus 9 Tagen.
+   minTage: so viele Tage einer Lage braucht eine Neubestimmung, sonst bleibt der Faktor 1. */
+const LAGE = {active:false, sek:{nord:[337.5, 22.5], bise:[22.5, 112.5]}, minKn:3, minStd:3, minF:0.5, minTage:2, minModell:5,
+  heben:{nord:["vin","ips"]}, senken:{bise:["mit"]},
+  f:{nord:{vin:1, ips:1.15}, bise:{mit:0.7}}};
 const modelOf = St => (St && St.model) || (MODEL.active ? MODEL : null);
 /* Aktive Kalibrierungsregel. "pss": Schwelle mit dem besten Peirce-Score (bisher).
    "recall": höchste Schwelle mit Recall ≥ minRecall, unter gleichwertigen die mit tieferer Fehlalarmrate; erreicht keine
@@ -50,5 +62,5 @@ const modelOf = St => (St && St.model) || (MODEL.active ? MODEL : null);
    im Archiv liegen (eval/measure.cjs, Akzeptanzregeln in eval/README.md). */
 const CAL = {rule:"pss", minRecall:0.85};
 
-return {HOEHE, MODEL, modelOf, CAL};
+return {HOEHE, MODEL, modelOf, CAL, LAGE};
 });

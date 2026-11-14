@@ -7,7 +7,7 @@
 function renderLive(){
   const hour = localHourNow();
   const days = [0,1,2,3].map(k=>({k, day:localDay(k)}));
-  days.forEach(x=>{ x.s = summarize(D.models, x.day, S); x.ens = x.k<=1 ? ensShare(D.ens, x.day, S) : null; });
+  days.forEach(x=>{ x.s = summarize(D.models, x.day, S, D.jura); x.ens = x.k<=1 ? ensShare(D.ens, x.day, S) : null; });
   const k0 = hour>WINS[S.win][1] ? 1 : 0;
   if(SEL==null) SEL = k0;
   const nc = C.nowcast(D.stations, S, undefined, LK);
@@ -197,6 +197,8 @@ function modelTable(cur){
       <td class="n">${t?t.hr+":00<br><small>"+spotName(t.spot)+"</small>":"–"}</td></tr>`;
   });
   h += `</table></div>`;
+  if(cur.s.lage){ const f = C.LAGE.f[cur.s.lage]||{};
+    h += `<div class="note">Lage-Faktor (${cur.s.lage==="nord"?"Nordlage":"Bise"} nach der Kammprognose): ${esc(Object.keys(f).map(id=>`${spotName(id)} × ${f[id]}`).join(", "))}.</div>`; }
   if(cur.ens) h += `<div class="note">ICON-D2-Ensemble: <b>${cur.ens.hit} von ${cur.ens.n}</b> Läufen erreichen ${S.T} kn. ${cur.ens.hit/cur.ens.n>=0.5?"Die Läufe sind sich weitgehend einig.":cur.ens.hit>0?"Nur ein Teil der Läufe zeigt das Signal.":"Kein Lauf zeigt das Signal."}</div>`;
   return h;
 }
