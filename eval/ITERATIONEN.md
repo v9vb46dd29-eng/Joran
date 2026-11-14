@@ -742,3 +742,81 @@ Schwelle). Neu:
 Browser (Uhr fest, künstliche Daten): 13:52 nach Treffern um 9 Uhr und 9 kn um 12 Uhr zeigt «Unwahrscheinlich»;
 16:11 nach Treffern 14–15 Uhr weiter «Noch kein Wind» mit «Erwartet war 14–16 Uhr …», 17:11 «Unwahrscheinlich».
 Rechenkern unverändert gegenüber v33.
+
+## v35 (14.11.2026): Kette Messung → Regeln → Prognose, Seemessung vor der Prognose
+
+Fehler (iPhone, 16:34): Windbild «Heute 19 Uhr: keine Lage erkennbar · Prognose». Der Chasseral mass 8 kn S (unter
+`kammMin` 10 kn), Vingelz 5 kn ONO, Ipsach 3 kn O, die Modelle lagen unter 3 kn. Simon: Die Kette ist Messung, dann
+Regeln, dann Prognose. Kurzfristig führt die Messung, danach die Kombination, ab 24 h die Synthese der Modelle. Ziel: die
+Prognose kurzfristig schlagen.
+
+### Runde 1 (abgelehnt)
+
+Lage nur vom See 6 h fortgeschrieben, gemessen in einem neuen Abschnitt 2b von `eval/lage-vorlauf.cjs`. Unabhängiger
+Reviewer: **ABLEHNEN**. B1: 2b mass Stunden, in denen die App wegen der Reihenfolge in `vorwahl()` (Fensterprognose vor
+der Seemessung) gar keine Lage vom See wählte; im App-nahen Nachspielen 0 solche Stunden. Die Quote «~73 %» stammte aus
+Stunden mit 5–13 kn Prognose und wurde bei < 3 kn gezeigt. B2: auf dem Holdout allein schlechter (+3 h 13 gegen 25 %),
+8 Tage, ein Tag trug den Gewinn. Hinweise: Wegfall von `unsicher` ungemessen, falsches Etikett bei Upwind-Signal, fehlender
+Gegentest zu «kaum Wind». Abschnitt 2b und `vorlauf.see` sind wieder entfernt.
+
+### Runde 2
+
+Neue Auswertung `eval/kette.cjs`: je Stunde t0 die Lage zur Zielstunde, wie die App sie zeigt (Fensterprognose wie
+`heute()`), gegen die Prognose allein und gegen `origin/main`. Soll: Lage, die die App aus der Messung zur Zielstunde wählt
+(Stundenmittel Chasseral, Vingelz, Ipsach), sonst «schwach». Gruppen nach der Messung zu t0.
+
+| Teil | v34 | v35 |
+|---|---|---|
+| Lage von jetzt, Chasseral misst unter `kammMin` | Kamm- und Fensterprognose vor der Seemessung | Seemessung vor der Prognose (fehlt der Chasseral ganz: wie bisher) |
+| Regler, Lage vom Chasseral oder Regel E | fortgeschrieben, ausser die Prognose sagt einen Wechsel | die ersten 2 h fest, danach wie bisher |
+| Regler, Lage nur vom See oder Upwind-Signal | Prognose | Prognose (`FUEHRT.see` = 0) |
+| Ohne Lage, angezeigte Stärke an den Spots unter 3 kn | «keine Lage erkennbar» | «kaum Wind» |
+
+Lage richtig, +0/+1/+2/+3/+6 h, alle Tage 16.10.–13.11. (95-%-Intervall neu−Prognose über Tage, Bootstrap):
+
+| Messung zu t0 | Methode | +0h | +1h | +2h | +3h | +6h | n(+1h) |
+|---|---|---|---|---|---|---|---|
+| alle (29 Tage) | Prognose | 72 | 72 | 72 | 72 | 72 | 406 |
+| | main | 83 | 81 | 79 | 79 | 73 | |
+| | neu | 86 | 82 | 79 | 79 | 73 | |
+| | neu−Prognose | +5…+23 | +4…+16 | +1…+14 | +0…+13 | −6…+8 | |
+| Chasseral | Prognose | 74 | 75 | 76 | 76 | 77 | 312 |
+| | main | 94 | 87 | 84 | 85 | 78 | |
+| | neu | 94 | 88 | 85 | 85 | 78 | |
+| nur See (11 Tage) | Prognose | 52 | 55 | 58 | 57 | 59 | 53 |
+| | main | 54 | 55 | 58 | 57 | 59 | |
+| | neu | 76 | 55 | 58 | 57 | 59 | |
+| | See 1 h / 3 h / 6 h fortgeschrieben | 76 | 62 | 53 | 48 | 54 | |
+
+Getrennt (nur See, +0 h, neu gegen main): Entwicklung 83/60 (8 Tage), Holdout 56/44 (2 Tage), 11.–13.11. 60/20 (1 Tag).
+Die Richtung stimmt in allen drei Zeiträumen. Fortgeschrieben ab +1 h: Entwicklung besser (72 gegen 56), Holdout gleich
+(22/22), 11.–13.11. schlechter (60 gegen 100). Darum führt der See nur jetzt. Die 2 h für den Chasseral: Entwicklung +3,
+Holdout 0, 11.–13.11. −3 Punkte bei +1 h, also neutral; sie machen die Regel einheitlich.
+
+Feine Abstimmung je Vorlauf (1, 3, 6, 12 h) geprüft und verworfen: Bei 1, 3 und 6 h ist die Regel schon die beste der
+drei Varianten (Messung, Prognose, Kombination); ein Gewinn wäre nur für Lagen vom See bei 9–12 h zu holen, auf 8 Tagen.
+Kandidat für später: Führungszeit je Lage aus der langen Chasseral-Reihe (Bise hält 6 h zu 75 %, Südost zu 32 %).
+
+Auffällig, nicht geändert: Ohne gemessene Lage zeigt die Karte bei «jetzt» die Lage fürs Zeitfenster («Heute: …»). Gegen
+die Lage der laufenden Stunde trifft das 31 % (Prognose der Stunde 83 %). Die Kopfzeile sagt «Heute», die Aussage ist
+also eine andere; ob die Karte bei «jetzt» die Stunde zeigen soll, ist ein eigener Entscheid.
+
+Grenzen: ohne Upwind-Signal und Regel E im Nachspielen; Fenster fest Abend 16–21; die Prognose der Stunde ohne `kFor`
+und ohne Joran-Prüfung (trifft alle Methoden gleich). Am 14.11. fehlt die Prognose noch im Archiv; der Fall ist im
+Browser-Test K nachgestellt, die Reihenfolge in L, der Gegentest zu «kaum Wind» in M.
+
+### Review Runde 2: ANNEHMEN
+
+Neuer, unabhängiger Reviewer, ohne Kenntnis von Runde 1. Kein blockierender Defekt. Kernzahl unabhängig nachgerechnet (eigene
+Zeitschleife, zwei Soll-Definitionen): nur See, +0 h, neu 76 / main 54 / Prognose 52 % (Mehrheit der 10-min-Lagen: 70/50/48);
+ohne je einen Tag neu−main +9…+27 Punkte, hängt also nicht an einem Tag. Übernommen: Kopfkommentar von `vorwahl()` mit der
+neuen Reihenfolge, Zeilenzahl in ARCHITEKTUR.md, Text #info (10 kn, 3 kn, Chasseral fehlt), drei Vorwahl-Tests (starke
+Kammprognose bei schwachem Chasseral, Chasseral fehlt, Nordwest am See ohne Zeichen). Offen, nicht blockierend:
+
+1. Der Gewinn bei +0 h ist Beständigkeit über 0–60 min, kein Vorhersagegewinn; der kurzfristige Vorsprung (+1…+3 h) kommt
+   aus der Chasseral-Fortschreibung, die schon v34 hatte. Holdout und danach tragen bei «nur See» 14 Stunden an 3 Tagen.
+2. Am Vormittag bei schwachem Chasseral zeigt die Kopfzeile neu «Jetzt: …» aus dem See, die Abendlage aus der Prognose
+   steht nur noch im Regler. Vorschlag: bei einer Lage vom See zusätzlich «Abend: X (Prognose)», wenn sie abweicht.
+3. «Süd» aus dem See ist unzuverlässig, die Lage vom See greift schon ab 3 kn.
+4. `prog` im Nachspielen ist der Lauf des Tages für jeden Vorlauf (begünstigt Prognose und main, also konservativ).
+5. «kaum Wind» gilt unter 3 kn, 2.5–2.99 kn erscheinen gerundet als «3 kn».

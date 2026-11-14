@@ -2,7 +2,7 @@
 """Joran — Sektion «Windbild» im Browser prüfen. Kein Teil der Pflichtprüfungen (braucht Python-Playwright und Chrome).
 Lädt die Seite von einem lokalen Server in 390×844, hell und dunkel. Modelle und Seemessung sind künstlich, alle anderen
 Abrufe ins Netz werden abgebrochen. Prüft: Vorwahl der Lage je Quelle (nach dem Wind auf dem Chasseral, wie die Daten), Wind von jetzt, fehlende Messung, Südost,
-Regler (Messung fortschreiben, Stärke mischen, Quote), Chasseral in See und Bucht, Mathod in der Region,
+Regler (Messung führt, dann Kombination, dann Prognose; Stärke mischen, Quote), Chasseral in See und Bucht, Mathod in der Region,
 alle Lagen und Varianten, reduzierte Bewegung, Animation nur im Bild, Konsolenfehler.
 Aufruf: python3 eval/windbild-test.py [Ordner für Screenshots]   Chrome: Umgebungsvariable CHROME, sonst /usr/bin/google-chrome"""
 import json, sys, time, datetime, re, threading, http.server, functools, os, tempfile
@@ -94,7 +94,7 @@ with sync_playwright() as p:
     ok("A See: La Neuveville mit Modellwert, als «Modell» und mit «~» gekennzeichnet", j["m"]==1 and any(t.startswith("La Neuveville ~") and t.endswith("Modell") for t in j["l"]), j)
     pg.click(".wbviews button[data-v=bucht]"); pg.wait_for_timeout(300)
     # Regler: Messung fortschreiben, ausser die Prognose sagt einen Wechsel; Stärke gemischt, nie unter dem Modell
-    res=pg.evaluate("""()=>{ const P=(lage)=>({lage, vk:lage==='west'?'mix':null}), J={lage:'bise', vk:'mix', kamm:true};
+    res=pg.evaluate("""()=>{ const P=(lage)=>({lage, vk:lage==='west'?'mix':null}), J={lage:'bise', vk:'mix', kamm:true}, S={lage:'bise', vk:'stabil', kamm:false};
       const v={leads:[1,2,3], fort:{bise:[90,80,70]}, prog:[60,62,64]};
       const T=[
        ['Messung, Prognose ohne Wechsel → Messung', WB.mischLage(J, P('bise'), P('bise')), 'bise', 'messung'],
@@ -102,7 +102,14 @@ with sync_playwright() as p:
        ['Messung, Prognose sagt Wechsel → Prognose', WB.mischLage(J, P('bise'), P('west')), 'west', 'wechsel'],
        ['Messung Süd, Prognose West jetzt und später → Süd bleibt', WB.mischLage({lage:'sued'}, P('west'), P('west')), 'sued', 'messung'],
        ['ohne Messung → Prognose', WB.mischLage(null, P('bise'), P('nord')), 'nord', 'prognose'],
-       ['Prognose jetzt ohne Lage, später wie die Messung → kein Wechsel', WB.mischLage(J, P(null), P('bise')), 'bise', 'messung'] ];
+       ['Prognose jetzt ohne Lage, später wie die Messung → kein Wechsel', WB.mischLage(J, P(null), P('bise')), 'bise', 'messung'],
+       // v35: drei Phasen. Messung vom Chasseral führt 2 h, dann Kombination; Lage nur vom See gilt nur jetzt (eval/kette.cjs)
+       ['Chasseral +2 h, Prognose sagt Wechsel → Messung führt', WB.mischLage(J, P('bise'), P('west'), 2), 'bise', 'messung'],
+       ['Chasseral +3 h, Prognose sagt Wechsel → Prognose', WB.mischLage(J, P('bise'), P('west'), 3), 'west', 'wechsel'],
+       ['Chasseral +12 h, Prognose ohne Lage → Messung', WB.mischLage(J, P('bise'), P(null), 12), 'bise', 'messung'],
+       ['nur See +1 h, Prognose ohne Lage → keine Lage', WB.mischLage(S, P(null), P(null), 1), null, 'prognose'],
+       ['nur See +1 h, Prognose West → Prognose', WB.mischLage(S, P('bise'), P('west'), 1), 'west', 'wechsel'],
+       ['nur See +1 h, Prognose Bise → Prognose', WB.mischLage(S, P('bise'), P('bise'), 1), 'bise', 'prognose'] ];
       const k1=WB.mischKn({kn:20,dir:240},{kn:10,dir:240},1,3.75), k2=WB.mischKn({kn:4,dir:240},{kn:12,dir:240},2,3.75), k3=WB.mischKn(null,{kn:9,dir:60},2,3.75);
       return T.map(([n,r,l,a])=>[n, r.lage===l && r.aus===a, JSON.stringify(r)]).concat([
        ['Stärke +1 h: Messung zählt mehr', k1.kn>17 && k1.kn<20, JSON.stringify(k1)],
@@ -155,6 +162,10 @@ with sync_playwright() as p:
        ['Ältere Datei ohne Sektoren: Sektor am Boden', {kammM:K(0,22), s:{top:{d:60,v:9}}, _alt:true}, 'bise',null,'Prognose im Zeitfenster'],
        ['Seemessung West, Chasseral schwach', {kammM:K(250,5), lake:lk(250,9)}, 'west','mix','Seemessung Ipsach'],
        ['Seemessung zu schwach', {lake:lk(250,2)}, null,null,''],
+       // v35: Seemessung vor der Prognose, wenn der Chasseral schwach misst; fehlt er, bleibt die Prognose vorne
+       ['Chasseral schwach: See West vor starker Kammprognose N', {kammM:K(200,6), kammP:K(5,24), s:{top:{d:50,v:13}}, lake:lk(250,9)}, 'west','mix','Seemessung Ipsach'],
+       ['Chasseral fehlt: Kammprognose N vor See West', {kammP:K(5,24), s:{top:{d:50,v:13}}, lake:lk(250,9)}, 'nord',null,'Prognose, Wind auf dem Chasseral'],
+       ['Chasseral schwach, See NW ohne Joran-Zeichen → Prognose', {kammM:K(200,6), s:{top:{d:240,v:9}}, monat:11, lake:lk(315,8)}, 'west','mix','Prognose im Zeitfenster'],
        // Bise am See geht vor (v32): beide Seestationen Bise ab 4 kn, Chasseral West, Süd oder Nordwest
        ['See Bise, Chasseral SW gemessen (14.11.) → Bise', {kammM:K(225,16), mixM:false, lake:lk2(80,6,75,5)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
        ['See Bise, Chasseral S gemessen → Bise', {kammM:K(190,13), lake:lk2(70,7,85,8)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
@@ -261,7 +272,7 @@ with sync_playwright() as p:
     ok("F besserer Spot nach Anteil der Zeit", "Ipsach" in i["panel"] and "öfter ab" in i["panel"], i["panel"])
     ok("F keine Konsolenfehler", not errs, errs); b.close()
     # I: Bise am See unter Südwest auf dem Kamm (v32, Fall 14.11.): Bise vorgewählt, Kopfzeile «am See», höchstens 2 Zeilen,
-    #    Regler ab +1 h wieder aus der Prognose
+    #    Regler ab +1 h aus der Prognose (Lage nur vom See gilt nur jetzt, eval/kette.cjs)
     b,pg,i,errs,tm=run(p,"see-bise","light",225,7,{"vin":(6,80),"ips":(5,75)}, kamm=(225,8))
     ok("I See Bise geht vor Kamm Südwest", i["pressed"]==["bise"] and "Jetzt: Bise am See" in " ".join(i["today"].split()) and "Seemessung Vingelz und Ipsach" in i["today"], i["today"])
     j=pg.evaluate("()=>{const t=document.querySelector('.wbtoday'); return {h:t.getBoundingClientRect().height, lh:parseFloat(getComputedStyle(t).lineHeight)||20};}")
@@ -277,6 +288,29 @@ with sync_playwright() as p:
     j=pg.evaluate("()=>{const t=document.querySelector('.wbtoday'); return {h:t.getBoundingClientRect().height, lh:parseFloat(getComputedStyle(t).lineHeight)||20};}")
     ok("J Kopfzeile höchstens 2 Zeilen", j["h"] < 3*j["lh"], j)  # 2 Zeilen = 2 × Zeilenhöhe + 4 px Abstand (flex gap)
     ok("J keine Konsolenfehler", not errs, errs); b.close()
+    # K: Fall 14.11. 16:34 (v35): Chasseral 8 kn S (unter kammMin), Vingelz 5 kn ONO, Ipsach 3 kn O, Modell kaum Wind.
+    #    Jetzt Bise aus der Seemessung; ab +1 h Prognose: «kaum Wind» statt «keine Lage erkennbar», ohne Quote
+    b,pg,i,errs,tm=run(p,"see-schwach","dark",60,1,{"vin":(5,67),"ips":(3,90)}, kamm=(200,3), smn={"cha":(8,202,4)}, shots=False)
+    ok("K Jetzt: Bise aus der Seemessung", i["pressed"]==["bise"] and "Bise" in i["today"] and "Seemessung" in i["today"], i["today"])
+    # +1 h: Stärke noch zu zwei Dritteln aus der Messung (Vingelz ~4 kn), also nicht «kaum Wind»; +3 h: Modell führt
+    for hh,want in ((1,"keine Lage erkennbar"),(3,"kaum Wind")):
+        pg.evaluate(f"()=>{{const r=document.querySelector('.wbtime input'); r.value={hh}; r.dispatchEvent(new Event('input'));}}"); pg.wait_for_timeout(500)
+        j=pg.evaluate("()=>document.querySelector('.wbtoday').innerText")
+        ok(f"K Regler +{hh} h: {want}, nicht fortgeschrieben, keine Quote", want in j and "fortgeschrieben" not in j and "stimmt" not in j, j)
+    ok("K keine Konsolenfehler", not errs, errs); b.close()
+    # L: Seemessung geht der Prognose fürs Zeitfenster vor (v35): Chasseral schwach, See 6 kn Bise, Modelle West 12 kn
+    b,pg,i,errs,tm=run(p,"see-vor-prognose","light",240,12,{"vin":(6,70),"ips":(5,80)}, kamm=(200,3), smn={"cha":(6,200,4)}, shots=False)
+    ok("L Jetzt: Bise aus der Seemessung, nicht West aus der Prognose", i["pressed"]==["bise"] and "Jetzt" in i["today"] and "Seemessung" in i["today"], i["today"])
+    pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=2; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(500)
+    j=pg.evaluate("()=>document.querySelector('.wbtoday').innerText")
+    ok("L Regler +2 h: Prognose sagt Wechsel auf West oder Süd", "West oder Süd" in j and "Wechsel" in j, j)
+    ok("L keine Konsolenfehler", not errs, errs); b.close()
+    # M: Gegentest: Modell 6 kn Nordwest ohne Joran-Zeichen, keine Lage, aber Wind ab 3 kn → «keine Lage erkennbar», nicht «kaum Wind»
+    b,pg,i,errs,tm=run(p,"nw-ohne","light",310,6,{}, kamm=(200,3), shots=False)
+    pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=3; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(500)
+    j=pg.evaluate("()=>document.querySelector('.wbtoday').innerText")
+    ok("M Regler +3 h: keine Lage erkennbar bei Modell ab 3 kn", "keine Lage erkennbar" in j and "kaum Wind" not in j, j)
+    ok("M keine Konsolenfehler", not errs, errs); b.close()
     # G: Datei fehlt oder ist unvollständig: Hauptansicht steht, Meldung in der Sektion
     for nm,body in (("fehlt",None),("unvollständig",'{"stand":"2026-11-12","lagen":[{"id":"west","name":"West","vars":[]}]}')):
         bb=p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"]); pg=bb.new_page(viewport={"width":390,"height":844}); er=[]

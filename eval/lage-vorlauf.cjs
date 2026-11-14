@@ -5,7 +5,8 @@
       später misst. Lange Reihe: Stundenwerte 2010 bis gestern (SwissMetNet, Chasseral). Kurze Reihe: Entwicklungstage.
    2. Lage aus der Prognose (vorwahl() mit Kammprognose ICON-CH2 und Modellmittel am See, wie eval/windbild-stunde.cjs),
       Lauf des Tages (previous_day0) und Lauf vom Vortag (previous_day1), dazu die Mischregel der App: Messung fortschreiben,
-      ausser die Prognose sagt selbst einen Wechsel der Lage voraus.
+      ausser die Prognose sagt selbst einen Wechsel der Lage voraus (v35: die ersten FUEHRT.kamm Stunden gilt die Messung fest).
+      Lagen nur aus der Seemessung misst eval/kette.cjs.
    3. Stärke an Ipsach und Vingelz: Seemessung jetzt fortgeschrieben gegen Modellmittel, und die Mischung
       w·Messung + (1−w)·Modell mit w = exp(−h/τ). τ wird auf den Entwicklungstagen bestimmt.
    Ziele: 8–22 Uhr. Soll der Lage: Sektor auf dem Chasseral ab regeln.kammMin kn (wie data/windbild.json).
@@ -83,14 +84,14 @@ const pct = (a, n) => n ? Math.round(100*a/n) : null, f = x => x==null ? "  –"
       add("fort", h, ws(jetzt)===ws(soll));
       ["", "_previous_day1"].forEach(s=>{ const p = prog(kz, s), p0 = prog(k, s);
         add("prog"+s, h, !!p && ws(p)===ws(soll));
-        /* Mischregel der App (mischLage aus app/windbild.js) */
-        const misch = app.mischLage({lage:jetzt}, {lage:p0}, {lage:p}).lage;
+        /* Regler der App (mischLage aus app/windbild.js, mit Vorlauf h: Messung vom Chasseral führt FUEHRT.kamm Stunden) */
+        const misch = app.mischLage({lage:jetzt, kamm:true}, {lage:p0}, {lage:p}, h).lage;
         add("misch"+s, h, !!misch && ws(misch)===ws(soll)); });
     }); });
   console.log(`\n2) Tage ${VON}–${BIS}, Lage richtig (West und Süd zusammen wie im Regler), Ziel 8–22 Uhr`);
   console.log("   Methode                          " + LEADS.map(h=>("+"+h+"h").padStart(5)).join("") + "   n(+1h)");
   [["fort","Messung fortgeschrieben"],["prog","Prognose, Lauf des Tages"],["prog_previous_day1","Prognose, Lauf vom Vortag"],
-   ["misch","Mischregel, Lauf des Tages"],["misch_previous_day1","Mischregel, Lauf vom Vortag"]].forEach(([m, name])=>
+   ["misch","Regler, Lauf des Tages"],["misch_previous_day1","Regler, Lauf vom Vortag"]].forEach(([m, name])=>
     console.log(`   ${name.padEnd(32)} ` + LEADS.map(h=>(f(R[m] && R[m][h] && pct(R[m][h].hit, R[m][h].n))+" %").padStart(5)).join("") + `   ${R[m] && R[m][1] ? R[m][1].n : 0}`));
 
   /* ---------- Stärke am See ---------- */

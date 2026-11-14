@@ -102,7 +102,8 @@ const BODEN = {w:"west", s:"sued", so:"suedost", bise:"bise", n:"nord", joran:"j
         kammM: {kn, dir} Chasseral jetzt gemessen, mixP / mixM: Luft durchmischt laut Prognose / Messung (true, false, null),
         s: Ergebnis von summarize für heute, lake: Ergebnis von lakeNow, jc: Ergebnis von joranCheck, monat: 1–12,
         kammFehlt: true, wenn der Chasseral keinen frischen Wert liefert}
-   Reihenfolge der Quellen: Upwind-Signal, Messung auf dem Chasseral, Prognose, Seemessung. Die Messung geht der Prognose vor:
+   Reihenfolge der Quellen (v35): Upwind-Signal, Messung auf dem Chasseral, Seemessung (nur wenn der Chasseral schwach misst,
+   nicht wenn er fehlt), Kamm- und Fensterprognose, danach die Seemessung ohne Chasseral. Die Messung geht der Prognose vor:
    ICON-CH2 sagt auf dem Chasseral im Mittel nur halb so viel Wind voraus, wie gemessen wird, und zeigt bei Süd Südwest.
    Ergebnis: art = "messung" (Lage von jetzt) oder "prognose" (Lage fürs Zeitfenster); unsicher = true, wenn die Lage ohne
    Messung auf dem Chasseral gewählt ist. Dann kann hinter «West» auch Süd stehen und hinter «Bise» die Nordlage: Keine
@@ -137,9 +138,22 @@ function vorwahl(x, lagen, regeln){
     else if(t.u && t.u.sys && BODEN[t.u.sys.id]) r = {lage:BODEN[t.u.sys.id], quelle:q, mix:x.mixM};
   }
   if(!r && stark(x.kammM)){ r = vonKamm(x.kammM, "Messung Chasseral", x.mixM); kamm = true; }
+  /* Seemessung vor der Prognose (v35, Simon 14.11.: «Messung, dann Regeln, dann Prognose»). Die Lage von jetzt kommt aus
+     der Messung, die Prognose fürs Zeitfenster zeigt der Regler. eval/kette.cjs, 16.10.–13.11., Lage der laufenden Stunde
+     richtig, wenn nur der See misst: 76 % statt 54 % (Entwicklung 83/60, Holdout 56/44, 11.–13.11. 60/20; 11 Tage).
+     Ergibt der See keine Lage (Nordwest ohne Joran-Zeichen), geht es mit der Prognose weiter. Nur wenn der Chasseral misst
+     (schwach): Fehlt er, trennt erst die Kammprognose Nordlage von Bise und Süd von West (ohne Chasseral trifft die Seemessung
+     Süd 0 %, Nordlage 4 %, eval/windbild.cjs --pruefen). */
+  let seeOhne = null;
+  if(!r && x.kammM && x.kammM.kn!=null){
+    const f = (x.lake||[]).filter(z=>z.fresh && z.last && z.last.dir!=null && z.last.mean>=3).sort((a,b)=>b.last.mean-a.last.mean)[0];
+    const b = f ? vonBoden(dirOf(f.last.dir), `Seemessung ${f.L.name}`, x.mixM) : null;
+    if(b && b.lage) r = b; else seeOhne = b;
+  }
   if(!r && stark(x.kammP)){ r = vonKamm(x.kammP, "Prognose, Wind auf dem Chasseral", x.mixP); art = "prognose"; }
   if(!r && x.s && x.s.top && x.s.top.d!=null && x.s.top.v>=3){ r = vonBoden(dirOf(x.s.top.d), "Prognose im Zeitfenster", x.mixP); art = "prognose"; }
-  if(!r){
+  if(!r && seeOhne){ r = seeOhne; art = "messung"; }
+  if(!r && !(x.kammM && x.kammM.kn!=null)){
     const f = (x.lake||[]).filter(z=>z.fresh && z.last && z.last.dir!=null && z.last.mean>=3).sort((a,b)=>b.last.mean-a.last.mean)[0];
     if(f) r = vonBoden(dirOf(f.last.dir), `Seemessung ${f.L.name}`, x.mixM);
   }
@@ -170,14 +184,25 @@ function vorwahl(x, lagen, regeln){
   else if(l && l.vars.length>1){ const v = l.vars.find(z=>z.schicht===(r.mix===false ? "stabil" : "gemischt")); vk = v ? v.key : l.vars[0].key; }
   return {lage:r.lage, vk, quelle:r.quelle, grund:"", art, unsicher, kamm, ueber:r.ueber || null, seeBise:!!r.see};
 }
-/* Regler: Lage einer kommenden Stunde. Die Messung von jetzt hält kurzfristig länger, als die Prognose trifft
-   (eval/lage-vorlauf.cjs, Entwicklungstage: fortgeschrieben 88 % nach 1 h und 62 % nach 18 h, Prognose 72–76 %; die
-   Mischregel liegt bei jedem Vorlauf vorne oder gleichauf). Darum gilt die Lage von jetzt,
-   ausser die Prognose sagt selbst einen Wechsel voraus (Lage der Stunde anders als ihre Lage von jetzt).
-   jetzt: Lage aus der Messung auf dem Chasseral (oder null), p0 / ph: vorwahl() aus der Prognose für jetzt und für die Stunde.
-   West und Süd zählen dabei als eine Lage: Die Prognose trennt sie nicht. */
+/* Regler: Lage einer kommenden Stunde, in drei Phasen (v35, Simon 14.11.: «kurzfristig führt die Messung, dann die
+   Kombination, ab 24 h die Modelle»). jetzt: Lage aus der Messung ({lage, vk, kamm}) oder null, p0 / ph: vorwahl() aus der
+   Prognose für jetzt und für die Stunde h. West und Süd zählen als eine Lage: Die Prognose trennt sie nicht.
+   1. Die Messung führt FUEHRT Stunden, gleich was die Prognose sagt: so lange, wie sie die Prognose nachweislich schlägt.
+   2. Danach, bei einer Lage vom Chasseral (kamm): Messung, ausser die Prognose sagt selbst einen Wechsel voraus (Lage der
+      Stunde anders als ihre Lage von jetzt und als die Messung). Bei einer Lage nur aus der Seemessung oder dem Upwind-Signal
+      gilt die Prognose.
+   3. Ab +24 h (Startseite «Nächste 4 Tage») nur noch die Modelle.
+   eval/kette.cjs, 16.10.–13.11., Soll: Lage aus der Messung zur Zielstunde, Lage richtig nach +1/+2/+3/+6 h:
+     Chasseral (312 Std.): Prognose 75/76/76/77 %, Regler 88/85/85/78 % (95 % über Tage für +1 h: +5…+21 Punkte).
+     nur See (53 Std., 11 Tage): Prognose 55/58/57/59 %, fortgeschrieben 1 h 62 %, 3 h 48 %, 6 h 54 %; auf Holdout und
+     neuen Tagen schon ab +1 h nicht besser. Darum FUEHRT.see = 0: Der See bestimmt nur die Lage von jetzt.
+   Ohne h (ältere Aufrufe) gilt nur Phase 2 mit der Regel für den Chasseral. */
+const FUEHRT = {kamm:2, see:0};
 const wsGleich = (a, b) => (a==="sued" ? "west" : a)===(b==="sued" ? "west" : b);
-function mischLage(jetzt, p0, ph){
+function mischLage(jetzt, p0, ph, h){
+  const nurSee = !!(jetzt && jetzt.lage && jetzt.kamm===false);
+  if(jetzt && jetzt.lage && h!=null && h<=FUEHRT[nurSee ? "see" : "kamm"]) return {lage:jetzt.lage, vk:jetzt.vk, aus:"messung"};
+  if(nurSee && h!=null) return ph && ph.lage ? {lage:ph.lage, vk:ph.vk, aus:wsGleich(ph.lage, jetzt.lage) ? "prognose" : "wechsel"} : {lage:null, vk:null, aus:"prognose"};
   /* Wechsel nur, wenn die Prognose für die Stunde eine andere Lage hat als für jetzt und als die Messung */
   const wechsel = !!(ph && ph.lage) && !wsGleich(ph.lage, p0 && p0.lage) && !(jetzt && wsGleich(ph.lage, jetzt.lage));
   if(jetzt && jetzt.lage && !wechsel) return {lage:jetzt.lage, vk:jetzt.vk, aus:"messung"};
@@ -252,14 +277,15 @@ function prognoseLage(h){
 /* Regler: Lage und Stärke einer kommenden Stunde aus Messung und Prognose (mischLage, mischKn). h0 = Ergebnis von heute() */
 function stunde(h, h0){
   const P = prognoseLage(h), P0 = prognoseLage(0);
-  /* fortgeschrieben wird nur eine Lage, die der Chasseral (oder Regel E) jetzt misst, wie in eval/lage-vorlauf.cjs */
-  const j = h0 && h0.lage && h0.kamm && h0.art==="messung" && !h0.unsicher ? h0 : null;
-  const m = mischLage(j, P0.r, P.r);
+  /* gemessene Lage von jetzt; wie lange sie führt, entscheidet mischLage (Chasseral und Regel E: FUEHRT.kamm, sonst
+     FUEHRT.see). Die Quote «fortgeschrieben» gilt nur für Lagen vom Chasseral (lange Reihe). */
+  const j = h0 && h0.lage && h0.art==="messung" ? {lage:h0.lage, vk:h0.vk, kamm:!!h0.kamm && !h0.unsicher} : null;
+  const m = mischLage(j, P0.r, P.r, h);
   const r = {lage:m.lage, vk:m.vk, aus:m.aus, T:P.T, ref:{}};
   if(m.aus!=="messung" && (r.lage==="west" || r.lage==="sued")){ r.lage = "west"; r.vk = "mix"; r.westSued = true; }
   const tau = DATA.vorlauf && DATA.vorlauf.tau;
   MOD_SPOTS.forEach(id=>{ const n = jetzt(id), k = mischKn(n && n.mean!=null && n.dir!=null ? {kn:n.mean, dir:n.dir} : null, P.ref[id] || null, h, tau); if(k) r.ref[id] = k; });
-  r.quote = r.lage ? quote(DATA.vorlauf, m.aus, m.lage, h) : null;
+  r.quote = r.lage && !(m.aus==="messung" && !j.kamm) ? quote(DATA.vorlauf, m.aus, m.lage, h) : null;
   return r;
 }
 
@@ -533,6 +559,9 @@ function panel(){
   /* nur schreiben, wenn sich etwas ändert: sonst liest ein Screenreader den Kasten bei jedem Auffrischen neu vor */
   if(html!==panelHtml){ panelHtml = html; el.querySelector(".wbpanel").innerHTML = html; }
 }
+/* Ohne Lage: Liegt die angezeigte Stärke (Messung und Modell gemischt, nie unter dem Modell) an jedem Spot mit Wert unter
+   3 kn, heisst das «kaum Wind», nicht «keine Lage erkennbar» */
+const kaum = () => { const v = ["vin","ips"].map(id=>BILD.ref[id]).filter(Boolean); return v.length>0 && v.every(z=>z.kn<3); };
 function head(){
   const h = HEUTE, hl = h.lage ? DATA.lagen.find(l=>l.id===h.lage) : null;
   const same = hl && ST.type===h.lage;
@@ -544,7 +573,7 @@ function head(){
   /* Bise am See, darüber anderer Wind (vorwahl, seeBise): «Jetzt: Bise am See · darüber Südwest (Chasseral 16 kn)» */
   const lname = !hl ? "" : h.seeBise ? `<span><b>${esc(hl.name)}</b> am See</span>` : `<b>${esc(hl.name)}</b>`, ueber = h.ueber ? ` · darüber ${esc(h.ueber.name)} (Chasseral ${h.ueber.kn} kn)` : "";
   el.querySelector(".wbtoday").innerHTML = !ST.full && ST.h>0
-    ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
+    ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : kaum() ? "kaum Wind" : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
     : !ST.full ? (hl ? `${wann}: ${lname} <span class="dim">${ueber ? ueber.slice(3)+" · " : "· "}${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
       : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`)
     : hl ? `${wann}: ${lname} <span class="dim">· ${esc(h.quelle)}${ueber}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
