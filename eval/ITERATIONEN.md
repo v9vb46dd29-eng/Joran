@@ -636,5 +636,12 @@ Review (unabhängiger Subagent): ANNEHMEN mit Auflagen. Tabelle in allen sechs Z
 Wind 09:06, Live-Push 11:40 auch mit dem Kern, wie er live läuft. Auflage: Simon entscheidet ausdrücklich, Entscheid
 steht vor dem Merge hier.
 
+**Entscheid Simon (14.11.):** Der 22.10. wird als Ausnahme hingenommen, «wenn das eine Ausnahme bleibt und es keine
+bessere Alternative gibt». Begründung: Am 22.10. wehte es ab 9 Uhr bis 15 Uhr mit 15–19 kn. Der Push «Am See erreicht»
+kommt kurz nach 9 Uhr, es bleiben rund 6 Stunden Wind. Verloren geht nur die Ankündigung am Vortag. Geprüfte
+Alternativen: Grenze «möglich» behalten (14 kn, Tag: Fehlalarme 4 → 7 von 15) oder Push am Vortag ab «möglich» nur für
+hohe Schwellen (eigene Regel, aus einem Tag abgeleitet). Beide sind nicht besser. Bei der Prüfung am 28.12. (Schritt 14)
+neu ansehen; kommt ein zweiter solcher Tag dazu, geht der Entscheid an Simon zurück.
+
 Akzeptanz: Teil 1 erfüllt, Teil 2 an einem Tag (22.10., 14 kn, Tag) nicht erfüllt, Teil 3 erfüllt (6 → 5 von 14),
 Teil 4: 7 foilbare Tage, vorläufig.
