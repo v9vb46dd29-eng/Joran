@@ -26,8 +26,8 @@ const SCHWELLEN = []; for(let t=10; t<=30; t++) SCHWELLEN.push(t);
 const LAPSE = 4, KAMM_MIN = 10, MIN_WERTE = 12;                    /* wie eval/schichten.cjs */
 /* Kammprognose ICON-CH2 mal diesen Faktor (Median Prognose/Messung 0.49, eval/windbild-stunde.cjs) */
 const KAMM_FAKTOR = 2;
-const MIN_TAGE = 4, TAG_WERTE = 6;
-const SEE_BISE_MIN = 4;                                            /* Bise am See geht vor: Vingelz und Ipsach je ab so viel kn im Sektor bise (vorwahl, v32) */                                 /* ein Tag zählt ab einer Stunde Messwerten in der Lage; ab MIN_TAGE Tagen gilt sie als gemessen */
+const MIN_TAGE = 4, TAG_WERTE = 6;                                 /* ein Tag zählt ab einer Stunde Messwerten in der Lage; ab MIN_TAGE Tagen gilt sie als gemessen */
+const SEE_BISE_MIN = 4;                                            /* Bise am See geht vor: Vingelz und Ipsach je ab so viel kn im Sektor bise (vorwahl, v32) */
 const LAND = ["cha","crm","gre","coy","neu"], SEE = C.LAKE.map(x=>x.id), MESS = LAND.concat(SEE);
 
 /* ---------- Daten: gleiche Auswahl wie eval/schichten.cjs ---------- */
@@ -179,7 +179,9 @@ if(has("--pruefen")){
     ok("Bise am See überschreibt nie Nordlage oder Südost", nordSo===0, `${nordSo} Werte`);
     const sig = app.vorwahl({nc:{trusted:[{up:{name:"Neuchâtel"}, u:{sys:{id:"w"}}}]}, kammM:{kn:16, dir:225}, lake:C.LAKE.map(Lk=>({fresh:true, L:Lk, last:{mean:6, dir:80}})), monat:11}, out.lagen, out.regeln);
     const ohneSig = app.vorwahl({kammM:{kn:16, dir:225}, mixM:false, lake:C.LAKE.map(Lk=>({fresh:true, L:Lk, last:{mean:6, dir:80}})), monat:11}, out.lagen, out.regeln);
-    ok("Fall 14.11. 12:03 (See 5–6 kn O, Chasseral 16 kn SW): Bise, darüber Südwest; mit Upwind-Signal bleibt West",
+    const sigB = app.vorwahl({nc:{trusted:[{up:{name:"Grenchen"}, u:{sys:{id:"bise"}}}]}, kammM:{kn:16, dir:225}, lake:C.LAKE.map(Lk=>({fresh:true, L:Lk, last:{mean:12, dir:45}})), monat:11}, out.lagen, out.regeln);
+    ok("Bise-Signal (Grenchen) blockiert Bise am See nicht (Review v32, A1)", sigB.lage==="bise" && sigB.seeBise, JSON.stringify([sigB.lage, sigB.quelle]));
+    ok("Fall 14.11. 12:03 (See 5–6 kn O, Chasseral 16 kn SW): Bise, darüber Südwest; mit West-Signal bleibt West",
       ohneSig.lage==="bise" && ohneSig.seeBise && ohneSig.ueber && ohneSig.ueber.name==="Südwest" && ohneSig.art==="messung" && !ohneSig.kamm && sig.lage==="west" && !sig.seeBise,
       JSON.stringify({ohneSig:[ohneSig.lage, ohneSig.ueber], sig:sig.lage}));
     ok("Vorwahl gegen das Archiv für West, Süd, Bise und Nordlage geprüft", ["west","sued","bise","nord"].every(id=>all[id]>0), Object.keys(all).join(", "));

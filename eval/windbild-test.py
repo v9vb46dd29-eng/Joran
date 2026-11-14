@@ -38,7 +38,12 @@ def lake_json(vals):
     for k in ("vin","ips"):
         v=vals.get(k); st[k]={"rows":[{"t":(now-datetime.timedelta(minutes=m)).strftime("%Y-%m-%dT%H:%M:00.000Z"),"mean":v[0],"dir":v[1],"gust":v[0]*1.3} for m in (25,15,5)] if v else []}
     return {"updated":now.isoformat()+"Z","st":st}
-def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None, vh=844):
+def smn_csv(kn, d, temp):
+    # SwissMetNet 10 min (data.geo.admin.ch): drei Werte der letzten halben Stunde, Wind in km/h, Zeit UTC
+    now=datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None); t0=now.replace(minute=now.minute//10*10, second=0, microsecond=0)
+    rows=[(t0-datetime.timedelta(minutes=10*k)).strftime("%d.%m.%Y %H:%M")+f";{d};{kn*1.852:.2f};{kn*1.3*1.852:.2f};{temp}" for k in (2,1,0)]
+    return "station_abbr;reference_timestamp;dkl010z0;fu3010z0;fu3010z1;tre200s0\n"+"\n".join("CHA;"+r for r in rows)
+def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None, vh=844, smn=None):
     b=p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
     ctx=b.new_context(viewport={"width":390,"height":vh}, device_scale_factor=2, color_scheme=scheme, reduced_motion="reduce" if reduced else "no-preference", locale="de-CH", timezone_id="Europe/Zurich")
     pg=ctx.new_page(); errs=[]
@@ -53,6 +58,9 @@ def run(p, name, scheme, wd, ws, lake, reduced=False, shots=True, kamm=None, vh=
             return r.fulfill(status=200, content_type="application/json", body=json.dumps(model_json(wd,ws)))
         if kamm and "api.open-meteo.com/v1/forecast" in u and "pressure_msl" in u:
             return r.fulfill(status=200, content_type="application/json", body=json.dumps(jura_json(kamm)))
+        if smn and "ogd-smn_" in u and "_t_now" in u:
+            ab=u.split("ogd-smn_")[1].split("_")[0]
+            if ab in smn: return r.fulfill(status=200, content_type="text/csv", body=smn_csv(*smn[ab]).encode("cp1252"))
         if "raw.githubusercontent.com" in u and "lake.json" in u:
             return r.fulfill(status=200, content_type="application/json", headers={"access-control-allow-origin":"*"}, body=json.dumps(lake_json(lake)))
         return r.abort()
@@ -158,6 +166,7 @@ with sync_playwright() as p:
        ['See Bise, Chasseral N → Nordlage bleibt', {kammM:K(5,22), lake:lk2(60,6,40,9)}, 'nord',null,'Messung Chasseral'],
        ['See Bise, Chasseral SO → Südost bleibt', {kammM:K(120,20), lake:lk2(60,6,50,6)}, 'suedost','mix','Messung Chasseral'],
        ['See Bise, Signal Neuchâtel West → West bleibt', {nc:sig('w','Neuchâtel'), kammM:K(230,18), mixM:false, lake:lk2(80,6,75,6)}, 'west','stab','Neuchâtel'],
+       ['See Bise, Signal Grenchen Bise → Bise vom See', {nc:sig('bise','Grenchen'), kammM:K(225,16), lake:lk2(45,12,40,13)}, 'bise',null,'Seemessung Vingelz und Ipsach'],
        ['See Bise, Regel E → Joran bleibt', {nc:{eOk:true,trusted:[]}, monat:11, lake:lk2(80,6,75,6)}, 'joran','front','Cressier'],
        ['nichts', {}, null,null,''] ];
       const alt=[{id:'west',vars:[{key:'mix'}]},{id:'bise',vars:[{key:'mix'}]}];
@@ -256,11 +265,18 @@ with sync_playwright() as p:
     b,pg,i,errs,tm=run(p,"see-bise","light",225,7,{"vin":(6,80),"ips":(5,75)}, kamm=(225,8))
     ok("I See Bise geht vor Kamm Südwest", i["pressed"]==["bise"] and "Jetzt: Bise am See" in " ".join(i["today"].split()) and "Seemessung Vingelz und Ipsach" in i["today"], i["today"])
     j=pg.evaluate("()=>{const t=document.querySelector('.wbtoday'); return {h:t.getBoundingClientRect().height, lh:parseFloat(getComputedStyle(t).lineHeight)||20};}")
-    ok("I Kopfzeile höchstens 2 Zeilen", j["h"] <= 2*j["lh"]+2, j)
+    ok("I Kopfzeile höchstens 2 Zeilen", j["h"] < 3*j["lh"], j)  # 2 Zeilen = 2 × Zeilenhöhe + 4 px Abstand (flex gap)
     pg.evaluate("()=>{const r=document.querySelector('.wbtime input'); r.value=2; r.dispatchEvent(new Event('input'));}"); pg.wait_for_timeout(600)
     j=pg.evaluate("()=>document.querySelector('.wbtoday').innerText")
     ok("I Regler +2 h: Lage aus der Prognose, Bise nicht fortgeschrieben", "West oder Süd" in j and "fortgeschrieben" not in j, j)
     ok("I keine Konsolenfehler", not errs, errs); b.close()
+    # J: Fall 14.11. 12:03 mit gemessenem Chasseral 16 kn SW (stabil: Cressier 6 °C, Chasseral 4 °C): «darüber Südwest»
+    b,pg,i,errs,tm=run(p,"see-bise-kamm","light",225,7,{"vin":(6,80),"ips":(5,75)}, kamm=(225,8), smn={"cha":(16,225,4),"crm":(2,200,6)})
+    t=" ".join(i["today"].split())
+    ok("J Kopfzeile: Bise am See, darüber Südwest (Chasseral 16 kn)", i["pressed"]==["bise"] and "Jetzt: Bise am See" in t and "darüber Südwest (Chasseral 16 kn)" in t and "fehlt" not in t, t)
+    j=pg.evaluate("()=>{const t=document.querySelector('.wbtoday'); return {h:t.getBoundingClientRect().height, lh:parseFloat(getComputedStyle(t).lineHeight)||20};}")
+    ok("J Kopfzeile höchstens 2 Zeilen", j["h"] < 3*j["lh"], j)  # 2 Zeilen = 2 × Zeilenhöhe + 4 px Abstand (flex gap)
+    ok("J keine Konsolenfehler", not errs, errs); b.close()
     # G: Datei fehlt oder ist unvollständig: Hauptansicht steht, Meldung in der Sektion
     for nm,body in (("fehlt",None),("unvollständig",'{"stand":"2026-11-12","lagen":[{"id":"west","name":"West","vars":[]}]}')):
         bb=p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"]); pg=bb.new_page(viewport={"width":390,"height":844}); er=[]

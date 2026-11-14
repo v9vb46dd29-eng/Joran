@@ -147,10 +147,12 @@ function vorwahl(x, lagen, regeln){
      regeln.seeBiseMin kn), gilt Bise, auch wenn der Chasseral West, Süd oder Nordwest misst. Die Bise liegt dann unter einer
      Inversion, darüber weht ein anderer Wind (14.11., 10–12 Uhr: See 5–8 kn O, Chasseral 12–17 kn S bis W, stabil).
      Nordlage und Südost bleiben: Bei diesen Lagen kommt der Wind am See ohnehin aus Nordost (Muster passt).
-     Ein Upwind-Signal oder Regel E geht weiter vor: Dann kommt Wind, der die Bise ablöst. Im Archiv 16.10.–14.11. greift die
+     Regel E und ein Upwind-Signal mit anderer Lage (West, Süd, Südost, Joran) gehen weiter vor: Dann kommt Wind, der die
+     Bise ablöst. Ein Signal für Bise oder Nordlage (Grenchen, Wynau) blockiert die Regel nicht (Review v32, A1).
+     Die Regel greift auch gegen die Kammprognose und die Prognose am Boden, wenn der Chasseral schwach misst oder fehlt. Im Archiv 16.10.–14.11. greift die
      Regel bei der Einführung an 13 von 2255 Zehnminutenwerten, 10 davon am 14.11.; nie foilbar (höchstens 8.5 kn).
      eval/windbild.cjs --pruefen prüft sie auf den Entwicklungstagen. */
-  const signal = !!(nc && (nc.eOk || (nc.trusted||[]).length));
+  const signal = !!(nc && (nc.eOk || (nc.trusted||[]).some(t=>t.u && t.u.sys && !["bise","n"].includes(t.u.sys.id))));
   if(r && !signal && ["west","sued","joran"].includes(r.lage)){
     const see = ["vin","ips"].map(id=>(x.lake||[]).find(z=>z.L && z.L.id===id));
     const bise = z => !!(z && z.fresh && z.last && z.last.dir!=null && z.last.mean>=(R.seeBiseMin ?? 4) && dirOf(z.last.dir).id==="bise");
@@ -542,7 +544,7 @@ function head(){
   const lname = !hl ? "" : h.seeBise ? `<span><b>${esc(hl.name)}</b> am See</span>` : `<b>${esc(hl.name)}</b>`, ueber = h.ueber ? ` · darüber ${esc(h.ueber.name)} (Chasseral ${h.ueber.kn} kn)` : "";
   el.querySelector(".wbtoday").innerHTML = !ST.full && ST.h>0
     ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
-    : !ST.full ? (hl ? `${wann}: ${lname} <span class="dim">${ueber} · ${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
+    : !ST.full ? (hl ? `${wann}: ${lname} <span class="dim">${ueber ? ueber.slice(3)+" · " : "· "}${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
       : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`)
     : hl ? `${wann}: ${lname} <span class="dim">· ${esc(h.quelle)}${ueber}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
     : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`;
