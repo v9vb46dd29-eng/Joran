@@ -8,6 +8,8 @@
       ausser die Prognose sagt selbst einen Wechsel der Lage voraus.
    3. Stärke an Ipsach und Vingelz: Seemessung jetzt fortgeschrieben gegen Modellmittel, und die Mischung
       w·Messung + (1−w)·Modell mit w = exp(−h/τ). τ wird auf den Entwicklungstagen bestimmt.
+   2b. Lage nur aus der Seemessung (der Chasseral misst unter regeln.kammMin kn): Soll ist die Lage am See (Stundenmittel von
+      Vingelz und Ipsach ab 3 kn, sonst «schwach»). Fortgeschrieben, Prognose und Regler (v35: Messung führt FUEHRT.see Stunden).
    Ziele: 8–22 Uhr. Soll der Lage: Sektor auf dem Chasseral ab regeln.kammMin kn (wie data/windbild.json).
    Aufruf: node eval/lage-vorlauf.cjs [--bis JJJJ-MM-TT] [--schreiben]
      --schreiben  legt die Kennzahlen in eval/data/vorlauf.json ab (eval/windbild.cjs übernimmt sie in data/windbild.json)
@@ -23,7 +25,7 @@ const DATA = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "windbild.json")
 const LEADS = [1,2,3,4,6,9,12,18,24];
 const src = fs.readFileSync(path.join(ROOT, "app", "windbild.js"), "utf8");
 const i0 = src.indexOf("/* ---------- Lage von heute ---------- */"), i1 = src.indexOf("function heute(){");
-const app = new Function("dirOf", "DATA", src.slice(i0, i1)+"; return {vorwahl, mittel, mischLage, mischKn};")(C.dirOf, DATA);
+const app = new Function("dirOf", "DATA", src.slice(i0, i1)+"; return {vorwahl, mittel, mischLage, mischKn, FUEHRT};")(C.dirOf, DATA);
 const KMIN = DATA.regeln.kammMin;
 const sek = d => ["N","NO","O","SO","S","SW","W","NW"][Math.round(d/45)%8];
 /* Soll: Lage nach dem Chasseral. «suedost» auch dann, wenn die Datei Südost noch nicht als Lage führt */
@@ -83,18 +85,41 @@ const pct = (a, n) => n ? Math.round(100*a/n) : null, f = x => x==null ? "  –"
       add("fort", h, ws(jetzt)===ws(soll));
       ["", "_previous_day1"].forEach(s=>{ const p = prog(kz, s), p0 = prog(k, s);
         add("prog"+s, h, !!p && ws(p)===ws(soll));
-        /* Mischregel der App (mischLage aus app/windbild.js) */
-        const misch = app.mischLage({lage:jetzt}, {lage:p0}, {lage:p}).lage;
+        /* Regler der App (mischLage aus app/windbild.js, mit Vorlauf h: Messung führt FUEHRT.kamm Stunden) */
+        const misch = app.mischLage({lage:jetzt, kamm:true}, {lage:p0}, {lage:p}, h).lage;
         add("misch"+s, h, !!misch && ws(misch)===ws(soll)); });
     }); });
   console.log(`\n2) Tage ${VON}–${BIS}, Lage richtig (West und Süd zusammen wie im Regler), Ziel 8–22 Uhr`);
   console.log("   Methode                          " + LEADS.map(h=>("+"+h+"h").padStart(5)).join("") + "   n(+1h)");
   [["fort","Messung fortgeschrieben"],["prog","Prognose, Lauf des Tages"],["prog_previous_day1","Prognose, Lauf vom Vortag"],
-   ["misch","Mischregel, Lauf des Tages"],["misch_previous_day1","Mischregel, Lauf vom Vortag"]].forEach(([m, name])=>
+   ["misch","Regler, Lauf des Tages"],["misch_previous_day1","Regler, Lauf vom Vortag"]].forEach(([m, name])=>
     console.log(`   ${name.padEnd(32)} ` + LEADS.map(h=>(f(R[m] && R[m][h] && pct(R[m][h].hit, R[m][h].n))+" %").padStart(5)).join("") + `   ${R[m] && R[m][1] ? R[m][1].n : 0}`));
 
-  /* ---------- Stärke am See ---------- */
+  /* ---------- 2b. Lage nur aus der Seemessung ---------- */
   const {lk} = M.loadArchive([], true);
+  const BODEN = {w:"west", s:"sued", so:"suedost", bise:"bise", n:"nord", joran:"joran"};
+  const seeR = {}; ["vin","ips"].forEach(id=>{ seeR[id] = lk.st[id].rows.filter(r=>r.mean!=null).map(r=>({t:+new Date(r.t), mean:r.mean, dir:r.dir})); });
+  const letzter = (id, t) => { const a = seeR[id]; let lo = 0, hi = a.length-1, b = null;
+    while(lo<=hi){ const mid = (lo+hi)>>1; if(a[mid].t<=t){ b = a[mid]; lo = mid+1; } else hi = mid-1; } return b && t-b.t<=50*60000 ? b : null; };
+  const seeStd = {}; ["vin","ips"].forEach(id=>seeR[id].forEach(r=>{ const k = keyOf(new Date(r.t)); (seeStd[k] = seeStd[k] || []).push({kn:r.mean, dir:r.dir}); }));
+  const seeIst = k => { const a = seeStd[k]; if(!a || a.length<3) return undefined; const m = app.mittel(a); return m.kn<3 ? "schwach" : (BODEN[C.dirOf(m.dir).id] || "ohne"); };
+  const S2 = {}; const add2 = (m, h, ok) => { const Q = ((S2[m] = S2[m] || {})[h] = S2[m][h] || {n:0, hit:0}); Q.n++; if(ok) Q.hit++; };
+  STD.forEach(t0=>{ const k = keyOf(new Date(t0));
+    const lake = ["vin","ips"].map(id=>{ const r = letzter(id, t0); return {L:{id}, fresh:!!r, last:r ? {mean:r.mean, dir:r.dir} : null}; });
+    const km = vorher(t0), v = app.vorwahl({kammM:km, lake, monat:+k.slice(5,7), kammFehlt:!km}, DATA.lagen, DATA.regeln);
+    if(!v.lage || v.kamm) return;
+    LEADS.forEach(h=>{ const kz = keyOf(new Date(t0+h*H)), hz = +kz.slice(11,13); if(hz<8 || hz>=22 || kz.slice(0,10)>BIS) return;
+      const soll = seeIst(kz), p = prog(kz, ""), p0 = prog(k, ""); if(soll===undefined || idx[kz]==null || idx[k]==null) return;
+      const hit = x => x ? ws(x)===ws(soll) : soll==="schwach";
+      add2("fort", h, hit(v.lage)); add2("prog", h, hit(p));
+      add2("misch", h, hit(app.mischLage({lage:v.lage, kamm:false}, {lage:p0}, {lage:p}, h).lage));
+      add2("schwach", h, soll==="schwach"); }); });
+  console.log(`\n2b) Lage nur aus der Seemessung (Chasseral unter ${KMIN} kn), Soll: Lage am See (ab 3 kn, sonst «schwach»), ${VON}–${BIS}`);
+  console.log("   Methode                          " + LEADS.map(h=>("+"+h+"h").padStart(5)).join("") + "   n(+1h)");
+  [["fort","Seemessung fortgeschrieben"],["prog","Prognose (bis v34)"],["misch",`Regler (See führt ${app.FUEHRT.see} h)`],["schwach","Anteil «schwach» am Ziel"]].forEach(([m, name])=>
+    console.log(`   ${name.padEnd(32)} ` + LEADS.map(h=>(f(S2[m] && S2[m][h] && pct(S2[m][h].hit, S2[m][h].n))+" %").padStart(5)).join("") + `   ${S2[m] && S2[m][1] ? S2[m][1].n : 0}`));
+
+  /* ---------- Stärke am See ---------- */
   /* Seemessung jetzt wie in der App: letzter Wert vor dem Zeitpunkt, höchstens 50 min alt */
   const seeRows = {}; C.LAKE.forEach(L=>{ seeRows[L.id] = lk.st[L.id].rows.filter(r=>r.mean!=null).map(r=>({t:+new Date(r.t), kn:r.mean})); });
   const seeVor = (id, t) => { const a = seeRows[id]; let lo = 0, hi = a.length-1, best = null;
@@ -134,6 +159,7 @@ const pct = (a, n) => n ? Math.round(100*a/n) : null, f = x => x==null ? "  –"
       fort:Object.fromEntries(Object.entries(pers).map(([id,P])=>[id, LEADS.map(h=>P[h] ? pct(P[h].hit, P[h].n) : null)])),
       prog:LEADS.map(h=>R.prog && R.prog[h] ? pct(R.prog[h].hit, R.prog[h].n) : null),
       misch:LEADS.map(h=>R.misch && R.misch[h] ? pct(R.misch[h].hit, R.misch[h].n) : null),
+      see:LEADS.map(h=>S2.fort && S2.fort[h] ? pct(S2.fort[h].hit, S2.fort[h].n) : null),
       tau:best.tau};
     fs.writeFileSync(path.join(__dirname, "data", "vorlauf.json"), JSON.stringify(out, null, 1)+"\n");
     console.log("\ngeschrieben: eval/data/vorlauf.json");

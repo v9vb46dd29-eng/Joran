@@ -742,3 +742,37 @@ Schwelle). Neu:
 Browser (Uhr fest, künstliche Daten): 13:52 nach Treffern um 9 Uhr und 9 kn um 12 Uhr zeigt «Unwahrscheinlich»;
 16:11 nach Treffern 14–15 Uhr weiter «Noch kein Wind» mit «Erwartet war 14–16 Uhr …», 17:11 «Unwahrscheinlich».
 Rechenkern unverändert gegenüber v33.
+
+## v35 (14.11.2026): Regler in drei Phasen, Messung am See wird fortgeschrieben
+
+Fehler (iPhone, 16:34): Windbild «Heute 19 Uhr: keine Lage erkennbar · Prognose». Der Chasseral mass 8 kn S (unter
+`kammMin` 10 kn), Vingelz 5 kn ONO, Ipsach 3 kn O. Die Vorwahl erkannte für jetzt Bise aus der Seemessung. Der Regler
+schrieb aber nur eine Lage vom Chasseral fort (v32: «Lage vom See nur jetzt»). Für 19 Uhr blieb deshalb nur die Prognose,
+und die lag an beiden Spots unter 3 kn. Simon: Die Kette ist Messung, dann Regeln, dann Prognose. Kurzfristig führt die
+Messung, danach kommt die Kombination, ab 24 h die Synthese der Modelle.
+
+| Teil | v34 | v35 |
+|---|---|---|
+| Lage vom Chasseral (oder Regel E) | fortgeschrieben, ausser die Prognose sagt einen Wechsel | die ersten 2 h fest, danach wie bisher |
+| Lage nur aus Seemessung oder Upwind-Signal | nicht fortgeschrieben, nur Prognose | 6 h fest, danach Prognose |
+| Quote | Chasseral lang je Lage, sonst Prognose | dazu `vorlauf.see` (Seemessung fortgeschrieben) |
+| Ohne Lage, Modell an beiden Spots unter 3 kn | «keine Lage erkennbar» | «kaum Wind» |
+
+`eval/lage-vorlauf.cjs` (Entwicklungstage 16.10.–5.11., Lage richtig nach +1/+2/+3/+4/+6/+9/+12 h):
+
+| Lage aus | Methode | +1h | +2h | +3h | +4h | +6h | +9h | +12h |
+|---|---|---|---|---|---|---|---|---|
+| Chasseral (Soll Chasseral, n 226) | Regler v34 | 86 | 84 | 86 | 83 | 79 | 78 | 75 |
+| | Regler v35 | 88 | 86 | 86 | 83 | 79 | 78 | 75 |
+| nur See (Soll Lage am See ab 3 kn, n 39) | Prognose (v34) | 67 | 68 | 63 | 61 | 53 | 65 | 67 |
+| | Regler v35 | 69 | 70 | 73 | 76 | 73 | 65 | 67 |
+
+Bis 10.11. (mit Holdout) gleich: Chasseral +1/+2 h 90/88 statt 88/86 %, nur See bis +6 h 63–64 statt 49–63 %. Die
+Seemessung fortgeschrieben ist ab +18 h klar schlechter als die Prognose (38 gegen 84 %), darum endet sie nach 6 h.
+Wurde sie länger fortgeschrieben (9 h), war das bei +9 h besser, aber n ist klein (39 bzw. 48 Stunden, wenige Tage);
+6 h ist die vorsichtigere Wahl. Eine Mischregel für Lagen vom See (Messung, ausser die Prognose sagt einen Wechsel)
+war bei +2 bis +4 h schlechter als die Prognose allein (53/46/46 % bis 13.11.) und wurde verworfen.
+
+Grenzen: Die Lage am See als Soll ist gröber als die Lage nach dem Chasseral (nur Sektor am Boden, ab 3 kn). Am 14.11. fehlt
+noch die Prognose im Archiv (`stunde_prognose.json` bis 13.11.). Der Fall ist im Browser-Test K nachgestellt.
+Rechenkern unverändert, nur `app/windbild.js`, `data/windbild.json` (`vorlauf.see`) und die Auswertung.

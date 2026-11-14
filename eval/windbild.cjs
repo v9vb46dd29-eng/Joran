@@ -110,7 +110,7 @@ table.forEach(t=>console.log(t));
 
 /* Regler: wie lange die Messung von jetzt hält und wie oft die Prognose trifft (eval/lage-vorlauf.cjs --schreiben) */
 const VL = path.join(__dirname, "data", "vorlauf.json");
-if(fs.existsSync(VL)){ const v = JSON.parse(fs.readFileSync(VL, "utf8")); out.vorlauf = {stand:v.stand, von:v.von, bis:v.bis, jahre:v.jahre, leads:v.leads, fort:v.fort, prog:v.prog, tau:v.tau}; }
+if(fs.existsSync(VL)){ const v = JSON.parse(fs.readFileSync(VL, "utf8")); out.vorlauf = {stand:v.stand, von:v.von, bis:v.bis, jahre:v.jahre, leads:v.leads, fort:v.fort, see:v.see, prog:v.prog, tau:v.tau}; }
 else console.log("Hinweis: eval/data/vorlauf.json fehlt (node eval/lage-vorlauf.cjs --schreiben). Der Regler zeigt dann keine Quote.");
 /* kompakt schreiben: eine Zeile je Stützpunktliste und je Schwelle */
 const text = JSON.stringify(out, null, 1)
