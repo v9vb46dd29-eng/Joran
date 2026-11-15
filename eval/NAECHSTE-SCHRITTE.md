@@ -1,7 +1,7 @@
 # Nächste Schritte
 
 Stand 11.11.2026 (v19), Windbild nachgeführt am 14.11.2026 (v36). Verlauf und Zahlen: `eval/ITERATIONEN.md`. Ideen: `eval/IDEEN.md`.
-Übergabe für einen neuen Chat: `eval/UEBERGABE-v35.md`.
+Übergabe für einen neuen Chat: `eval/UEBERGABE-v36.md`.
 
 ## Was läuft
 
