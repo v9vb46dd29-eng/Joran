@@ -96,6 +96,7 @@ Ziel von Simon: die Prognose kurzfristig schlagen, Kette Messung → Regeln → 
 | Taubenlöchler | Markierungen `tl:` im Rückblick und Abende mit Nord/Bise am See | offen |
 | Bieler Bucht: Joran-Äste, Taubenloch, Nordlage, Seewind (H-B1 bis H-B8 in `eval/IDEEN.md`, `node eval/bucht.cjs`) | Joran-Episoden je Typ, Nordlage-Abende, Seemessung im Sommer | Sommer 2027 |
 | Joran in der Prognose: Kamm-Schwelle und Druckzeichen kalibrieren (`node eval/joran-prognose.cjs`) | 15–20 Abende mit Regel E im Archiv der Läufe (heute 7) | Sommer 2027 |
+| Chaumont für «Wind kommt» (West) zählen lassen (`node eval/chaumont.cjs --T 12`, dann `eval/measure.cjs`). Stand 15.11.: Entwicklung 2 Treffer, 0 Fehlalarme, 7 verpasst; neue Tage 1 zu spät (11.11.) | 10 West-Ereignistage (heute 6) | Ende Dezember 2026 |
 | Südost: eigene Werte am See statt der Schätzung (heute 3 Tage) | 4 Tage Südost auf dem Chasseral | laufend |
 | H4: Grenze je Windrichtung | mehr Abende je Richtung; echte Vortagesprognose auf 850 hPa | laufend |
 
