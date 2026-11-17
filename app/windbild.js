@@ -43,7 +43,7 @@ function holeNeuv(){
   const e = NEUV_D; if(e && (e.busy || Date.now()-e.at<30*60000)) return;
   NEUV_D = Object.assign(e || {}, {busy:true});
   C.fetchPunkt(NEUV.ll[0], NEUV.ll[1], 2).then(d=>{ NEUV_D = {d, at:Date.now()}; }).catch(err=>{ NEUV_D = {d:e && e.d, err:err.message||"Fehler", at:Date.now()}; })
-    .then(()=>{ if(ST.view!=="bucht") drawn = ""; update(); });
+    .then(()=>{ if(ansicht()!=="bucht") drawn = ""; update(); });
 }
 /* Modellmittel an La Neuveville für eine Stunde (h Stunden ab jetzt) */
 function neuvAm(h){
@@ -56,7 +56,7 @@ function holeExtra(){
   ANZEIGE.forEach(a=>{ const e = EXTRA[a.abk]; if(e && (e.busy || Date.now()-e.at<10*60000)) return;
     EXTRA[a.abk] = Object.assign(e || {}, {busy:true});
     C.fetchStation(a.abk).then(rows=>{ EXTRA[a.abk] = {rows, at:Date.now()}; }).catch(err=>{ EXTRA[a.abk] = {err:err.message||"Fehler", at:Date.now()}; })
-      .then(()=>{ if(ST.view==="region"){ drawn = ""; update(); } }); });
+      .then(()=>{ if(ansicht()==="region"){ drawn = ""; update(); } }); });
 }
 const RIDGES = [
   {w:5.5, p:[[47.064,7.075],[47.080,7.105],[47.096,7.132],[47.110,7.158],[47.124,7.185],[47.136,7.208],[47.147,7.235],[47.160,7.270],[47.175,7.315]]},
@@ -349,8 +349,11 @@ let ANCH = [], W = 0, Hh = 0, DPR = 1, GW = 0, GH = 0, GU = null, GV = null, par
 /* Zoom mit zwei Fingern (oder Trackpad, Ctrl + Mausrad): Z hält Massstab (1 bis ZMAX) und Mitte in km. Während der Geste
    verschiebt und vergrössert CSS die gezeichnete Karte (G), beim Loslassen zeichnet fit() sie im neuen Ausschnitt scharf neu. */
 const ZMAX = 8;
+let ZMIN = 1;
+/* Was die Karte gerade zeigt: der gewählte Ausschnitt, herausgezoomt der grössere (See, Region) nach der Detailstufe von fit() */
+const ansicht = () => Z && Z.s<1 ? ["region","see","bucht"][T.z] : ST.view;   /* herauszoomen bis die ganze Region im Bild ist (fit setzt den Wert je Ausschnitt) */
 let Z = null, G = null;
-const T = {cx:0, cy:0, k:1}, CELL = 3;
+const T = {cx:0, cy:0, k:1, z:2}, CELL = 3;
 /* Muster an Werte von jetzt oder aus dem Modell anpassen: Punkte mit eigenem Wert übernehmen ihn, die übrigen werden mit dem
    Verhältnis jetzt/typisch und der Drehung der nahen Punkte angepasst (gewichtet nach inverser Distanz). Ohne Werte bleibt das Muster typisch. */
 const drehung = (a, b) => ((a-b+540)%360)-180;
@@ -388,7 +391,7 @@ function setAnchors(){
     const [x,y] = km(STAT[abk]), r = w.dir*Math.PI/180; ANCH.push({x, y, u:-w.kn*Math.sin(r), v:-w.kn*Math.cos(r), m:true}); });
 }
 function regionRef(){
-  if(ST.view!=="region" || BILD.art!=="live") return {};
+  if(ansicht()!=="region" || BILD.art!=="live") return {};
   const ref = {}; Object.keys(STAT).forEach(abk=>{ const m = station(abk); if(m && m.kn!=null && m.dir!=null) ref[abk] = m; });
   return ref;
 }
@@ -404,14 +407,21 @@ function fit(){
   const r = mapEl.getBoundingClientRect(); W = r.width; Hh = r.height; DPR = Math.min(2, window.devicePixelRatio||1);
   [base, flow].forEach(c=>{ c.width = Math.round(W*DPR); c.height = Math.round(Hh*DPR); });
   bctx.setTransform(DPR,0,0,DPR,0,0); fctx.setTransform(DPR,0,0,DPR,0,0);
-  const V = VIEWS[ST.view], [x0,y0] = km([V.lat[0],V.lon[0]]), [x1,y1] = km([V.lat[1],V.lon[1]]);
-  T.cx = (x0+x1)/2; T.cy = (y0+y1)/2; T.k = Math.min(W/(x1-x0), Hh/(y1-y0));
+  const box = v => { const V = VIEWS[v], [x0,y0] = km([V.lat[0],V.lon[0]]), [x1,y1] = km([V.lat[1],V.lon[1]]);
+    return {x0, y0, x1, y1, k:Math.min(W/(x1-x0), Hh/(y1-y0))}; };
+  const B = box(ST.view), R = box("region"), S2 = box("see");
+  T.cx = (B.x0+B.x1)/2; T.cy = (B.y0+B.y1)/2; T.k = B.k;
+  T.z = ST.view==="region" ? 0 : ST.view==="see" ? 1 : 2;
   if(Z){
-    /* gezoomt: Mitte so begrenzen, dass der Ausschnitt im Rahmen der gewählten Ansicht bleibt */
-    const cl = (v, lo, hi) => lo>hi ? (lo+hi)/2 : Math.max(lo, Math.min(hi, v));
+    /* gezoomt: Mitte so begrenzen, dass der Ausschnitt im Rahmen bleibt; herausgezoomt (unter 1) ist der Rahmen die Region */
+    const cl = (v, lo, hi) => lo>hi ? (lo+hi)/2 : Math.max(lo, Math.min(hi, v)), F = Z.s<1 ? R : B;
     T.k *= Z.s; const hw = W/2/T.k, hh = Hh/2/T.k;
-    T.cx = Z.cx = cl(Z.cx, x0+hw, x1-hw); T.cy = Z.cy = cl(Z.cy, y0+hh, y1-hh);
+    T.cx = Z.cx = cl(Z.cx, F.x0+hw, F.x1-hw); T.cy = Z.cy = cl(Z.cy, F.y0+hh, F.y1-hh);
+    /* herausgezoomt zeichnet die Karte wie der grössere Ausschnitt (Neuenburgersee, Namen der Region) */
+    /* Wechsel erst, wenn das Bild etwa so gross ist wie der See-Ausschnitt bzw. doppelt so gross */
+    if(Z.s<1) T.z = Math.min(T.z, T.k > S2.k*1.25 ? 2 : T.k > S2.k*0.5 ? 1 : 0);
   }
+  ZMIN = R.k/B.k;
 }
 function poly(ctx, pts){ ctx.moveTo(...P(pts[0])); for(let i=1;i<pts.length;i++) ctx.lineTo(...P(pts[i])); ctx.closePath(); }
 function line(ctx, pts){ ctx.beginPath(); ctx.moveTo(...P(pts[0])); for(let i=1;i<pts.length;i++) ctx.lineTo(...P(pts[i])); }
@@ -421,7 +431,7 @@ function sample(px, py){
   return [b(GU), b(GV)];
 }
 function drawBase(){
-  const dark = isDark(), z = ST.view==="region" ? 0 : ST.view==="see" ? 1 : 2, feld = ANCH.length>0;
+  const dark = isDark(), z = T.z, feld = ANCH.length>0;
   const K = dark ? {land:"#1b2229", lake:"#1c3345", shore:"#5a7a92", ridge:"rgba(120,138,155,.05)", crest:"rgba(190,205,218,.22)", canal:"rgba(120,165,195,.6)", ink:"rgba(228,235,240,.9)", inkL:"rgba(200,225,240,.85)", halo:"rgba(10,14,18,.75)", dot:"#fff", dotE:"#0e1318"}
                  : {land:"#e6e9ec", lake:"#cfe3ef", shore:"#5f8199", ridge:"rgba(70,90,110,.055)", crest:"rgba(60,80,100,.25)", canal:"rgba(70,125,165,.7)", ink:"rgba(20,28,36,.88)", inkL:"rgba(20,60,90,.85)", halo:"rgba(255,255,255,.8)", dot:"#fff", dotE:"#1c2b30"};
   GW = Math.ceil(W/CELL)+1; GH = Math.ceil(Hh/CELL)+1; GU = new Float32Array(GW*GH); GV = new Float32Array(GW*GH);
@@ -502,10 +512,10 @@ const knTxt = (t, est) => t ? `${est?"~":""}${r0(t.kn)} kn ${card(t.dir)}` : "�
 function dot(dir, kn){ return `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="${rgb(col(kn))}"/><g transform="rotate(${(dir+180)%360})"><path d="M0-6.5 L4.2 3 L0 .8 L-4.2 3Z" fill="#0b0f13"/></g></svg>`; }
 /* Ort der Spot-Schilder: Vingelz über, Ipsach unter dem Messpunkt, immer ganz im Bild (nicht im Ausschnitt Region) */
 function badgePos(){
-  if(ST.view==="region") return [];
+  if(ansicht()==="region") return [];
   return C.LAKE.map(L=>{ let [x,y] = P(MARK[L.id]); if(x<0 || y<0 || x>W || y>Hh) return null;
     y += L.id==="vin" ? -24 : 24; x += L.id==="vin" ? -14 : 14;
-    return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(ST.view==="bucht" ? 52 : 24, Math.min(Hh-24, y))}; }).filter(Boolean);
+    return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(ansicht()==="bucht" ? 52 : 24, Math.min(Hh-24, y))}; }).filter(Boolean);
 }
 /* Ausschnitt Region: alle Upwind-Stationen, Mathod und die Seestationen mit dem Wind von jetzt (im Regler: nur Ipsach aus
    Messung und Modell). Ausschnitt See: der Chasseral mit dem Wind von jetzt. Nur gemessene Werte, keine typischen.
@@ -522,12 +532,15 @@ function spotsGeschaetzt(ids){
 function statPos(){
   if(!W) return [];
   if(ST.full) return musterPos();
-  if(ST.view==="bucht") return platziere(spotsGeschaetzt(["wing"]));
+  /* Bucht: die Spots erscheinen, sobald sie im Bild sind (herausgezoomt auch La Neuveville und St-Blaise) */
+  if(ansicht()==="bucht"){ holeNeuv(); const vor = !ST.full && ST.h>0;
+    const nvb = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell", spot:true};
+    return platziere((nvb.w ? [nvb] : spotsGeschaetzt(["neuv"])).concat(spotsGeschaetzt(["wing","stbl"]))); }
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
   const vor = !ST.full && ST.h>0;
   holeNeuv();
   const nv = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell", spot:true};
-  if(ST.view==="see"){
+  if(ansicht()==="see"){
     const L1 = vor ? [nv] : [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}, nv]; return platziere(L1.concat(spotsGeschaetzt(["wing","stbl"]))); }
   if(!vor) holeExtra();
   const L = vor ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}))
@@ -546,7 +559,7 @@ function messstationen(){
   return new Set(DATA.lagen.flatMap(l=>l.vars.flatMap(v=>v.a.filter(z=>z[3]).map(z=>z[0]))));
 }
 function musterPos(){
-  const gross = ST.view!=="region", mess = messstationen();
+  const gross = ansicht()!=="region", mess = messstationen();
   /* Beschriftungen nicht unter die Schilder von Vingelz und Ipsach legen */
   const frei = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]);
   return platziere(spotsGeschaetzt(["neuv","wing","stbl"]).concat(varOf().a.filter(z=>mess.has(z[0]) && ortVon(z[0]) && !(gross && (z[0]==="vin" || z[0]==="ips"))).map(([id,dir,kn,m])=>{
@@ -573,6 +586,11 @@ function platziere(L, frei){
   });
   return out.map(s=>Object.assign({lx:null, ly:null, txt:""}, s, {w:s.w}));
 }
+/* Der Chasseral liegt ausserhalb des Bildes (Bucht, oder gezoomt): sein Wind steht dann in der Ecke */
+function chaEcke(){
+  if(ansicht()==="region") return false;
+  const [x,y] = P(STAT.cha); return ansicht()==="bucht" || x<0 || y<0 || x>W || y>Hh;
+}
 function badges(){
   const box = el.querySelector(".wbbadges"); let h = "";
   const grau = `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`;
@@ -583,9 +601,9 @@ function badges(){
     if(s.lx!=null) h += `<div class="wbstl${k}" style="left:${s.lx}px;top:${s.ly}px">${esc(s.txt)}</div>`;
   });
   /* Ausschnitt Bucht: Der Chasseral liegt ausserhalb, sein Wind von jetzt steht in der Ecke */
-  if(ST.view==="bucht" && ST.full){ const c = typ("cha");
+  if(chaEcke() && ST.full){ const c = typ("cha");
     h += `<div class="wbcorner">Chasseral typisch ${c ? knTxt(c, !c.m) : "–"}</div>`; }
-  else if(ST.view==="bucht" && !(!ST.full && ST.h>0)){ const c = station("cha");
+  else if(chaEcke() && !(!ST.full && ST.h>0)){ const c = station("cha");
     h += `<div class="wbcorner">Chasseral ${c ? r0(c.kn)+" kn "+card(c.dir) : "–"}</div>`; }
   badgePos().forEach(({L, x, y})=>{
     if(ST.full){
@@ -607,24 +625,10 @@ function badges(){
     h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${now}<span><b>${L.name} ${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</b><small>${klein}</small></span></div>`;
   });
   /* Hypothesen-Beschriftungen meiden die Schilder (hart) und die Beschriftungen der Punkte (wenn möglich) */
-  const schilder = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]).concat(ST.view==="bucht" ? [[0, 0, 200, 34]] : []);
+  const schilder = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]).concat(chaEcke() ? [[0, 0, 200, 34]] : []);
   const hy = hypSchicht(schilder, sp.filter(q=>q.lx!=null).map(q=>[q.lx, q.ly, q.txt.length*7.2+14, 18]));
   /* Pfeile unter den Schildern, ihre Beschriftungen darüber */
   box.innerHTML = hy.svg + h + hy.lab;
-  spotZeile();
-}
-/* Startseite: die Spots ohne Messung immer unter der Karte, egal welcher Ausschnitt (La Neuveville aus dem Modellmittel,
-   Wingreis und St-Blaise aus dem Windbild), für jetzt oder die Stunde im Regler */
-function spotZeile(){
-  const z = el.querySelector(".wbspots"); if(!z) return;
-  if(ST.full){ z.innerHTML = ""; return; }
-  holeNeuv();
-  const vor = ST.h>0, nvw = neuvAm(vor ? ST.h : 0);
-  /* ohne Modellwert (Abruf fehlgeschlagen) auch La Neuveville aus dem Windbild */
-  const sp = (nvw ? [{name:NEUV.name, w:nvw, art:"Modell"}] : spotsGeschaetzt(["neuv"]).map(q=>({name:q.name, w:q.w, art:"geschätzt"})))
-    .concat(spotsGeschaetzt(["wing","stbl"]).map(q=>({name:q.name, w:q.w, art:"geschätzt"})));
-  const html = sp.map(q=>`<span class="wbsp">${q.w ? dot(q.w.dir, q.w.kn) : `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`}<b>${esc(q.name)}</b> ${q.w ? `~${r0(q.w.kn)} kn ${card(q.w.dir)}` : "–"} <small>${q.art}</small></span>`).join("");
-  if(z.innerHTML!==html) z.innerHTML = html;
 }
 /* ---------- Hypothesen (Blatt «Erklärungen») ---------- */
 const URTEIL = {passt:"passt", teilweise:"passt teilweise", offen:"offen"};
@@ -754,7 +758,6 @@ function build(){
     <div class="wbmap" role="img"><div class="wbpan"><canvas></canvas><canvas></canvas><div class="wbbadges"></div></div><div class="wbtip"></div>
       <div class="wbest" hidden>geschätzt</div><div class="wbnote">Schematisch · Tippen zeigt den Wert</div>
       <button class="wbreset" type="button" hidden>Ganze Karte</button></div>
-    <div class="wbspots" aria-label="Spots ohne Messung"></div>
     <div class="wbtime"><input type="range" min="0" max="24" step="1" value="${ST.h}" aria-label="Vorspulen: Stunden ab jetzt">
       <div class="wbtl"><span>jetzt</span><span>+6 h</span><span>+12 h</span><span>+18 h</span><span>+24 h</span></div></div>
     <div class="wbleg"><span>kn</span><div class="wbscale"><div class="wbramp" style="background:linear-gradient(90deg,${g.join(",")})"></div>
@@ -773,7 +776,7 @@ function build(){
     const r = mapEl.getBoundingClientRect(), px = e.clientX-r.left, py = e.clientY-r.top, [u,v] = fieldAt(...toKm(px,py)), s = Math.hypot(u,v);
     const st = statPos().map(q=>Object.assign({d:Math.hypot(q.x-px, q.y-py)}, q)).sort((a,b)=>a.d-b.d)[0];
     tip.textContent = st && st.d<26 ? `${st.voll}: ${st.w ? r0(st.w.kn)+" kn "+card(st.w.dir) : "keine Messung"}${st.sig==="on" ? " · Signal" : st.sig==="near" ? " · ungeprüftes Signal" : ""}`
-      : !ANCH.length ? "keine Lage erkannt" : s<1 ? "unter 1 kn" : `≈ ${Math.round(s)} kn aus ${card((Math.atan2(-u,-v)*180/Math.PI+360)%360)}${ST.view==="region" && !inSee(px, py) ? " · geschätzt" : ""}`;
+      : !ANCH.length ? "keine Lage erkannt" : s<1 ? "unter 1 kn" : `≈ ${Math.round(s)} kn aus ${card((Math.atan2(-u,-v)*180/Math.PI+360)%360)}${ansicht()==="region" && !inSee(px, py) ? " · geschätzt" : ""}`;
     tip.style.left = Math.max(60, Math.min(W-60, px))+"px"; tip.style.top = Math.max(34, py)+"px"; tip.style.display = "block";
     clearTimeout(tt); tt = setTimeout(()=>{ tip.style.display = "none"; }, 2600);
   });
@@ -788,9 +791,9 @@ function build(){
 let gesteEnde = 0;
 const pan = () => mapEl.querySelector(".wbpan");
 function zeige(){ pan().style.transform = G ? `translate(${G.tx}px,${G.ty}px) scale(${G.f})` : ""; }
-/* um den Punkt (qx, qy) um den Faktor df vergrössern, Massstab bleibt zwischen 1 und ZMAX */
+/* um den Punkt (qx, qy) um den Faktor df vergrössern, Massstab bleibt zwischen ZMIN (ganze Region) und ZMAX */
 function zoomUm(qx, qy, df){
-  const s0 = Z ? Z.s : 1, f = Math.max(1/s0, Math.min(ZMAX/s0, G.f*df)); df = f/G.f;
+  const s0 = Z ? Z.s : 1, f = Math.max(ZMIN/s0, Math.min(ZMAX/s0, G.f*df)); df = f/G.f;
   G.tx = df*(G.tx-qx)+qx; G.ty = df*(G.ty-qy)+qy; G.f = f;
 }
 /* Geste übernehmen: der Punkt in der Mitte des Bildes wird die neue Mitte, der Massstab wächst um G.f */
@@ -799,7 +802,7 @@ function uebernehme(){
   const moved = Math.abs(G.f-1)>0.01 || Math.hypot(G.tx, G.ty)>3, s = (Z ? Z.s : 1)*G.f;
   if(moved){
     const [cx, cy] = toKm((W/2-G.tx)/G.f, (Hh/2-G.ty)/G.f);
-    Z = s>1.02 ? {s, cx, cy} : null; gesteEnde = Date.now();
+    Z = Math.abs(s-1)>0.02 ? {s, cx, cy} : null; gesteEnde = Date.now();
   }
   G = null;
   if(moved){ drawn = ""; update(); } else zeige();
@@ -888,8 +891,8 @@ function update(){
   const key = [BILD.art, BILD.lage, ST.type, varOf().key, ST.view, ST.h, refKey, isDark(), reduce(), Math.round(mapEl.getBoundingClientRect().width)].join("|");
   const zk = Z ? [Z.s.toFixed(3), Z.cx.toFixed(3), Z.cy.toFixed(3)].join("/") : "";
   const rs = el.querySelector(".wbreset"); if(rs) rs.hidden = !Z;
-  const nt = el.querySelector(".wbnote"); if(nt) nt.textContent = Z ? `Schematisch · ${Z.s.toFixed(1)}×` : ST.full ? "Typisches Muster · Tippen zeigt den Punkt" : "Schematisch · Tippen zeigt den Wert · Zoom mit zwei Fingern"; mapEl.classList.toggle("zoomed", !!Z);
-  if(key+"|"+zk!==drawn){ drawn = key+"|"+zk; requestAnimationFrame(()=>{ try{ setAnchors(); fit(); drawBase(); seed(); badges(); if(!G) zeige(); play(); }catch(e){ drawn = ""; } }); }
+  const nt = el.querySelector(".wbnote"); if(nt) nt.textContent = Z ? `Schematisch · ${Z.s<1 ? Z.s.toFixed(2) : Z.s.toFixed(1)}×` : ST.full ? "Typisches Muster · Tippen zeigt den Punkt" : "Schematisch · Tippen zeigt den Wert · Zoom mit zwei Fingern"; mapEl.classList.toggle("zoomed", !!Z);
+  if(key+"|"+zk!==drawn){ drawn = key+"|"+zk; requestAnimationFrame(()=>{ try{ fit(); setAnchors(); drawBase(); seed(); badges(); if(!G) zeige(); play(); }catch(e){ drawn = ""; } }); }
   else badges();
   panel();
 }
