@@ -144,7 +144,7 @@ $("#proxyS").addEventListener("click", async ()=>{
   $("#proxy").value = S_PROXY();
   b.disabled = true; b.textContent = "Teste …"; $("#lakeDiag").textContent = "Lade Vingelz und Ipsach …";
   await loadLake();
-  b.disabled = false; b.textContent = "Gespeichert ✓"; setTimeout(()=>{ b.textContent = "Speichern"; }, 2500);
+  b.disabled = false; b.textContent = "Gespeichert"; setTimeout(()=>{ b.textContent = "Speichern"; }, 2500);
 });
 /* Zurück in die App (iOS): sofort alle Messwerte neu */
 window.addEventListener("pageshow", e=>{ if(e.persisted) run(false); });

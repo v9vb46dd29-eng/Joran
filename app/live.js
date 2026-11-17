@@ -110,7 +110,7 @@ function nowHTML(cur, hour, nc){
     }
   }
   return `<div class="verdict ${cls}"><div class="vtop"><span class="when">${today?"Heute":"Morgen"} · ${esc(WINS[S.win][2])}</span>
-      <button class="thrchip" data-open="sheet">${S.T} kn ›</button><button class="thrchip" data-info="${cur.k}">Details ›</button></div>
+      <button class="thrchip" data-open="sheet">${S.T} kn<span class="chev" aria-hidden="true"></span></button><button class="thrchip" data-info="${cur.k}">Details<span class="chev" aria-hidden="true"></span></button></div>
     <span class="word">${esc(word)}</span><div class="why">${esc(l1)}</div><div class="why">${esc(l2)}</div></div>`;
 }
 /* Ein Tag in der Liste: Stufe, darunter die Begründung in einer Zeile */
@@ -168,7 +168,7 @@ function renderDetail(days, hour, nc){
   el.querySelectorAll(".dbtn").forEach(b=>b.addEventListener("click",()=>{ SEL = +b.dataset.k; renderDetail(days, hour, nc); }));
 }
 
-const thrChip = () => `<button class="thrchip" data-open="sheet">Schwelle ${S.T} kn · ${esc(WINS[S.win][2])} ›</button>`;
+const thrChip = () => `<button class="thrchip" data-open="sheet">Schwelle ${S.T} kn · ${esc(WINS[S.win][2])}<span class="chev" aria-hidden="true"></span></button>`;
 function verdictHTML(cur, hour, nc){
   const s = cur.s, today = cur.k===0;
   const [h0,h1] = WINS[S.win];

@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Joran">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Joran · Wingfoil Bielersee</title>
-<link rel="stylesheet" href="app/app.css?v=36">
+<link rel="stylesheet" href="app/app.css?v=37">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
 
 <div class="wrap">
 <div class="large">
-  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v36</div></div>
+  <div><h1>Joran</h1><div class="sub">Wingfoil Bielersee · v37</div></div>
   <div id="stamp">noch nicht geladen</div>
 </div>
 
@@ -45,7 +45,7 @@
 
 <div class="sech"><span>Nächste 4 Tage</span></div>
 <div id="days" class="dlist"></div>
-<button class="btn2 more" data-info="">Erklärungen und Details ›</button>
+<button class="btn2 more" data-info="">Erklärungen und Details<span class="chev" aria-hidden="true"></span></button>
 </div>
 
 <dialog class="sheet" id="sheet" aria-label="Einstellungen">
@@ -104,7 +104,7 @@
     <h2>Methode und Quellen</h2>
     <div class="note meth">
 <p><b>Prognose.</b> Vier Wettermodelle rechnen den Wind über dem See (ICON-CH1, ICON-CH2, ICON-D2, AROME). Je Stunde zählt der stärkste deiner Spots.</p>
-<p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. <i>Sehr wahrscheinlich:</i> mindestens drei Viertel der Modelle treffen (und mindestens zwei). <i>Wahrscheinlich:</i> die Hälfte. <i>Möglich:</i> eines. <i>Knapp:</i> keines hält die Schwelle lange genug, aber das stärkste liegt höchstens 3 kn darunter. Ein Tag zählt ab «wahrscheinlich»: Erst dann kommt der Push am Vortag. Ab übermorgen rechnet nur noch ICON-CH2.</p>
+<p><b>Wie sicher?</b> Ein Modell «trifft», wenn es deine Schwelle im Zeitfenster lange genug hält. «Sehr wahrscheinlich»: mindestens drei Viertel der Modelle treffen (und mindestens zwei). «Wahrscheinlich»: die Hälfte. «Möglich»: eines. «Knapp»: keines hält die Schwelle lange genug, aber das stärkste liegt höchstens 3 kn darunter. Ein Tag zählt ab «wahrscheinlich»: Erst dann kommt der Push am Vortag. Ab übermorgen rechnet nur noch ICON-CH2.</p>
 <p><b>Wann?</b> Angezeigt werden die Stunden, in denen mindestens die Hälfte der Modelle deine Schwelle erreicht. Gibt es keine, zählen Stunden mit einem einzelnen Modell («nur einzelne Modelle»).</p>
 <p><b>Am See jetzt.</b> Messwerte von Vingelz und Ipsach (meteoBase.ch), alle 10 Minuten. Die Kachel wird blau, wenn deine Schwelle erreicht ist. Im Tagesdiagramm stehen die Messwerte als Punkte.</p>
 <p><b>Wind kommt.</b> Messstationen in Anströmrichtung (SwissMetNet) zeigen den Wind oft 30 bis 90 Minuten früher. Eine Station meldet, wenn der Wind 30 Minuten lang aus der passenden Richtung kommt und stark genug ist. Dann steht «Wind kommt», egal was die Modelle sagen. Für Joran gilt zusätzlich eine eigene Regel in Cressier.</p>
@@ -127,23 +127,23 @@
 
 <!-- Rechenkern: Silos in der Reihenfolge ihrer Abhängigkeit, dann die Fassade. Oberfläche: Reihenfolge wie aufgeführt.
      Bei jeder Änderung die Version an allen Dateien und in der Kopfzeile gleich hochzählen (node eval/aufbau.cjs prüft das). -->
-<script src="core/konstanten.js?v=36"></script>
-<script src="core/helfer.js?v=36"></script>
-<script src="core/modell.js?v=36"></script>
-<script src="core/see.js?v=36"></script>
-<script src="core/prognose.js?v=36"></script>
-<script src="core/messung.js?v=36"></script>
-<script src="core/kalibrierung.js?v=36"></script>
-<script src="core/daten.js?v=36"></script>
-<script src="core/einstellungen.js?v=36"></script>
-<script src="core.js?v=36"></script>
-<script src="app/basis.js?v=36"></script>
-<script src="app/see.js?v=36"></script>
-<script src="app/live.js?v=36"></script>
-<script src="app/einstellungen.js?v=36"></script>
-<script src="app/push.js?v=36"></script>
-<script src="app/rueckblick.js?v=36"></script>
-<script src="app/windbild.js?v=36"></script>
-<script src="app/start.js?v=36"></script>
+<script src="core/konstanten.js?v=37"></script>
+<script src="core/helfer.js?v=37"></script>
+<script src="core/modell.js?v=37"></script>
+<script src="core/see.js?v=37"></script>
+<script src="core/prognose.js?v=37"></script>
+<script src="core/messung.js?v=37"></script>
+<script src="core/kalibrierung.js?v=37"></script>
+<script src="core/daten.js?v=37"></script>
+<script src="core/einstellungen.js?v=37"></script>
+<script src="core.js?v=37"></script>
+<script src="app/basis.js?v=37"></script>
+<script src="app/see.js?v=37"></script>
+<script src="app/live.js?v=37"></script>
+<script src="app/einstellungen.js?v=37"></script>
+<script src="app/push.js?v=37"></script>
+<script src="app/rueckblick.js?v=37"></script>
+<script src="app/windbild.js?v=37"></script>
+<script src="app/start.js?v=37"></script>
 </body>
 </html>
