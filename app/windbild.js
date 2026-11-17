@@ -43,7 +43,7 @@ function holeNeuv(){
   const e = NEUV_D; if(e && (e.busy || Date.now()-e.at<30*60000)) return;
   NEUV_D = Object.assign(e || {}, {busy:true});
   C.fetchPunkt(NEUV.ll[0], NEUV.ll[1], 2).then(d=>{ NEUV_D = {d, at:Date.now()}; }).catch(err=>{ NEUV_D = {d:e && e.d, err:err.message||"Fehler", at:Date.now()}; })
-    .then(()=>{ if(ST.view!=="bucht"){ drawn = ""; update(); } });
+    .then(()=>{ if(ST.view!=="bucht") drawn = ""; update(); });
 }
 /* Modellmittel an La Neuveville für eine Stunde (h Stunden ab jetzt) */
 function neuvAm(h){
@@ -526,7 +526,7 @@ function statPos(){
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
   const vor = !ST.full && ST.h>0;
   holeNeuv();
-  const nv = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell"};
+  const nv = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell", spot:true};
   if(ST.view==="see"){
     const L1 = vor ? [nv] : [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}, nv]; return platziere(L1.concat(spotsGeschaetzt(["wing","stbl"]))); }
   if(!vor) holeExtra();
@@ -611,6 +611,20 @@ function badges(){
   const hy = hypSchicht(schilder, sp.filter(q=>q.lx!=null).map(q=>[q.lx, q.ly, q.txt.length*7.2+14, 18]));
   /* Pfeile unter den Schildern, ihre Beschriftungen darüber */
   box.innerHTML = hy.svg + h + hy.lab;
+  spotZeile();
+}
+/* Startseite: die Spots ohne Messung immer unter der Karte, egal welcher Ausschnitt (La Neuveville aus dem Modellmittel,
+   Wingreis und St-Blaise aus dem Windbild), für jetzt oder die Stunde im Regler */
+function spotZeile(){
+  const z = el.querySelector(".wbspots"); if(!z) return;
+  if(ST.full){ z.innerHTML = ""; return; }
+  holeNeuv();
+  const vor = ST.h>0, nvw = neuvAm(vor ? ST.h : 0);
+  /* ohne Modellwert (Abruf fehlgeschlagen) auch La Neuveville aus dem Windbild */
+  const sp = (nvw ? [{name:NEUV.name, w:nvw, art:"Modell"}] : spotsGeschaetzt(["neuv"]).map(q=>({name:q.name, w:q.w, art:"geschätzt"})))
+    .concat(spotsGeschaetzt(["wing","stbl"]).map(q=>({name:q.name, w:q.w, art:"geschätzt"})));
+  const html = sp.map(q=>`<span class="wbsp">${q.w ? dot(q.w.dir, q.w.kn) : `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`}<b>${esc(q.name)}</b> ${q.w ? `~${r0(q.w.kn)} kn ${card(q.w.dir)}` : "–"} <small>${q.art}</small></span>`).join("");
+  if(z.innerHTML!==html) z.innerHTML = html;
 }
 /* ---------- Hypothesen (Blatt «Erklärungen») ---------- */
 const URTEIL = {passt:"passt", teilweise:"passt teilweise", offen:"offen"};
@@ -740,6 +754,7 @@ function build(){
     <div class="wbmap" role="img"><div class="wbpan"><canvas></canvas><canvas></canvas><div class="wbbadges"></div></div><div class="wbtip"></div>
       <div class="wbest" hidden>geschätzt</div><div class="wbnote">Schematisch · Tippen zeigt den Wert</div>
       <button class="wbreset" type="button" hidden>Ganze Karte</button></div>
+    <div class="wbspots" aria-label="Spots ohne Messung"></div>
     <div class="wbtime"><input type="range" min="0" max="24" step="1" value="${ST.h}" aria-label="Vorspulen: Stunden ab jetzt">
       <div class="wbtl"><span>jetzt</span><span>+6 h</span><span>+12 h</span><span>+18 h</span><span>+24 h</span></div></div>
     <div class="wbleg"><span>kn</span><div class="wbscale"><div class="wbramp" style="background:linear-gradient(90deg,${g.join(",")})"></div>
