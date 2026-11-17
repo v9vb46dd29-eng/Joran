@@ -369,16 +369,22 @@ function setAnchors(){
   if(!BILD.lage){ ANCH = []; return; }
   const a = BILD.art==="typisch" ? varOf().a : ausrichten(varOf().a, BILD.ref);
   ANCH = a.filter(z=>PT[z[0]]).map(([p,d,s,m])=>{ const [x,y] = km(PT[p]), r = d*Math.PI/180; return {x, y, u:-s*Math.sin(r), v:-s*Math.cos(r), m:!!m}; });
+  /* Ausschnitt Region, Wind von jetzt: alle gemessenen Stationen der Region tragen das Feld mit, damit es weit weg vom See
+     auf Messungen beruht und nicht nur das Muster der Bucht fortschreibt. Dazwischen bleibt es geschätzt. */
+  const da = new Set(a.map(z=>z[0]));
+  Object.entries(regionRef()).forEach(([abk, w])=>{ if(da.has(abk)) return;
+    const [x,y] = km(STAT[abk]), r = w.dir*Math.PI/180; ANCH.push({x, y, u:-w.kn*Math.sin(r), v:-w.kn*Math.cos(r), m:true}); });
+}
+function regionRef(){
+  if(ST.view!=="region" || BILD.art!=="live") return {};
+  const ref = {}; Object.keys(STAT).forEach(abk=>{ const m = station(abk); if(m && m.kn!=null && m.dir!=null) ref[abk] = m; });
+  return ref;
 }
 function fieldAt(x, y){
   let su = 0, sv = 0, sw = 0;
   for(const a of ANCH){ const dx = x-a.x, dy = y-a.y, w = 1/(dx*dx+dy*dy+0.06), w2 = w*w; su += a.u*w2; sv += a.v*w2; sw += w2; }
   return sw ? [su/sw, sv/sw] : [0,0];
 }
-/* Punkt (km) im Bielersee? Strahlverfahren gegen die Uferlinie */
-const SHORE_KM = SHORE.map(km);
-function imSee(x, y){ let r = false; for(let i=0, j=SHORE_KM.length-1; i<SHORE_KM.length; j=i++){ const [xi,yi] = SHORE_KM[i], [xj,yj] = SHORE_KM[j];
-  if((yi>y)!==(yj>y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi) r = !r; } return r; }
 const toPx = ([x,y]) => [W/2+(x-T.cx)*T.k, Hh/2-(y-T.cy)*T.k];
 const toKm = (px,py) => [T.cx+(px-W/2)/T.k, T.cy-(py-Hh/2)/T.k];
 const P = ll => toPx(km(ll));
@@ -410,7 +416,7 @@ function drawBase(){
   const off = document.createElement("canvas"); off.width = GW; off.height = GH;
   const octx = off.getContext("2d"), img = octx.createImageData(GW, GH);
   for(let j=0;j<GH;j++) for(let i=0;i<GW;i++){
-    const [x,y] = toKm(i*CELL, j*CELL), [u,v] = z===0 && !imSee(x,y) ? [0,0] : fieldAt(x,y), c = col(Math.hypot(u,v)), o = j*GW+i;
+    const [x,y] = toKm(i*CELL, j*CELL), [u,v] = fieldAt(x,y), c = col(Math.hypot(u,v)), o = j*GW+i;
     GU[o] = u; GV[o] = v; img.data[o*4] = c[0]; img.data[o*4+1] = c[1]; img.data[o*4+2] = c[2]; img.data[o*4+3] = 255;
   }
   octx.putImageData(img, 0, 0);
@@ -420,9 +426,10 @@ function drawBase(){
   ridges.forEach(r=>{ for(let k=6;k>=1;k--){ ctx.strokeStyle = K.ridge; ctx.lineWidth = r.w*k*T.k*0.12; ctx.lineCap = "round"; ctx.lineJoin = "round"; line(ctx, r.p); ctx.stroke(); } });
   ctx.imageSmoothingEnabled = true;
   /* Farbfeld über Land nur in See und Bucht; im Ausschnitt Region nur auf dem Bielersee (weiter weg trägt das Muster nicht) */
-  if(feld && z>0){ ctx.globalAlpha = dark ? 0.36 : 0.42; ctx.drawImage(off, 0, 0, GW*CELL, GH*CELL); ctx.globalAlpha = 1; }
-  if(z===0){ ctx.fillStyle = K.lake; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.fill(); });
-    ctx.strokeStyle = K.shore; ctx.lineWidth = 1; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.stroke(); }); }
+  /* Region: Neuenburger- und Murtensee zuerst, das Farbfeld liegt über der ganzen Karte (auch über Land und Jura) */
+  if(z===0){ ctx.fillStyle = K.lake; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.fill(); }); }
+  if(feld){ ctx.globalAlpha = dark ? 0.36 : 0.42; ctx.drawImage(off, 0, 0, GW*CELL, GH*CELL); ctx.globalAlpha = 1; }
+  if(z===0){ ctx.strokeStyle = K.shore; ctx.lineWidth = 1; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.stroke(); }); }
   ctx.save(); ctx.beginPath(); poly(ctx, SHORE); poly(ctx, ISLAND); ctx.clip("evenodd");
   ctx.fillStyle = K.lake; ctx.fillRect(0,0,W,Hh); if(feld){ ctx.globalAlpha = 0.88; ctx.drawImage(off, 0, 0, GW*CELL, GH*CELL); } ctx.restore();
   ctx.strokeStyle = K.shore; ctx.lineWidth = 1.2; ctx.beginPath(); poly(ctx, SHORE); poly(ctx, ISLAND); ctx.stroke();
@@ -649,7 +656,7 @@ function build(){
     const r = mapEl.getBoundingClientRect(), px = e.clientX-r.left, py = e.clientY-r.top, [u,v] = fieldAt(...toKm(px,py)), s = Math.hypot(u,v);
     const st = statPos().map(q=>Object.assign({d:Math.hypot(q.x-px, q.y-py)}, q)).sort((a,b)=>a.d-b.d)[0];
     tip.textContent = st && st.d<26 ? `${st.voll}: ${st.w ? r0(st.w.kn)+" kn "+card(st.w.dir) : "keine Messung"}${st.sig==="on" ? " · Signal" : st.sig==="near" ? " · ungeprüftes Signal" : ""}`
-      : !ANCH.length ? "keine Lage erkannt" : ST.view==="region" && !inSee(px, py) ? "Feld nur auf dem Bielersee" : s<1 ? "unter 1 kn" : `≈ ${Math.round(s)} kn aus ${card((Math.atan2(-u,-v)*180/Math.PI+360)%360)}`;
+      : !ANCH.length ? "keine Lage erkannt" : s<1 ? "unter 1 kn" : `≈ ${Math.round(s)} kn aus ${card((Math.atan2(-u,-v)*180/Math.PI+360)%360)}${ST.view==="region" && !inSee(px, py) ? " · geschätzt" : ""}`;
     tip.style.left = Math.max(60, Math.min(W-60, px))+"px"; tip.style.top = Math.max(34, py)+"px"; tip.style.display = "block";
     clearTimeout(tt); tt = setTimeout(()=>{ tip.style.display = "none"; }, 2600);
   });
@@ -758,7 +765,7 @@ function update(){
     BILD = {art:"modell", lage:bekannt(r.lage) ? r.lage : null, ref:r.ref, T:r.T, name:r.westSued ? "West oder Süd" : lageOf().name, aus:r.aus, quote:r.quote};
   }
   head();
-  const refKey = Object.entries(BILD.ref).map(([k,v])=>k+Math.round(v.kn)+"/"+Math.round(v.dir/5)).join(",");
+  const refKey = Object.entries(Object.assign({}, regionRef(), BILD.ref)).map(([k,v])=>k+Math.round(v.kn)+"/"+Math.round(v.dir/5)).join(",");
   const key = [BILD.art, BILD.lage, ST.type, varOf().key, ST.view, ST.h, refKey, isDark(), reduce(), Math.round(mapEl.getBoundingClientRect().width)].join("|");
   const zk = Z ? [Z.s.toFixed(3), Z.cx.toFixed(3), Z.cy.toFixed(3)].join("/") : "";
   const rs = el.querySelector(".wbreset"); if(rs) rs.hidden = !Z;
