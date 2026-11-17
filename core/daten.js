@@ -234,6 +234,10 @@ async function fetchLake(owner, repo){
 async function fetchWindbild(){
   return getJSON("data/windbild.json?t=" + Math.floor(Date.now()/3600e3), 15000);
 }
+/* Hypothesen zur Bieler Bucht (von Hand gepflegt aus eval/IDEEN.md) für die Musterkarte im Blatt «Erklärungen» */
+async function fetchHypothesen(){
+  return getJSON("data/hypothesen.json?t=" + Math.floor(Date.now()/3600e3), 15000);
+}
 
 /* Alle Upwind-Stationen frisch holen (für jeden Refresh) */
 async function fetchStations(){
@@ -254,5 +258,5 @@ async function fetchAll(St, opts){
 }
 
 return {getJSON, ortszeit, fetchModel, fetchEnsemble, fetchHoehe, fetchJura, fetchHistory, fetchPunkt, fetchStation, parseSMN, updateLake,
-  fetchLakeNow, fetchLake, fetchStations, fetchAll, fetchWindbild};
+  fetchLakeNow, fetchLake, fetchStations, fetchAll, fetchWindbild, fetchHypothesen};
 });

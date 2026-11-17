@@ -17,7 +17,7 @@ const SILOS = {
     lageHint chaWest lapseRate`,
   kalibrierung: "contingency calibrate fitModel evOf isEv stationDayMax calibrateStation",
   daten: `getJSON ortszeit fetchModel updateLake fetchLake fetchLakeNow fetchEnsemble fetchJura fetchHistory
-    fetchStation fetchStations fetchAll parseSMN fetchHoehe fetchWindbild fetchPunkt`,
+    fetchStation fetchStations fetchAll parseSMN fetchHoehe fetchWindbild fetchHypothesen fetchPunkt`,
   einstellungen: "PUSH_FIELDS pushCfg sanitizeCfg cleanId",
 };
 const node = typeof module!=="undefined" && module.exports;

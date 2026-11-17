@@ -1,0 +1,84 @@
+{
+  "stand": "2026-11-12",
+  "quelle": "eval/IDEEN.md, Abschnitt «Bieler Bucht» (node eval/bucht.cjs, node eval/courtelary.cjs)",
+  "hinweis": "Von Hand gepflegt. Urteil: passt, teilweise, offen. zu: Lagen aus data/windbild.json, mit «:» eine Variante. wege: Linien [lat, lon] in Windrichtung, staerke 1 bis 3. zonen: Kreis um [lat, lon] mit Radius in km. Nach jeder Auswertung Befund und Urteil aus eval/IDEEN.md nachführen.",
+  "hyp": [
+    {
+      "id": "H-B1", "titel": "Abend-Joran gabelt sich",
+      "aussage": "Die Böen nehmen gegen das Südufer zu und gabeln sich zwischen Vingelz und Alfermée: Ast a Richtung Ipsach, Ast b Richtung Nidau. Vingelz liegt im Windschatten.",
+      "urteil": "offen", "befund": "Kein Abend-Joran im Archiv.",
+      "zu": ["joran:abend"],
+      "wege": [
+        {"p": [[47.143,7.198],[47.132,7.206],[47.121,7.213]], "staerke": 2},
+        {"p": [[47.121,7.213],[47.118,7.220],[47.114,7.233]], "staerke": 2, "label": "a"},
+        {"p": [[47.121,7.213],[47.1255,7.229],[47.128,7.242]], "staerke": 2, "label": "b"}
+      ],
+      "zonen": [{"c": [47.127,7.218], "r": 0.55, "label": "Windschatten"}]
+    },
+    {
+      "id": "H-B2", "titel": "Front-Joran: ein Ast",
+      "aussage": "Bei Westlage zieht meist nur ein Ast über den See, dafür stärker. Vingelz ist weniger abgedeckt, die Gabelung fehlt.",
+      "urteil": "passt", "befund": "Eine Episode (25.10.): Ipsach 13–18 kn W–WNW, Vingelz meist SW 7–12 kn, Ipsach im Mittel 6 kn über Vingelz. Ein Ast, Vingelz nicht abgedeckt.",
+      "belege": "1 Episode",
+      "zu": ["joran:front"],
+      "wege": [
+        {"p": [[47.106,7.150],[47.110,7.185],[47.116,7.210],[47.119,7.226],[47.122,7.242]], "staerke": 3}
+      ]
+    },
+    {
+      "id": "H-B3", "titel": "Taubenloch-Ast nach Vingelz",
+      "aussage": "Wind aus N bis ONO in Vingelz kommt aus der Taubenlochschlucht, nicht immer.",
+      "urteil": "teilweise", "befund": "Vingelz aus N bis ONO an den Nordlagen, kurz beim Joran und an ruhigen Abenden. Die Richtung passt zum Schluchtausgang (rund 50° von Vingelz). Ein Wirbel im Lee des Hangs ist nicht ausgeschlossen.",
+      "zu": ["nord", "joran", "thermik:abend"],
+      "wege": [
+        {"p": [[47.153,7.266],[47.140,7.243],[47.129,7.222]], "staerke": 1}
+      ]
+    },
+    {
+      "id": "H-B4", "titel": "Nordlage durchs Taubenloch",
+      "aussage": "Was als Taubenloch-Wind bekannt ist, ist eher eine Nordlage: Nordwind auf dem Jura kommt durchs Taubenloch in die Bucht, am Jurasüdfuss bleibt es still.",
+      "urteil": "passt", "befund": "17.10.: Chasseral 23–28 kn N, Grenchen und Cressier fast still, Ipsach 11–15 kn NNO, Vingelz 4–7 kn NO. Am 28.10. dasselbe Bild schwächer.",
+      "belege": "2 Tage",
+      "zu": ["nord"],
+      "wege": [
+        {"p": [[47.200,7.236],[47.168,7.258],[47.153,7.266],[47.140,7.250],[47.127,7.233],[47.117,7.226]], "staerke": 2}
+      ]
+    },
+    {
+      "id": "H-B5", "titel": "Courtelary misst den Westwind",
+      "aussage": "Die Taubenlöchler-Regel (Courtelary talabwärts aus WSW) misst eher den Westwind über dem Jura als einen eigenen Taubenlöchler.",
+      "urteil": "passt", "befund": "Die Regel schlug an 7 von 21 Tagen an. 79 von 81 Werten fielen auf Wind aus S bis NNW auf dem Chasseral, keiner auf den Nordlage-Abend vom 17.10.",
+      "zu": ["west", "nord"],
+      "wege": [
+        {"p": [[47.172,7.040],[47.182,7.090],[47.194,7.170],[47.190,7.225],[47.168,7.258]], "staerke": 1}
+      ]
+    },
+    {
+      "id": "H-B6", "titel": "Seewind am Tag",
+      "aussage": "An heissen Sommertagen strömt Luft vom See gegen die Stadt. Allein reicht das nicht zum Foilen, es kann aber eine Westlage verstärken und eine Bise abschwächen.",
+      "urteil": "offen", "befund": "Keine Seemessung im Sommer. An Land an 31 heissen Tagen 2026 tagsüber Wind vom See her, im Mittel 4–5 kn. Plausibel.",
+      "zu": ["thermik:tag", "thermik:west", "thermik:bise"],
+      "wege": [
+        {"p": [[47.104,7.190],[47.117,7.215],[47.130,7.238],[47.140,7.252]], "staerke": 1}
+      ]
+    },
+    {
+      "id": "H-B7", "titel": "Landwind am Abend",
+      "aussage": "An Sommerabenden fliesst kühle Luft von den Jurahängen und aus dem Taubenloch auf den See, aus N bis O. Tagsüber Seewind, abends Landwind: eine Drehung um rund 180°.",
+      "urteil": "teilweise", "befund": "Land: an 31 Sommerabenden drehen Neuchâtel, Cressier und Grenchen auf N bis NNO (4–5 kn). See: an zwei ruhigen Abenden Vingelz und Ipsach 3–4 kn, meist aus N bis O. Richtung passt, schwach.",
+      "zu": ["thermik:abend"],
+      "wege": [
+        {"p": [[47.143,7.200],[47.131,7.208],[47.121,7.212]], "staerke": 1},
+        {"p": [[47.141,7.226],[47.130,7.224],[47.121,7.222]], "staerke": 1},
+        {"p": [[47.153,7.266],[47.139,7.250],[47.127,7.236]], "staerke": 1}
+      ]
+    },
+    {
+      "id": "H-B8", "titel": "Taubenlochwind stärker als 1980–82",
+      "aussage": "Der thermische Taubenlochwind hat sich seit der Studie von Rickli und Wanner (1988) verstärkt.",
+      "urteil": "offen", "befund": "Courtelary 2015–2026: keine erkennbare Verstärkung (+0.13 kn je 10 Jahre, Standardfehler 0.17). Zum Vergleich mit 1980–82 gibt es keine Messung am Schluchtausgang.",
+      "zu": ["thermik:abend", "nord"],
+      "zonen": [{"c": [47.153,7.266], "r": 0.6, "label": "Taubenloch"}]
+    }
+  ]
+}

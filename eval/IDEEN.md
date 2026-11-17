@@ -103,5 +103,8 @@ Das kostet Geld und braucht Simons Entscheid.
    nicht im Betrag (andere Orte, andere Geräte). Längere Reihen in der Region mit Stundenwind: Chasseral ab 1980,
    Grenchen und Cressier ab 1990; sie zeigen aber nicht den Talwind.
 
+In der App (seit v41) stehen die Hypothesen auf der Musterkarte im Blatt «Erklärungen», bei der Lage, zu der sie gehören. Daten:
+`data/hypothesen.json` (Wege, Urteil, Befund); nach jeder Auswertung dort nachführen.
+
 Visualisiert in der Karte «Wind in der Bieler Bucht» (Artefakt in Claude), Joran mit Varianten Abend- und Front-Joran,
 Nordlage mit Weg durchs Taubenloch, Thermik mit Seewind am Tag und Landwind am Abend (geschätzt).

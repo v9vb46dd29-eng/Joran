@@ -32,11 +32,18 @@ const ANZEIGE = [{abk:"mah", name:"Mathod", voll:"Mathod (Orbe-Ebene bei Yverdon
    Modelle der App (Seezelle vor dem Hafen), immer als «Modell» gekennzeichnet. Es richtet die Karte nicht aus. */
 const NEUV = {ll:[47.063,7.100], name:"La Neuveville", voll:"La Neuveville (Modell, keine öffentliche Messung)"};
 let NEUV_D = null;
+/* Weitere Wingfoil-Spots (Simon, 17.11.2026): keine Messung, Wert geschätzt aus dem Windbild an ihrem Ort, immer mit «~» und
+   blass. La Neuveville hat auf der Startseite den Modellwert (NEUV), auf der Musterkarte die Schätzung. */
+const SPOTS_KARTE = [
+  {id:"neuv", name:"La Neuveville", ll:[47.063,7.100]},
+  {id:"wing", name:"Wingreis", ll:[47.103,7.174]},
+  {id:"stbl", name:"St-Blaise", ll:[47.008,6.985], voll:"St-Blaise (Neuenburgersee)"}
+];
 function holeNeuv(){
   const e = NEUV_D; if(e && (e.busy || Date.now()-e.at<30*60000)) return;
   NEUV_D = Object.assign(e || {}, {busy:true});
   C.fetchPunkt(NEUV.ll[0], NEUV.ll[1], 2).then(d=>{ NEUV_D = {d, at:Date.now()}; }).catch(err=>{ NEUV_D = {d:e && e.d, err:err.message||"Fehler", at:Date.now()}; })
-    .then(()=>{ if(ST.view!=="bucht"){ drawn = ""; update(); } });
+    .then(()=>{ if(ansicht()!=="bucht") drawn = ""; update(); });
 }
 /* Modellmittel an La Neuveville für eine Stunde (h Stunden ab jetzt) */
 function neuvAm(h){
@@ -49,7 +56,7 @@ function holeExtra(){
   ANZEIGE.forEach(a=>{ const e = EXTRA[a.abk]; if(e && (e.busy || Date.now()-e.at<10*60000)) return;
     EXTRA[a.abk] = Object.assign(e || {}, {busy:true});
     C.fetchStation(a.abk).then(rows=>{ EXTRA[a.abk] = {rows, at:Date.now()}; }).catch(err=>{ EXTRA[a.abk] = {err:err.message||"Fehler", at:Date.now()}; })
-      .then(()=>{ if(ST.view==="region"){ drawn = ""; update(); } }); });
+      .then(()=>{ if(ansicht()==="region"){ drawn = ""; update(); } }); });
 }
 const RIDGES = [
   {w:5.5, p:[[47.064,7.075],[47.080,7.105],[47.096,7.132],[47.110,7.158],[47.124,7.185],[47.136,7.208],[47.147,7.235],[47.160,7.270],[47.175,7.315]]},
@@ -81,6 +88,11 @@ const PT = {
   tlx:[47.153,7.266], gre:[47.180,7.330], neu:[47.020,7.000], hag:[47.050,7.270], twb:[47.105,7.140], lus:[47.042,7.150],
   bayN:[47.1265,7.231], split:[47.121,7.213]
 };
+/* Namen der Stützpunkte für die Musterkarte im Blatt «Erklärungen» */
+const PTNAME = {vin:"Vingelz", ips:"Ipsach", cha:"Chasseral", crm:"Cressier", coy:"Courtelary", neuv:"La Neuveville", lig:"Ligerz",
+  twa:"Twann", sutz:"Sutz", mor:"Mörigen", bay:"Bucht", alf:"Alfermée", tus:"Tüscherz", nid:"Nidau", biel:"Biel", mag:"Magglingen",
+  seel:"Seeland", erl:"Erlach", pla:"Plateau de Diesse", son:"Sonceboz", val:"Vallon de St-Imier", pery:"Péry", frin:"Frinvillier",
+  tlx:"Taubenloch", gre:"Grenchen", neu:"Neuchâtel", hag:"Hagneck", twb:"Twannberg", lus:"Lüscherz", bayN:"Bucht Nord", split:"Gabelung"};
 /* Farbskala in kn */
 const STOPS = [[0,[64,82,128]],[4,[56,124,196]],[8,[44,174,186]],[12,[92,196,96]],[16,[230,214,64]],[20,[244,146,44]],[25,[222,60,52]],[30,[186,40,136]],[35,[132,44,168]]];
 const KN_MAX = 35;
@@ -303,9 +315,9 @@ function stunde(h, h0){
 
 /* ---------- Zustand ---------- */
 const V_KEY = "joran.windbild.v1";
-const ST = {auto:true, type:"west", vk:{}, view:"bucht", full:false, h:0};
+const ST = {auto:true, type:"west", vk:{}, view:"bucht", full:false, h:0, hyp:true};
 try{ const v = localStorage.getItem(V_KEY); if(v && VIEWS[v]) ST.view = v; }catch(e){}
-let DATA = null, LOADING = false, FAILED = 0, HEUTE = {lage:null, vk:null, quelle:"", grund:"", art:null, unsicher:false};
+let HYP = null, DATA = null, LOADING = false, FAILED = 0, HEUTE = {lage:null, vk:null, quelle:"", grund:"", art:null, unsicher:false};
 /* Was die Karte gerade zeigt: Lage (null = keine erkannt) und die Werte, an denen das Muster ausgerichtet wird */
 let BILD = {art:"typisch", lage:null, ref:{}, name:""};
 let panelHtml = "";
@@ -334,7 +346,14 @@ function liveRef(){
 
 /* ---------- Feld: Stützpunkte, Interpolation mit inversen Distanzen (kein Strömungsmodell) ---------- */
 let ANCH = [], W = 0, Hh = 0, DPR = 1, GW = 0, GH = 0, GU = null, GV = null, parts = [];
-const T = {cx:0, cy:0, k:1}, CELL = 3;
+/* Zoom mit zwei Fingern (oder Trackpad, Ctrl + Mausrad): Z hält Massstab (1 bis ZMAX) und Mitte in km. Während der Geste
+   verschiebt und vergrössert CSS die gezeichnete Karte (G), beim Loslassen zeichnet fit() sie im neuen Ausschnitt scharf neu. */
+const ZMAX = 8;
+let ZMIN = 1;
+/* Was die Karte gerade zeigt: der gewählte Ausschnitt, herausgezoomt der grössere (See, Region) nach der Detailstufe von fit() */
+const ansicht = () => Z && Z.s<1 ? ["region","see","bucht"][T.z] : ST.view;   /* herauszoomen bis die ganze Region im Bild ist (fit setzt den Wert je Ausschnitt) */
+let Z = null, G = null;
+const T = {cx:0, cy:0, k:1, z:2}, CELL = 3;
 /* Muster an Werte von jetzt oder aus dem Modell anpassen: Punkte mit eigenem Wert übernehmen ihn, die übrigen werden mit dem
    Verhältnis jetzt/typisch und der Drehung der nahen Punkte angepasst (gewichtet nach inverser Distanz). Ohne Werte bleibt das Muster typisch. */
 const drehung = (a, b) => ((a-b+540)%360)-180;
@@ -365,16 +384,22 @@ function setAnchors(){
   if(!BILD.lage){ ANCH = []; return; }
   const a = BILD.art==="typisch" ? varOf().a : ausrichten(varOf().a, BILD.ref);
   ANCH = a.filter(z=>PT[z[0]]).map(([p,d,s,m])=>{ const [x,y] = km(PT[p]), r = d*Math.PI/180; return {x, y, u:-s*Math.sin(r), v:-s*Math.cos(r), m:!!m}; });
+  /* Ausschnitt Region, Wind von jetzt: alle gemessenen Stationen der Region tragen das Feld mit, damit es weit weg vom See
+     auf Messungen beruht und nicht nur das Muster der Bucht fortschreibt. Dazwischen bleibt es geschätzt. */
+  const da = new Set(a.map(z=>z[0]));
+  Object.entries(regionRef()).forEach(([abk, w])=>{ if(da.has(abk)) return;
+    const [x,y] = km(STAT[abk]), r = w.dir*Math.PI/180; ANCH.push({x, y, u:-w.kn*Math.sin(r), v:-w.kn*Math.cos(r), m:true}); });
+}
+function regionRef(){
+  if(ansicht()!=="region" || BILD.art!=="live") return {};
+  const ref = {}; Object.keys(STAT).forEach(abk=>{ const m = station(abk); if(m && m.kn!=null && m.dir!=null) ref[abk] = m; });
+  return ref;
 }
 function fieldAt(x, y){
   let su = 0, sv = 0, sw = 0;
   for(const a of ANCH){ const dx = x-a.x, dy = y-a.y, w = 1/(dx*dx+dy*dy+0.06), w2 = w*w; su += a.u*w2; sv += a.v*w2; sw += w2; }
   return sw ? [su/sw, sv/sw] : [0,0];
 }
-/* Punkt (km) im Bielersee? Strahlverfahren gegen die Uferlinie */
-const SHORE_KM = SHORE.map(km);
-function imSee(x, y){ let r = false; for(let i=0, j=SHORE_KM.length-1; i<SHORE_KM.length; j=i++){ const [xi,yi] = SHORE_KM[i], [xj,yj] = SHORE_KM[j];
-  if((yi>y)!==(yj>y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi) r = !r; } return r; }
 const toPx = ([x,y]) => [W/2+(x-T.cx)*T.k, Hh/2-(y-T.cy)*T.k];
 const toKm = (px,py) => [T.cx+(px-W/2)/T.k, T.cy-(py-Hh/2)/T.k];
 const P = ll => toPx(km(ll));
@@ -382,8 +407,21 @@ function fit(){
   const r = mapEl.getBoundingClientRect(); W = r.width; Hh = r.height; DPR = Math.min(2, window.devicePixelRatio||1);
   [base, flow].forEach(c=>{ c.width = Math.round(W*DPR); c.height = Math.round(Hh*DPR); });
   bctx.setTransform(DPR,0,0,DPR,0,0); fctx.setTransform(DPR,0,0,DPR,0,0);
-  const V = VIEWS[ST.view], [x0,y0] = km([V.lat[0],V.lon[0]]), [x1,y1] = km([V.lat[1],V.lon[1]]);
-  T.cx = (x0+x1)/2; T.cy = (y0+y1)/2; T.k = Math.min(W/(x1-x0), Hh/(y1-y0));
+  const box = v => { const V = VIEWS[v], [x0,y0] = km([V.lat[0],V.lon[0]]), [x1,y1] = km([V.lat[1],V.lon[1]]);
+    return {x0, y0, x1, y1, k:Math.min(W/(x1-x0), Hh/(y1-y0))}; };
+  const B = box(ST.view), R = box("region"), S2 = box("see");
+  T.cx = (B.x0+B.x1)/2; T.cy = (B.y0+B.y1)/2; T.k = B.k;
+  T.z = ST.view==="region" ? 0 : ST.view==="see" ? 1 : 2;
+  if(Z){
+    /* gezoomt: Mitte so begrenzen, dass der Ausschnitt im Rahmen bleibt; herausgezoomt (unter 1) ist der Rahmen die Region */
+    const cl = (v, lo, hi) => lo>hi ? (lo+hi)/2 : Math.max(lo, Math.min(hi, v)), F = Z.s<1 ? R : B;
+    T.k *= Z.s; const hw = W/2/T.k, hh = Hh/2/T.k;
+    T.cx = Z.cx = cl(Z.cx, F.x0+hw, F.x1-hw); T.cy = Z.cy = cl(Z.cy, F.y0+hh, F.y1-hh);
+    /* herausgezoomt zeichnet die Karte wie der grössere Ausschnitt (Neuenburgersee, Namen der Region) */
+    /* Wechsel erst, wenn das Bild etwa so gross ist wie der See-Ausschnitt bzw. doppelt so gross */
+    if(Z.s<1) T.z = Math.min(T.z, T.k > S2.k*1.25 ? 2 : T.k > S2.k*0.5 ? 1 : 0);
+  }
+  ZMIN = R.k/B.k;
 }
 function poly(ctx, pts){ ctx.moveTo(...P(pts[0])); for(let i=1;i<pts.length;i++) ctx.lineTo(...P(pts[i])); ctx.closePath(); }
 function line(ctx, pts){ ctx.beginPath(); ctx.moveTo(...P(pts[0])); for(let i=1;i<pts.length;i++) ctx.lineTo(...P(pts[i])); }
@@ -393,14 +431,14 @@ function sample(px, py){
   return [b(GU), b(GV)];
 }
 function drawBase(){
-  const dark = isDark(), z = ST.view==="region" ? 0 : ST.view==="see" ? 1 : 2, feld = ANCH.length>0;
+  const dark = isDark(), z = T.z, feld = ANCH.length>0;
   const K = dark ? {land:"#1b2229", lake:"#1c3345", shore:"#5a7a92", ridge:"rgba(120,138,155,.05)", crest:"rgba(190,205,218,.22)", canal:"rgba(120,165,195,.6)", ink:"rgba(228,235,240,.9)", inkL:"rgba(200,225,240,.85)", halo:"rgba(10,14,18,.75)", dot:"#fff", dotE:"#0e1318"}
                  : {land:"#e6e9ec", lake:"#cfe3ef", shore:"#5f8199", ridge:"rgba(70,90,110,.055)", crest:"rgba(60,80,100,.25)", canal:"rgba(70,125,165,.7)", ink:"rgba(20,28,36,.88)", inkL:"rgba(20,60,90,.85)", halo:"rgba(255,255,255,.8)", dot:"#fff", dotE:"#1c2b30"};
   GW = Math.ceil(W/CELL)+1; GH = Math.ceil(Hh/CELL)+1; GU = new Float32Array(GW*GH); GV = new Float32Array(GW*GH);
   const off = document.createElement("canvas"); off.width = GW; off.height = GH;
   const octx = off.getContext("2d"), img = octx.createImageData(GW, GH);
   for(let j=0;j<GH;j++) for(let i=0;i<GW;i++){
-    const [x,y] = toKm(i*CELL, j*CELL), [u,v] = z===0 && !imSee(x,y) ? [0,0] : fieldAt(x,y), c = col(Math.hypot(u,v)), o = j*GW+i;
+    const [x,y] = toKm(i*CELL, j*CELL), [u,v] = fieldAt(x,y), c = col(Math.hypot(u,v)), o = j*GW+i;
     GU[o] = u; GV[o] = v; img.data[o*4] = c[0]; img.data[o*4+1] = c[1]; img.data[o*4+2] = c[2]; img.data[o*4+3] = 255;
   }
   octx.putImageData(img, 0, 0);
@@ -410,9 +448,10 @@ function drawBase(){
   ridges.forEach(r=>{ for(let k=6;k>=1;k--){ ctx.strokeStyle = K.ridge; ctx.lineWidth = r.w*k*T.k*0.12; ctx.lineCap = "round"; ctx.lineJoin = "round"; line(ctx, r.p); ctx.stroke(); } });
   ctx.imageSmoothingEnabled = true;
   /* Farbfeld über Land nur in See und Bucht; im Ausschnitt Region nur auf dem Bielersee (weiter weg trägt das Muster nicht) */
-  if(feld && z>0){ ctx.globalAlpha = dark ? 0.36 : 0.42; ctx.drawImage(off, 0, 0, GW*CELL, GH*CELL); ctx.globalAlpha = 1; }
-  if(z===0){ ctx.fillStyle = K.lake; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.fill(); });
-    ctx.strokeStyle = K.shore; ctx.lineWidth = 1; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.stroke(); }); }
+  /* Region: Neuenburger- und Murtensee zuerst, das Farbfeld liegt über der ganzen Karte (auch über Land und Jura) */
+  if(z===0){ ctx.fillStyle = K.lake; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.fill(); }); }
+  if(feld){ ctx.globalAlpha = dark ? 0.36 : 0.42; ctx.drawImage(off, 0, 0, GW*CELL, GH*CELL); ctx.globalAlpha = 1; }
+  if(z===0){ ctx.strokeStyle = K.shore; ctx.lineWidth = 1; [NEUSEE, MURTEN].forEach(L=>{ ctx.beginPath(); poly(ctx, L); ctx.stroke(); }); }
   ctx.save(); ctx.beginPath(); poly(ctx, SHORE); poly(ctx, ISLAND); ctx.clip("evenodd");
   ctx.fillStyle = K.lake; ctx.fillRect(0,0,W,Hh); if(feld){ ctx.globalAlpha = 0.88; ctx.drawImage(off, 0, 0, GW*CELL, GH*CELL); } ctx.restore();
   ctx.strokeStyle = K.shore; ctx.lineWidth = 1.2; ctx.beginPath(); poly(ctx, SHORE); poly(ctx, ISLAND); ctx.stroke();
@@ -473,58 +512,106 @@ const knTxt = (t, est) => t ? `${est?"~":""}${r0(t.kn)} kn ${card(t.dir)}` : "�
 function dot(dir, kn){ return `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="${rgb(col(kn))}"/><g transform="rotate(${(dir+180)%360})"><path d="M0-6.5 L4.2 3 L0 .8 L-4.2 3Z" fill="#0b0f13"/></g></svg>`; }
 /* Ort der Spot-Schilder: Vingelz über, Ipsach unter dem Messpunkt, immer ganz im Bild (nicht im Ausschnitt Region) */
 function badgePos(){
-  if(ST.view==="region") return [];
+  if(ansicht()==="region") return [];
   return C.LAKE.map(L=>{ let [x,y] = P(MARK[L.id]); if(x<0 || y<0 || x>W || y>Hh) return null;
     y += L.id==="vin" ? -24 : 24; x += L.id==="vin" ? -14 : 14;
-    return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(24, Math.min(Hh-24, y))}; }).filter(Boolean);
+    return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(ansicht()==="bucht" ? 52 : 24, Math.min(Hh-24, y))}; }).filter(Boolean);
 }
 /* Ausschnitt Region: alle Upwind-Stationen, Mathod und die Seestationen mit dem Wind von jetzt (im Regler: nur Ipsach aus
    Messung und Modell). Ausschnitt See: der Chasseral mit dem Wind von jetzt. Nur gemessene Werte, keine typischen.
    Ausnahme La Neuveville in See und Region: Modellmittel, als «Modell» gekennzeichnet (auch im Regler, für die gewählte Stunde).
    Ein Signal ist hervorgehoben. Beschriftung rechts, sonst links, sonst nur die Zahl. */
 const KURZ = {fre:"Bullet", cdf:"Chaux-de-Fonds", brl:"La Brévine", vin:"Vingelz", ips:"Ipsach"};
+/* Spots ohne Messung: Wind aus dem Feld an ihrem Ort (Richtung, aus der er kommt), ohne erkannte Lage kein Wert */
+function spotsGeschaetzt(ids){
+  return SPOTS_KARTE.filter(sp=>ids.includes(sp.id)).map(sp=>{
+    let w = null; if(ANCH.length){ const [u,v] = fieldAt(...km(sp.ll)), kn = Math.hypot(u,v); w = {kn, dir:(Math.atan2(-u,-v)*180/Math.PI+360)%360}; }
+    return {id:sp.id, name:sp.name, ll:sp.ll, w, sig:"", voll:`${sp.voll||sp.name}: Spot ohne Messung, geschätzt aus dem Windbild`, modell:true, est:true, spot:true};
+  });
+}
 function statPos(){
-  if(ST.view==="bucht" || !W) return [];
+  if(!W) return [];
+  if(ST.full) return musterPos();
+  /* Bucht: die Spots erscheinen, sobald sie im Bild sind (herausgezoomt auch La Neuveville und St-Blaise) */
+  if(ansicht()==="bucht"){ holeNeuv(); const vor = !ST.full && ST.h>0;
+    const nvb = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell", spot:true};
+    return platziere((nvb.w ? [nvb] : spotsGeschaetzt(["neuv"])).concat(spotsGeschaetzt(["wing","stbl"]))); }
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
   const vor = !ST.full && ST.h>0;
   holeNeuv();
-  const nv = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell"};
-  if(ST.view==="see"){
-    const L1 = vor ? [nv] : [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}, nv]; return platziere(L1); }
+  const nv = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell", spot:true};
+  if(ansicht()==="see"){
+    const L1 = vor ? [nv] : [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}, nv]; return platziere(L1.concat(spotsGeschaetzt(["wing","stbl"]))); }
   if(!vor) holeExtra();
   const L = vor ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}))
     .concat(ANZEIGE.map(a=>({id:a.abk, name:a.name, ll:STAT[a.abk], w:station(a.abk), sig:"", voll:a.voll})));
   if(vor){ const m = BILD.ref.ips; L.push({id:"ips", name:"Ipsach", ll:MARK.ips, w:m ? {kn:m.kn, dir:m.dir} : null, sig:"", voll:"Ipsach (Messung und Modell)", modell:true}); }
   L.push(nv);
-  return platziere(L);
+  return platziere(L.concat(spotsGeschaetzt(["wing","stbl"])));
 }
-function platziere(L){
+/* Blatt «Erklärungen»: keine Live-Werte und, damit die Karte lesbar bleibt, nur die Messstationen des Musters (DATA.stationen
+   aus eval/windbild.cjs; ältere Dateien: jeder Punkt, der irgendwo gemessen ist). Eine neue Station erscheint so von selbst,
+   sobald die Auswertung sie führt; ihr Ort kommt aus PT, sonst aus STAT. Gemessen (Median) voll, geschätzt blass (Hypothesen).
+   Vingelz und Ipsach stehen in See und Bucht als grosse Schilder, in der Region als Punkte. */
+const ortVon = id => PT[id] || STAT[id];
+function messstationen(){
+  if(Array.isArray(DATA.stationen) && DATA.stationen.length) return new Set(DATA.stationen);
+  return new Set(DATA.lagen.flatMap(l=>l.vars.flatMap(v=>v.a.filter(z=>z[3]).map(z=>z[0]))));
+}
+function musterPos(){
+  const gross = ansicht()!=="region", mess = messstationen();
+  /* Beschriftungen nicht unter die Schilder von Vingelz und Ipsach legen */
+  const frei = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]);
+  return platziere(spotsGeschaetzt(["neuv","wing","stbl"]).concat(varOf().a.filter(z=>mess.has(z[0]) && ortVon(z[0]) && !(gross && (z[0]==="vin" || z[0]==="ips"))).map(([id,dir,kn,m])=>{
+    const u = UPWIND.find(q=>q.abk===id), name = KURZ[id] || PTNAME[id] || (u && u.name) || id;
+    return {id, name, ll:ortVon(id), w:{dir, kn}, sig:"", voll:`${name} (${m ? "gemessen" : "geschätzt"})`, modell:!m, est:!m};
+  })), frei);
+}
+function platziere(L, frei){
   const out = L.map(s=>{ const [x,y] = P(s.ll); return Object.assign({x, y}, s); }).filter(s=>s.x>=0 && s.y>=0 && s.x<=W && s.y<=Hh);
-  const used = out.map(s=>[s.x-11, s.y-11, 22, 22]);
+  /* Beschriftungen meiden immer die grossen Schilder von Vingelz und Ipsach */
+  const used = out.map(s=>[s.x-11, s.y-11, 22, 22]).concat(frei || badgePos().map(b=>[b.x-80, b.y-20, 160, 40]));
   const fits = b => b[0]>=2 && b[0]+b[2]<=W-2 && b[1]>=2 && b[1]+b[3]<=Hh-24 && !used.some(u=>b[0]<u[0]+u[2] && u[0]<b[0]+b[2] && b[1]<u[1]+u[3] && u[1]<b[1]+b[3]);
   /* Signale zuerst beschriften, dann in der Reihenfolge der Stationsliste (Cressier, Chasseral, Neuchâtel, …) */
-  out.slice().sort((a,b)=>(b.sig?1:0)-(a.sig?1:0)).forEach(s=>{
+  /* Spots ohne Messung gleich nach den Signalen: Sie sind die Orte, an denen jemand foilt */
+  const rang = s => s.sig ? 0 : s.spot ? 1 : 2;
+  out.slice().sort((a,b)=>rang(a)-rang(b)).forEach(s=>{
     const kn = s.w ? (s.modell ? "~" : "") + r0(s.w.kn) : "–";
     for(const txt of (s.tag ? [`${s.name} ${kn} ${s.tag}`, `${s.name} ${kn}`, `${kn} ${s.tag}`] : []).concat([`${s.name} ${kn}`, String(kn)])){
-      const tw = txt.length*7.2+14, at = [[s.x+13, s.y-9], [s.x-13-tw, s.y-9], [s.x-tw/2, s.y+13], [s.x-tw/2, s.y-31]];
+      const tw = txt.length*7.2+14, at = [[s.x+13, s.y-9], [s.x-13-tw, s.y-9], [s.x-tw/2, s.y+13], [s.x-tw/2, s.y-31],
+        [s.x+13, s.y+9], [s.x-13-tw, s.y+9], [s.x+13, s.y-27], [s.x-13-tw, s.y-27]];
       const b = at.map(o=>[o[0], o[1], tw, 18]).find(fits);
       if(b){ used.push(b); Object.assign(s, {lx:b[0], ly:b[1], txt}); break; }
     }
   });
   return out.map(s=>Object.assign({lx:null, ly:null, txt:""}, s, {w:s.w}));
 }
+/* Der Chasseral liegt ausserhalb des Bildes (Bucht, oder gezoomt): sein Wind steht dann in der Ecke */
+function chaEcke(){
+  if(ansicht()==="region") return false;
+  const [x,y] = P(STAT.cha); return ansicht()==="bucht" || x<0 || y<0 || x>W || y>Hh;
+}
 function badges(){
   const box = el.querySelector(".wbbadges"); let h = "";
   const grau = `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`;
-  statPos().forEach(s=>{
-    const k = (s.sig ? " "+s.sig : "") + (s.tag ? " mod" : "");
+  const sp = statPos();
+  sp.forEach(s=>{
+    const k = (s.sig ? " "+s.sig : "") + (s.tag ? " mod" : "") + (s.est ? " est" : "");
     h += `<div class="wbst${k}" style="left:${s.x}px;top:${s.y}px" title="${esc(s.voll||s.name)}">${s.w ? dot(s.w.dir, s.w.kn) : grau}</div>`;
     if(s.lx!=null) h += `<div class="wbstl${k}" style="left:${s.lx}px;top:${s.ly}px">${esc(s.txt)}</div>`;
   });
   /* Ausschnitt Bucht: Der Chasseral liegt ausserhalb, sein Wind von jetzt steht in der Ecke */
-  if(ST.view==="bucht" && !(!ST.full && ST.h>0)){ const c = station("cha");
+  if(chaEcke() && ST.full){ const c = typ("cha");
+    h += `<div class="wbcorner">Chasseral typisch ${c ? knTxt(c, !c.m) : "–"}</div>`; }
+  else if(chaEcke() && !(!ST.full && ST.h>0)){ const c = station("cha");
     h += `<div class="wbcorner">Chasseral ${c ? r0(c.kn)+" kn "+card(c.dir) : "–"}</div>`; }
   badgePos().forEach(({L, x, y})=>{
+    if(ST.full){
+      /* Musterkarte: typischer Wert, ob gemessen oder geschätzt */
+      const t = typ(L.id);
+      h += `<div class="wbbadge${t && !t.m ? " est" : ""}" style="left:${x}px;top:${y}px">${t ? dot(t.dir, t.kn) : grau}<span><b>${L.name} ${t ? knTxt(t, !t.m) : "–"}</b><small>${!t ? "kein Wert" : t.m ? "typisch, gemessen" : "typisch, geschätzt"}</small></span></div>`;
+      return;
+    }
     if(!ST.full && ST.h>0){
       /* Regler: gross das Modell, klein die Quelle */
       const m = BILD.ref[L.id];
@@ -537,7 +624,46 @@ function badges(){
     const klein = n && n.t ? `gemessen ${C.hhmm(new Date(n.t))}` : "keine Messung";
     h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${now}<span><b>${L.name} ${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</b><small>${klein}</small></span></div>`;
   });
-  box.innerHTML = h;
+  /* Hypothesen-Beschriftungen meiden die Schilder (hart) und die Beschriftungen der Punkte (wenn möglich) */
+  const schilder = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]).concat(chaEcke() ? [[0, 0, 200, 34]] : []);
+  const hy = hypSchicht(schilder, sp.filter(q=>q.lx!=null).map(q=>[q.lx, q.ly, q.txt.length*7.2+14, 18]));
+  /* Pfeile unter den Schildern, ihre Beschriftungen darüber */
+  box.innerHTML = hy.svg + h + hy.lab;
+}
+/* ---------- Hypothesen (Blatt «Erklärungen») ---------- */
+const URTEIL = {passt:"passt", teilweise:"passt teilweise", offen:"offen"};
+function hypFor(){
+  if(!HYP || !ST.full) return [];
+  const l = lageOf(), V = varOf();
+  return HYP.hyp.filter(x=>(x.zu||[]).some(z=>z===l.id || z===l.id+":"+V.key));
+}
+/* Wege als Pfeile in Windrichtung, Zonen als gestrichelte Kreise. Farbe nach Urteil, offen zusätzlich gestrichelt. */
+function hypSchicht(hart, weich){
+  const hs = ST.hyp ? hypFor() : []; if(!hs.length) return {svg:"", lab:""};
+  let svg = "", lab = ""; const used = hart.slice(), soft = weich||[];
+  const frei = (b, L) => !L.some(u=>b[0]<u[0]+u[2] && u[0]<b[0]+b[2] && b[1]<u[1]+u[3] && u[1]<b[1]+b[3]);
+  /* Plätze rund um den Ankerpunkt; zuerst einer, der auch keine Punktbeschriftung deckt */
+  const setze = (anker, txt, cls) => { const w = txt.length*6.6+22;
+    const at = anker.flatMap(([x,y])=>[[0,0],[0,-18],[0,18],[w/2+8,0],[-w/2-8,0]].map(([dx,dy])=>[x+dx-w/2, y+dy-10, w, 20]))
+      .filter(b=>b[0]>=2 && b[0]+w<=W-2 && b[1]>=2 && b[1]+20<=Hh-24);
+    const b = at.find(q=>frei(q, used) && frei(q, soft)) || at.find(q=>frei(q, used)); if(!b) return;
+    used.push(b); lab += `<div class="wbhyl ${cls}" style="left:${b[0]+w/2}px;top:${b[1]+10}px"><span></span>${esc(txt)}</div>`; };
+  hs.forEach(x=>{
+    const cls = "u-"+(URTEIL[x.urteil] ? x.urteil : "offen"), dash = x.urteil==="offen" ? ` stroke-dasharray="7 6"` : "";
+    (x.zonen||[]).forEach(z=>{ const [cx, cy] = P(z.c), r = Math.max(10, z.r*T.k);
+      svg += `<circle class="${cls}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" stroke-dasharray="4 4"/>`;
+      setze([[cx, cy-r-2], [cx, cy+r+2], [cx, cy]], z.label ? `${x.id} ${z.label}` : x.id, cls); });
+    (x.wege||[]).forEach((w, i)=>{
+      const pts = w.p.map(P), sw = 1.5+(w.staerke||1)*1.25, d = pts.map((q,k)=>(k?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" ");
+      const [ax, ay] = pts[pts.length-1], [bx, by] = pts[pts.length-2], L = Math.hypot(ax-bx, ay-by)||1, ux = (ax-bx)/L, uy = (ay-by)/L, k = 5+sw*1.6;
+      const head = `M${(ax+ux*k*0.4).toFixed(1)} ${(ay+uy*k*0.4).toFixed(1)} L${(ax-ux*k+uy*k*0.6).toFixed(1)} ${(ay-uy*k-ux*k*0.6).toFixed(1)} L${(ax-ux*k-uy*k*0.6).toFixed(1)} ${(ay-uy*k+ux*k*0.6).toFixed(1)}Z`;
+      svg += `<path class="halo" d="${d}" stroke-width="${sw+3}"/><path class="${cls}" d="${d}" stroke-width="${sw}"${dash}/><path class="${cls} kopf" d="${head}"/>`;
+      /* Anker: Mitten der Abschnitte, vom mittleren nach aussen */
+      const mid = pts.slice(1).map((q,k)=>[(q[0]+pts[k][0])/2, (q[1]+pts[k][1])/2]), c0 = (mid.length-1)/2;
+      setze(mid.map((q,k)=>[q, Math.abs(k-c0)]).sort((a,b)=>a[1]-b[1]).map(q=>q[0]), w.label ? `${x.id} ${w.label}` : x.id, cls);
+    });
+  });
+  return {svg:`<svg class="wbhyp" width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" aria-hidden="true">${svg}</svg>`, lab};
 }
 /* Welcher Spot ist besser? Zuerst nach dem Anteil der Zeit ab der Schwelle (Tk), sonst nach dem typischen Wert. */
 function besser(Tk){
@@ -551,22 +677,33 @@ function besser(Tk){
   if(Math.abs(i.kn-v.kn) < 2) return `Beide Spots sind ähnlich stark${est}.`;
   return `Besser bei dieser Lage: <b>${i.kn>v.kn ? "Ipsach" : "Vingelz"}</b>${est}.`;
 }
+const datum = d => d ? d.split("-").reverse().map(Number).join(".") : "";
+function hypListe(){
+  const hs = hypFor(); if(!hs.length) return "";
+  return `<div class="wbhyli"><b>Hypothesen zu dieser Lage</b>${hs.map(x=>`<div class="u-${URTEIL[x.urteil] ? x.urteil : "offen"}">
+      <p><span class="wbhyd"></span><b>${esc(x.id)} ${esc(x.titel)}</b> <span class="wbhyu">${esc(URTEIL[x.urteil]||x.urteil)}${x.belege ? ", "+esc(x.belege) : ""}</span></p>
+      <p>${esc(x.aussage)}</p><p class="dim">Befund: ${esc(x.befund)}</p></div>`).join("")}
+    <small>Stand ${esc(datum(HYP.stand))}, aus <code>eval/IDEEN.md</code>. Die Wege sind schematisch eingezeichnet.</small></div>`;
+}
 function panel(){
   const l = lageOf(), V = varOf();
   const std = V.werte ? ` (${Math.round(V.werte/6)} Stunden)` : "";
-  const status = V.status==="m" ? ["m", `Gemessen an ${V.tage} Tagen${std}`] : V.status==="e" ? ["e", (V.tage===1 ? "Erst ein Tag gemessen" : `Erst ${V.tage} Tage gemessen`)+std] : ["s", "Geschätzt, noch nicht gemessen"];
+  const status = V.status==="m" ? ["m", `Gemessen an ${V.tage} Tagen${std}`] : V.status==="e" ? ["e", (V.tage===1 ? "Erst ein Tag gemessen" : `Erst ${V.tage} Tage gemessen`)+std] : ["s", "Hypothese, noch nicht gemessen"];
   /* Anteil der Zeit ab der Schwelle: für die eingestellte Schwelle, sonst für die nächste gerechnete */
   const keys = Object.keys(V.anteil||{}).map(Number), Tk = keys.length ? keys.reduce((a,b)=>Math.abs(b-S.T)<Math.abs(a-S.T) ? b : a) : null;
   const an = id => { const a = Tk!=null && V.anteil[Tk][id]; return a ? (a[0]===a[1] ? a[0] : a[0]+"–"+a[1])+" %" : "–"; };
-  const rows = C.LAKE.map(L=>{ const t = typ(L.id), n = jetzt(L.id);
-    return `<tr><td><b>${L.name}</b></td><td class="n">${knTxt(t, t && !t.m)}</td><td class="n">${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</td>${Tk!=null?`<td class="n">${an(L.id)}</td>`:""}</tr>`; }).join("");
+  const rows = C.LAKE.map(L=>{ const t = typ(L.id);
+    return `<tr><td><b>${L.name}</b></td><td class="n">${knTxt(t, t && !t.m)}</td>${Tk!=null?`<td class="n">${an(L.id)}</td>`:""}</tr>`; }).join("");
+  const ms = messstationen(), nm = V.a.filter(z=>ms.has(z[0])), gm = nm.filter(z=>z[3]).length;
   const dat = d => d ? d.split("-").reverse().map(Number).join(".") : "";
   const fuss = V.werte || V.anteil ? `Typisch: Median der Messwerte von 8 bis 22 Uhr, ${dat(DATA.von).replace(/\.\d{4}$/, ".")}–${dat(DATA.bis)}.`
     : V.status==="s" ? "Schätzung, von Hand gesetzt." : "Aus einzelnen Tagen, von Hand gesetzt.";
   const html = `<span class="wbstatus ${status[0]}">${status[1]}</span>
     <p><b>${esc(l.name)}${l.vars.length>1 ? ": "+esc(V.label) : ""}.</b> ${esc(V.text)}</p>
-    <div class="tw"><table><tr><th>Spot</th><th class="n">typisch</th><th class="n">jetzt</th>${Tk!=null?`<th class="n">Zeit ab ${Tk} kn</th>`:""}</tr>${rows}</table></div>
+    <div class="tw"><table><tr><th>Spot</th><th class="n">typisch</th>${Tk!=null?`<th class="n">Zeit ab ${Tk} kn</th>`:""}</tr>${rows}</table></div>
     <p>${besser(Tk)}</p>
+    <p class="wblegm"><span class="wbdot"></span>gemessen (Median) <span class="wbdot est"></span>geschätzt <span class="dim">· ${gm===nm.length ? `${nm.length} Messstationen` : `${gm} von ${nm.length} Messstationen gemessen`}, die Fläche dazwischen ist geschätzt</span></p>
+    ${hypListe()}
     <small>${Tk!=null && Tk!==S.T ? `Der Anteil ist erst für ${Tk} kn gerechnet, nicht für deine ${S.T} kn. ` : ""}${fuss} Stand ${esc(dat(DATA.stand))}.</small>`;
   /* nur schreiben, wenn sich etwas ändert: sonst liest ein Screenreader den Kasten bei jedem Auffrischen neu vor */
   if(html!==panelHtml){ panelHtml = html; el.querySelector(".wbpanel").innerHTML = html; }
@@ -576,10 +713,8 @@ function panel(){
 const kaum = () => { const v = ["vin","ips"].map(id=>BILD.ref[id]).filter(Boolean); return v.length>0 && v.every(z=>z.kn<3); };
 function head(){
   const h = HEUTE, hl = h.lage ? DATA.lagen.find(l=>l.id===h.lage) : null;
-  const same = hl && ST.type===h.lage;
   /* «Jetzt» bei einer Messung, «Heute» bei der Prognose fürs Zeitfenster: Am Vormittag kann die Lage bis zum Abend drehen */
   const wann = h.art==="messung" ? "Jetzt" : "Heute", zurueck = h.art==="messung" ? "Lage von jetzt" : "Lage von heute";
-  const vorbehalt = h.unsicher ? ` <span class="dim">· Chasseral misst nicht, Lage unsicher</span>` : "";
   /* Startseite kurz: Lage und woher das Bild kommt; im Blatt «Erklärungen» mit Quelle */
   const wie = BILD.art==="live" ? "live" : BILD.art==="modell" ? "Prognose" : "typisch";
   /* Bise am See, darüber anderer Wind (vorwahl, seeBise): «Jetzt: Bise am See · darüber Südwest (Chasseral 16 kn)» */
@@ -591,24 +726,23 @@ function head(){
     ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : kaum() ? "kaum Wind" : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
     : !ST.full ? (hl ? `${wann}: ${lname} <span class="dim">${ueber ? ueber.slice(3)+" · " : "· "}${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
       : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`)
-    : hl ? `${wann}: ${lname} <span class="dim">· ${esc(h.quelle)}${ueber}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
-    : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`;
+    : `<b>${esc(lageOf().name)}</b> <span class="dim">· Muster ${datum(DATA.von).replace(/\.\d{4}$/, ".")}–${datum(DATA.bis)}</span>`;
   const rg = el.querySelector(".wbtime input"); if(rg){ if(+rg.value!==ST.h) rg.value = ST.h; rg.setAttribute("aria-valuetext", ST.h>0 ? zeit(BILD.T)+", Prognose" : "jetzt"); }
   el.querySelector(".wbtoday").dataset.quelle = h.quelle || "";
-  const b = el.querySelector(".wbback"); if(b) b.addEventListener("click", ()=>{ ST.auto = true; update(); });
-  el.querySelectorAll(".wblagen button").forEach(c=>{ const on = c.dataset.t===ST.type, today = c.dataset.t===h.lage;
+  el.querySelectorAll(".wblagen button").forEach(c=>{ const on = c.dataset.t===ST.type, today = !ST.full && c.dataset.t===h.lage;
     c.setAttribute("aria-pressed", on); c.classList.toggle("today", today);
     c.setAttribute("aria-label", c.textContent.trim() + (today ? ", "+zurueck : "")); });
   const l = lageOf(), V = varOf(), vb = el.querySelector(".wbvars");
   vb.hidden = l.vars.length<2;
-  vb.innerHTML = l.vars.length<2 ? "" : l.vars.map(v=>`<button data-k="${v.key}" aria-pressed="${v.key===V.key}">${esc(v.label)}${v.status==="s"?" <i>geschätzt</i>":""}</button>`).join("");
+  vb.innerHTML = l.vars.length<2 ? "" : l.vars.map(v=>`<button data-k="${v.key}" aria-pressed="${v.key===V.key}">${esc(v.label)}${v.status==="s"?" <i>Hypothese</i>":""}</button>`).join("");
   vb.querySelectorAll("button").forEach(b2=>b2.addEventListener("click", ()=>{ ST.auto = false; ST.vk[l.id] = b2.dataset.k; update();
     const again = el.querySelector(`.wbvars button[data-k="${b2.dataset.k}"]`); if(again) again.focus(); }));
   el.querySelectorAll(".wbviews button").forEach(b3=>b3.setAttribute("aria-pressed", b3.dataset.v===ST.view));
   mapEl.setAttribute("aria-label", !BILD.lage ? `Karte ${VIEWS[ST.view].name}: keine Lage erkannt, nur der Wind an den Stationen.` : `Karte ${VIEWS[ST.view].name}: ${BILD.art==="typisch" ? "typischer" : BILD.art==="modell" ? "vorhergesagter" : "an der Messung ausgerichteter"} Wind bei ${BILD.name||l.name}${l.vars.length>1 && !ST.h ? ", "+V.label : ""}${V.status==="s" ? ", geschätzt" : ""}. ${["ips","vin"].map(id=>{ const n = BILD.ref[id], t = typ(id), nm = id==="ips" ? "Ipsach " : "Vingelz ";
     if(BILD.art!=="typisch") return nm+(n ? (BILD.art==="modell" ? "Modell " : "gemessen ")+r0(n.kn)+" kn "+card(n.dir) : "ohne Wert");
     return nm+(t ? (t.m ? "" : "geschätzt ")+r0(t.kn)+" kn "+card(t.dir) : "ohne Wert"); }).join(", ")}.`);
-  const est = el.querySelector(".wbest"); est.textContent = BILD.art==="modell" ? "Prognose" : "geschätzt";
+  const hb = el.querySelector(".wbhyb"); if(hb) hb.hidden = !hypFor().length;
+  const est = el.querySelector(".wbest"); est.textContent = BILD.art==="modell" ? "Prognose" : ST.full ? "Hypothese" : "geschätzt";
   est.hidden = !(BILD.art==="modell" || (BILD.lage && V.status==="s"));
   el.querySelector(".wbthr").style.left = `calc(${Math.min(S.T, KN_MAX)/KN_MAX*100}% - 1px)`;
   el.querySelector(".wbthrt").textContent = `Strich: ${S.T} kn`;
@@ -616,11 +750,14 @@ function head(){
 function build(){
   const g = []; for(let s=0;s<=KN_MAX;s++) g.push(`${rgb(col(s))} ${s/KN_MAX*100}%`);
   el.innerHTML = `<div class="wbtoday"></div>
-    <div class="wblagen" role="group" aria-label="Windlage">${DATA.lagen.map(l=>`<button class="chip" data-t="${l.id}">${esc(l.name)}</button>`).join("")}</div>
+    <div class="wblagen" role="group" aria-label="Windlage">${DATA.lagen.map(l=>{ const t = l.vars.reduce((n,v)=>n+(v.tage||0), 0);
+      return `<button class="chip" data-t="${l.id}">${esc(l.name)}<i>${t ? t+(t===1 ? " Tag" : " Tage") : "Hypothese"}</i></button>`; }).join("")}</div>
     <div class="wbbar"><div class="wbseg wbvars" role="group" aria-label="Variante" hidden></div>
+      <button class="btn2 wbhyb" type="button" aria-pressed="true" hidden>Hypothesen</button>
       <div class="wbseg wbviews" role="group" aria-label="Ausschnitt">${Object.keys(VIEWS).map(k=>`<button data-v="${k}">${VIEWS[k].name}</button>`).join("")}</div></div>
-    <div class="wbmap" role="img"><canvas></canvas><canvas></canvas><div class="wbbadges"></div><div class="wbtip"></div>
-      <div class="wbest" hidden>geschätzt</div><div class="wbnote">Schematisch · Tippen zeigt den Wert</div></div>
+    <div class="wbmap" role="img"><div class="wbpan"><canvas></canvas><canvas></canvas><div class="wbbadges"></div></div><div class="wbtip"></div>
+      <div class="wbest" hidden>geschätzt</div><div class="wbnote">Schematisch · Tippen zeigt den Wert</div>
+      <button class="wbreset" type="button" hidden>Ganze Karte</button></div>
     <div class="wbtime"><input type="range" min="0" max="24" step="1" value="${ST.h}" aria-label="Vorspulen: Stunden ab jetzt">
       <div class="wbtl"><span>jetzt</span><span>+6 h</span><span>+12 h</span><span>+18 h</span><span>+24 h</span></div></div>
     <div class="wbleg"><span>kn</span><div class="wbscale"><div class="wbramp" style="background:linear-gradient(90deg,${g.join(",")})"></div>
@@ -628,14 +765,18 @@ function build(){
     <div class="note wbpanel" aria-live="polite"></div>`;
   mapEl = el.querySelector(".wbmap"); [base, flow] = mapEl.querySelectorAll("canvas"); bctx = base.getContext("2d"); fctx = flow.getContext("2d");
   el.querySelectorAll(".wblagen button").forEach(b=>b.addEventListener("click", ()=>{ ST.auto = false; ST.type = b.dataset.t; update(); }));
-  el.querySelectorAll(".wbviews button").forEach(b=>b.addEventListener("click", ()=>{ ST.view = b.dataset.v; try{ localStorage.setItem(V_KEY, ST.view); }catch(e){} update(); }));
+  el.querySelectorAll(".wbviews button").forEach(b=>b.addEventListener("click", ()=>{ Z = null; ST.view = b.dataset.v; try{ localStorage.setItem(V_KEY, ST.view); }catch(e){} update(); }));
   el.querySelector(".wbtime input").addEventListener("input", e=>{ ST.h = +e.target.value; update(); });
   const tip = el.querySelector(".wbtip"); let tt;
+  zoomen();
+  el.querySelector(".wbhyb").addEventListener("click", e=>{ ST.hyp = !ST.hyp; e.currentTarget.setAttribute("aria-pressed", ST.hyp); badges(); panelHtml = ""; panel(); });
+  el.querySelector(".wbreset").addEventListener("click", e=>{ e.stopPropagation(); Z = null; update(); });
   mapEl.addEventListener("click", e=>{
+    if(Date.now()-gesteEnde < 400) return;
     const r = mapEl.getBoundingClientRect(), px = e.clientX-r.left, py = e.clientY-r.top, [u,v] = fieldAt(...toKm(px,py)), s = Math.hypot(u,v);
     const st = statPos().map(q=>Object.assign({d:Math.hypot(q.x-px, q.y-py)}, q)).sort((a,b)=>a.d-b.d)[0];
     tip.textContent = st && st.d<26 ? `${st.voll}: ${st.w ? r0(st.w.kn)+" kn "+card(st.w.dir) : "keine Messung"}${st.sig==="on" ? " · Signal" : st.sig==="near" ? " · ungeprüftes Signal" : ""}`
-      : !ANCH.length ? "keine Lage erkannt" : ST.view==="region" && !inSee(px, py) ? "Feld nur auf dem Bielersee" : s<1 ? "unter 1 kn" : `≈ ${Math.round(s)} kn aus ${card((Math.atan2(-u,-v)*180/Math.PI+360)%360)}`;
+      : !ANCH.length ? "keine Lage erkannt" : s<1 ? "unter 1 kn" : `≈ ${Math.round(s)} kn aus ${card((Math.atan2(-u,-v)*180/Math.PI+360)%360)}${ansicht()==="region" && !inSee(px, py) ? " · geschätzt" : ""}`;
     tip.style.left = Math.max(60, Math.min(W-60, px))+"px"; tip.style.top = Math.max(34, py)+"px"; tip.style.display = "block";
     clearTimeout(tt); tt = setTimeout(()=>{ tip.style.display = "none"; }, 2600);
   });
@@ -645,6 +786,74 @@ function build(){
   const redraw = () => { drawn = ""; update(); };
   new MutationObserver(redraw).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
+}
+/* ---------- Zoom und Verschieben ---------- */
+let gesteEnde = 0;
+const pan = () => mapEl.querySelector(".wbpan");
+function zeige(){ pan().style.transform = G ? `translate(${G.tx}px,${G.ty}px) scale(${G.f})` : ""; }
+/* um den Punkt (qx, qy) um den Faktor df vergrössern, Massstab bleibt zwischen ZMIN (ganze Region) und ZMAX */
+function zoomUm(qx, qy, df){
+  const s0 = Z ? Z.s : 1, f = Math.max(ZMIN/s0, Math.min(ZMAX/s0, G.f*df)); df = f/G.f;
+  G.tx = df*(G.tx-qx)+qx; G.ty = df*(G.ty-qy)+qy; G.f = f;
+}
+/* Geste übernehmen: der Punkt in der Mitte des Bildes wird die neue Mitte, der Massstab wächst um G.f */
+function uebernehme(){
+  if(!G) return;
+  const moved = Math.abs(G.f-1)>0.01 || Math.hypot(G.tx, G.ty)>3, s = (Z ? Z.s : 1)*G.f;
+  if(moved){
+    const [cx, cy] = toKm((W/2-G.tx)/G.f, (Hh/2-G.ty)/G.f);
+    Z = Math.abs(s-1)>0.02 ? {s, cx, cy} : null; gesteEnde = Date.now();
+  }
+  G = null;
+  if(moved){ drawn = ""; update(); } else zeige();
+}
+function zoomen(){
+  const P2 = new Map(); let start = null, wt = 0;
+  const lokal = e => { const r = mapEl.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+  const beginne = () => {
+    const p = [...P2.values()];
+    if(p.length>=2) start = {mx:(p[0][0]+p[1][0])/2, my:(p[0][1]+p[1][1])/2, d:Math.hypot(p[0][0]-p[1][0], p[0][1]-p[1][1])||1, tx:G.tx, ty:G.ty, f:G.f};
+    else if(p.length===1 && Z) start = {mx:p[0][0], my:p[0][1], d:0, tx:G.tx, ty:G.ty, f:G.f};
+    else start = null;
+  };
+  mapEl.addEventListener("pointerdown", e=>{
+    if(e.pointerType==="mouse" && e.button!==0) return;
+    P2.set(e.pointerId, lokal(e));
+    if(P2.size===1 && !Z && e.pointerType!=="touch") return;    /* Maus ohne Zoom: nur Tippen */
+    if(!G) G = {f:1, tx:0, ty:0};
+    try{ mapEl.setPointerCapture(e.pointerId); }catch(x){}
+    beginne();
+  });
+  mapEl.addEventListener("pointermove", e=>{
+    if(!P2.has(e.pointerId)) return;
+    P2.set(e.pointerId, lokal(e));
+    if(!G || !start) return;
+    const p = [...P2.values()];
+    if(p.length>=2 && start.d){
+      const mx = (p[0][0]+p[1][0])/2, my = (p[0][1]+p[1][1])/2, d = Math.hypot(p[0][0]-p[1][0], p[0][1]-p[1][1]);
+      G.f = start.f; G.tx = start.tx + mx-start.mx; G.ty = start.ty + my-start.my;
+      zoomUm(mx, my, d/start.d);
+    } else if(p.length===1 && !start.d){ G.tx = start.tx + p[0][0]-start.mx; G.ty = start.ty + p[0][1]-start.my; }
+    else return;
+    mapEl.classList.add("zooming"); zeige();
+  });
+  const los = e => {
+    if(!P2.delete(e.pointerId)) return;
+    if(!G) return;
+    if(P2.size) beginne();                       /* ein Finger bleibt: weiter verschieben */
+    else { mapEl.classList.remove("zooming"); start = null; uebernehme(); }
+  };
+  mapEl.addEventListener("pointerup", los); mapEl.addEventListener("pointercancel", los);
+  /* Trackpad-Pinch und Ctrl + Mausrad am Computer */
+  mapEl.addEventListener("wheel", e=>{
+    if(!e.ctrlKey) return;
+    e.preventDefault();
+    if(!G) G = {f:1, tx:0, ty:0};
+    const [qx, qy] = lokal(e); zoomUm(qx, qy, Math.exp(-Math.max(-40, Math.min(40, e.deltaY))*0.01)); zeige();
+    clearTimeout(wt); wt = setTimeout(uebernehme, 160);
+  }, {passive:false});
+  /* Safari: kein Zoom der ganzen Seite, solange die Finger auf der Karte liegen */
+  ["gesturestart","gesturechange"].forEach(t=>mapEl.addEventListener(t, e=>e.preventDefault(), {passive:false}));
 }
 /* Die Datei muss vollständig sein, sonst zeigt die Sektion lieber eine Meldung als eine halbe Karte */
 function pruefe(j){
@@ -659,6 +868,8 @@ function update(){
   if(!DATA){
     /* nach einem Fehler frühestens nach einer Minute erneut versuchen (beim nächsten Auffrischen) */
     if(!LOADING && Date.now()-FAILED > 60000){ LOADING = true;
+      /* Hypothesen sind eine Zugabe: fehlen sie, zeigt die Karte das Muster ohne sie */
+      C.fetchHypothesen().then(j=>{ if(j && Array.isArray(j.hyp)){ HYP = j; if(DATA){ drawn = ""; update(); } } }).catch(()=>{});
       setTimeout(()=>C.fetchWindbild().then(j=>{ pruefe(j); DATA = j; build(); update(); })
         .catch(e=>{ FAILED = Date.now(); el.innerHTML = `<div class="note">Das Windbild ist gerade nicht abrufbar (${esc(e.message||"Fehler")}).</div>`; })
         .then(()=>{ LOADING = false; }), 0); }
@@ -667,7 +878,7 @@ function update(){
   HEUTE = heute();
   const bekannt = id => id && DATA.lagen.some(l=>l.id===id);
   if(ST.full || ST.h===0){
-    if(ST.auto && bekannt(HEUTE.lage)){ ST.type = HEUTE.lage; if(HEUTE.vk) ST.vk[HEUTE.lage] = HEUTE.vk; }
+    if(!ST.full && ST.auto && bekannt(HEUTE.lage)){ ST.type = HEUTE.lage; if(HEUTE.vk) ST.vk[HEUTE.lage] = HEUTE.vk; }
     if(ST.full) BILD = {art:"typisch", lage:ST.type, ref:{}, name:lageOf().name};
     else { const ref = liveRef(); BILD = {art:Object.keys(ref).length ? "live" : "typisch", lage:bekannt(HEUTE.lage) ? HEUTE.lage : null, ref, name:lageOf().name}; }
   } else {
@@ -676,15 +887,19 @@ function update(){
     BILD = {art:"modell", lage:bekannt(r.lage) ? r.lage : null, ref:r.ref, T:r.T, name:r.westSued ? "West oder Süd" : lageOf().name, aus:r.aus, quote:r.quote};
   }
   head();
-  const refKey = Object.entries(BILD.ref).map(([k,v])=>k+Math.round(v.kn)+"/"+Math.round(v.dir/5)).join(",");
+  const refKey = Object.entries(Object.assign({}, regionRef(), BILD.ref)).map(([k,v])=>k+Math.round(v.kn)+"/"+Math.round(v.dir/5)).join(",");
   const key = [BILD.art, BILD.lage, ST.type, varOf().key, ST.view, ST.h, refKey, isDark(), reduce(), Math.round(mapEl.getBoundingClientRect().width)].join("|");
-  if(key!==drawn){ drawn = key; requestAnimationFrame(()=>{ try{ setAnchors(); fit(); drawBase(); seed(); badges(); play(); }catch(e){ drawn = ""; } }); }
+  const zk = Z ? [Z.s.toFixed(3), Z.cx.toFixed(3), Z.cy.toFixed(3)].join("/") : "";
+  const rs = el.querySelector(".wbreset"); if(rs) rs.hidden = !Z;
+  const nt = el.querySelector(".wbnote"); if(nt) nt.textContent = Z ? `Schematisch · ${Z.s<1 ? Z.s.toFixed(2) : Z.s.toFixed(1)}×` : ST.full ? "Typisches Muster · Tippen zeigt den Punkt" : "Schematisch · Tippen zeigt den Wert · Zoom mit zwei Fingern"; mapEl.classList.toggle("zoomed", !!Z);
+  if(key+"|"+zk!==drawn){ drawn = key+"|"+zk; requestAnimationFrame(()=>{ try{ fit(); setAnchors(); drawBase(); seed(); badges(); if(!G) zeige(); play(); }catch(e){ drawn = ""; } }); }
   else badges();
   panel();
 }
 /* Startseite: nur die Lage von heute (ohne Filter, ohne Tabelle). Blatt «Erklärungen»: alle Lagen und Varianten mit Tabelle.
    Zurück auf der Startseite gilt wieder die Lage von heute. */
 function mode(full){
+  Z = null; G = null;
   ST.full = !!full; if(!ST.full) ST.auto = true;
   el = el || $("#wb"); if(el) el.classList.toggle("wbfull", ST.full);
   drawn = ""; update();

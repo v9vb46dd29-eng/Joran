@@ -19,14 +19,14 @@ function renderLake(){
   const lk = C.lakeNow(LK, S);
   el.innerHTML = lk.map(x=>{
     const l = x.last;
-    if(!l) return `<a class="lk old" href="${x.L.url}" target="_blank" rel="noopener"><div class="lh"><b>${x.L.name}</b><small>Station öffnen ↗</small></div>
+    if(!l) return `<a class="lk old" href="${x.L.url}" target="_blank" rel="noopener"><div class="lh"><b>${x.L.name}</b><small>Station öffnen<svg class="ext" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5h5v5M9.5 2.5l-7 7"/></svg></small></div>
       <div class="lv">–</div><div class="ls dim">${LKBUSY?"lädt …":"Nicht abrufbar"+(x.err?` (${esc(x.err)})`:"")+". Tippen öffnet die Station."}</div></a>`;
     const dn = dirOf(l.dir), on = x.fresh && over(l.mean,S) && dirOn(l.dir,S);
     return `<a class="lk${on?" on":""}${x.fresh?"":" old"}" href="${x.L.url}" target="_blank" rel="noopener" title="Station ${x.L.name} öffnen">
       <div class="lh"><b>${x.L.name}</b><small>${hhmm(l.t)}${x.fresh?"":" · veraltet"}</small></div>
       <div class="lv">${r0(l.mean)}<small> kn</small></div>
       <div class="ld">${arrow(l.dir)} ${card(l.dir)}${dn?` <span class="dim" style="font-weight:400">${dn.name}</span>`:""}</div>
-      <div class="ls">Böen ${r0(l.gust)} kn${l.steady!=null?` · Richtung ${l.steady}% stabil`:""}${l.water!=null?` · Wasser ${l.water}°`:""}</div>
+      <div class="ls"><span class="nw">Böen ${r0(l.gust)} kn</span>${l.steady!=null?` · <span class="nw">Richtung ${l.steady}% stabil</span>`:""}${l.water!=null?` · <span class="nw">Wasser ${l.water}°</span>`:""}</div>
       <div class="ls dim">${x.ok?`≥ ${S.T} kn seit ${hhmm(x.since)}`:ago(l.t)}</div>
       ${spark(x.rows)}</a>`;
   }).join("");
