@@ -337,3 +337,26 @@ ol.steps li{margin:3px 0}
 .wblegm{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:13px}
 .wbdot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#e6d640;flex:none}
 .wbdot.est{opacity:.45;outline:1.5px dashed color-mix(in srgb,var(--ink) 55%,transparent);outline-offset:-1px;margin-left:8px}
+/* Hypothesen auf der Musterkarte: Farbe nach Urteil (passt, teilweise, offen) */
+.wbhyp{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.wbhyp path,.wbhyp circle{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.wbhyp .halo{stroke:color-mix(in srgb,var(--card) 80%,transparent)}
+.wbhyp .kopf{stroke:color-mix(in srgb,var(--card) 80%,transparent);stroke-width:1.5}
+.u-passt{--hy:#1e7d45} .u-teilweise{--hy:#b25d00} .u-offen{--hy:#4a4a50}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .u-passt{--hy:#30d158} :root:not([data-theme=light]) .u-teilweise{--hy:#ff9f0a} :root:not([data-theme=light]) .u-offen{--hy:#d1d1d6}}
+:root[data-theme=dark] .u-passt{--hy:#30d158} :root[data-theme=dark] .u-teilweise{--hy:#ff9f0a} :root[data-theme=dark] .u-offen{--hy:#d1d1d6}
+.wbhyp path.u-passt,.wbhyp path.u-teilweise,.wbhyp path.u-offen,.wbhyp circle{stroke:var(--hy)}
+.wbhyp circle{stroke-width:2;fill:color-mix(in srgb,var(--hy) 12%,transparent)}
+.wbhyp .kopf{fill:var(--hy)}
+.wbhyl{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;line-height:18px;padding:0 7px 0 6px;
+  border-radius:9px;white-space:nowrap;pointer-events:none;background:color-mix(in srgb,var(--card) 92%,transparent);color:var(--ink);box-shadow:0 1px 3px #0003}
+.wbhyl span,.wbhyd{width:8px;height:8px;border-radius:50%;background:var(--hy);flex:none;display:inline-block}
+.wbhyb{min-height:40px;margin-right:auto}
+.wbhyb[hidden]{display:none}
+.wbhyb[aria-pressed=false]{color:var(--muted)}
+.wbhyli{margin-top:14px;padding-top:12px;border-top:.5px solid var(--sep)}
+.wbhyli>div{margin-top:10px}
+.wbhyli p{margin:2px 0}
+.wbhyli .wbhyd{margin-right:6px;vertical-align:.05em}
+.wbhyu{font-size:13px;font-weight:600;color:var(--hy)}
+.wbhyli .dim{font-size:13px}

@@ -69,6 +69,8 @@ Jede Regel ist belegt oder als vorläufig markiert (`eval/METHODE.md`, `eval/ITE
 - Musterkarte jeder Lage im Blatt «Erklärungen», ohne Live-Werte. Sie zeigt alle Stützpunkte, gemessen oder geschätzt,
   und die Messtage je Lage. Varianten ohne Messung sind als Hypothese markiert. Quelle: `data/windbild.json` aus
   `eval/windbild.cjs`.
+- Simons Hypothesen zur Bucht (H-B1 bis H-B8) als Pfeile und Kreise auf der Musterkarte, gefärbt nach Urteil (passt,
+  teilweise, offen), mit Aussage und Befund. Quelle: `data/hypothesen.json`, gepflegt aus `eval/IDEEN.md`.
 - Vorschau auf 4 Tage, Rückblick mit Kalibrierung, Push für mehrere Personen.
 
 **Technische Grenzen** (Details in `ARCHITEKTUR.md`)

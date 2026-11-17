@@ -1,6 +1,6 @@
 # Aufbau der App
 
-Stand v40 (17.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
+Stand v41 (17.11.2026). Joran kommt ohne Build und ohne Abhängigkeiten aus: GitHub Pages liefert die Dateien, wie sie im
 Repo liegen, die Action und die Auswertung laden denselben Rechenkern mit `require`.
 
 ## Wozu der Umbau
@@ -28,10 +28,10 @@ Reihenfolge ist die der Abhängigkeit: Ein Silo darf nur Silos brauchen, die wei
 | `prognose` | Modellprognose auswerten: Stufe, Ensemble, Joran-Zutaten, Höhenwind, Lage des Tages (`lageTag`), Restprognose für heute (`opt.ab`) | konstanten, helfer, modell | 170 |
 | `messung` | Live-Signal: Upwind-Regel, Regel E, Böenfront, Kopplung, `nowcast`, `nochKeinWind` | konstanten, helfer, modell, see | 194 |
 | `kalibrierung` | Parameter aus der Vergangenheit bestimmen (`fitModel`, Rückblick) | alle oben | 220 |
-| `daten` | Alles, was ins Netz geht (Open-Meteo, SwissMetNet, meteoBase, `data/windbild.json`); `ortszeit` stellt die Zeit der Open-Meteo-Reihen richtig | konstanten, see | 258 |
+| `daten` | Alles, was ins Netz geht (Open-Meteo, SwissMetNet, meteoBase, `data/windbild.json`, `data/hypothesen.json`); `ortszeit` stellt die Zeit der Open-Meteo-Reihen richtig | konstanten, see | 262 |
 | `einstellungen` | Push-Einstellungen prüfen (`users/<name>.json`) | konstanten, helfer | 38 |
 
-`core.js` ist nur noch die Fassade. Sie führt die 103 öffentlichen Namen auf (77 Funktionen, 26 Konstanten) und fasst sie zu einem Objekt zusammen
+`core.js` ist nur noch die Fassade. Sie führt die 104 öffentlichen Namen auf (78 Funktionen, 26 Konstanten) und fasst sie zu einem Objekt zusammen
 (`JoranCore` im Browser, `require("./core.js")` in Node). `push/`, `eval/` und die Oberfläche kennen nur die Fassade.
 Für sie hat sich nichts geändert.
 
@@ -51,7 +51,7 @@ Jedes Silo hat denselben Rahmen aus fünf Zeilen. Er lädt die gebrauchten Silos
 | `einstellungen.js` | Einstellungsblatt | 16 |
 | `push.js` | Push für mehrere Nutzer, Verwaltung, GitHub-API | 159 |
 | `rueckblick.js` | Tage markieren, kalibrieren, Markierungen ablegen | 114 |
-| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht. Startseite: Lage von jetzt, an den Messungen ausgerichtet, Zahlen nur, wo gemessen wird (Chasseral in See und Bucht); Ausschnitt Region mit allen Upwind-Stationen und Mathod, Feld über der ganzen Region (live mit allen gemessenen Stationen als Stützpunkten, `regionRef`); La Neuveville in See und Region als Modellmittel (`fetchPunkt`, als «Modell» gekennzeichnet); Lage von jetzt zuerst aus der Messung (Chasseral, bei schwachem Chasseral der See), dann aus der Prognose; bei einer Lage vom See (Chasseral schwach) daneben die abweichende Lage fürs Zeitfenster aus der Prognose («Abend: … (Prognose)»); Regler 24 h in drei Phasen: Messung führt (`FUEHRT`: Chasseral 2 h, nur See 0 h), dann Kombination, dann Prognose (`mischLage`, `mischKn`, `quote`). Zoom mit zwei Fingern, Trackpad oder Ctrl + Mausrad (`zoomen`, `Z`: Massstab und Mitte, `fit` zeichnet scharf neu). Blatt «Erklärungen»: typisches Muster jeder Lage mit Filtern (`WB.mode`), ohne Live-Werte, alle Stützpunkte gemessen/geschätzt (`musterPos`, `PTNAME`), Varianten ohne Messung als «Hypothese» | 811 |
+| `windbild.js` | Sektion «Windbild»: Karte der Bieler Bucht. Startseite: Lage von jetzt, an den Messungen ausgerichtet, Zahlen nur, wo gemessen wird (Chasseral in See und Bucht); Ausschnitt Region mit allen Upwind-Stationen und Mathod, Feld über der ganzen Region (live mit allen gemessenen Stationen als Stützpunkten, `regionRef`); La Neuveville in See und Region als Modellmittel (`fetchPunkt`, als «Modell» gekennzeichnet); Lage von jetzt zuerst aus der Messung (Chasseral, bei schwachem Chasseral der See), dann aus der Prognose; bei einer Lage vom See (Chasseral schwach) daneben die abweichende Lage fürs Zeitfenster aus der Prognose («Abend: … (Prognose)»); Regler 24 h in drei Phasen: Messung führt (`FUEHRT`: Chasseral 2 h, nur See 0 h), dann Kombination, dann Prognose (`mischLage`, `mischKn`, `quote`). Zoom mit zwei Fingern, Trackpad oder Ctrl + Mausrad (`zoomen`, `Z`: Massstab und Mitte, `fit` zeichnet scharf neu). Blatt «Erklärungen»: typisches Muster jeder Lage mit Filtern (`WB.mode`), ohne Live-Werte, alle Stützpunkte gemessen/geschätzt (`musterPos`, `PTNAME`), Varianten ohne Messung als «Hypothese»; Hypothesen H-B1 bis H-B8 aus `data/hypothesen.json` als Pfeile und Kreise mit Urteil (`hypSchicht`, `hypListe`, Knopf «Hypothesen») | 866 |
 | `start.js` | Daten holen, auffrischen, Blätter Einstellungen und Erklärungen, Bedienelemente verdrahten | 164 |
 
 Das sind klassische Skripte. Sie teilen sich ihre Namen und werden in dieser Reihenfolge geladen. Die Grenzen sind hier
@@ -66,7 +66,7 @@ also Ordnung und keine Mauer: Eine Datei kann auf Funktionen einer anderen zugre
 2. Nur `daten` geht ins Netz. Der Rechenkern kennt weder Seite noch Browser-Speicher.
 3. Action, Auswertung und Oberfläche brauchen nur die Fassade, nie ein Silo direkt.
 4. `index.html` lädt die Silos in der Reihenfolge der Fassade, danach `core.js`, danach `app/`, `start.js` zuletzt.
-5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=40`, «v40»). Bei jeder Änderung an allen Stellen
+5. Alle Dateien und die Kopfzeile tragen dieselbe Version (`?v=41`, «v41»). Bei jeder Änderung an allen Stellen
    gleich hochzählen, sonst mischt der Browser alte und neue Dateien.
 6. Nur `app/push.js` spricht mit der GitHub-API. Wetterdaten holt die Oberfläche nur über den Rechenkern.
 7. `MODEL.active` und `LAGE.active` sind `false`, bis Simon eine Aktivierung mergt.

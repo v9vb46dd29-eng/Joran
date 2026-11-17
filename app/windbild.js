@@ -308,9 +308,9 @@ function stunde(h, h0){
 
 /* ---------- Zustand ---------- */
 const V_KEY = "joran.windbild.v1";
-const ST = {auto:true, type:"west", vk:{}, view:"bucht", full:false, h:0};
+const ST = {auto:true, type:"west", vk:{}, view:"bucht", full:false, h:0, hyp:true};
 try{ const v = localStorage.getItem(V_KEY); if(v && VIEWS[v]) ST.view = v; }catch(e){}
-let DATA = null, LOADING = false, FAILED = 0, HEUTE = {lage:null, vk:null, quelle:"", grund:"", art:null, unsicher:false};
+let HYP = null, DATA = null, LOADING = false, FAILED = 0, HEUTE = {lage:null, vk:null, quelle:"", grund:"", art:null, unsicher:false};
 /* Was die Karte gerade zeigt: Lage (null = keine erkannt) und die Werte, an denen das Muster ausgerichtet wird */
 let BILD = {art:"typisch", lage:null, ref:{}, name:""};
 let panelHtml = "";
@@ -551,7 +551,8 @@ function platziere(L, frei){
 function badges(){
   const box = el.querySelector(".wbbadges"); let h = "";
   const grau = `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`;
-  statPos().forEach(s=>{
+  const sp = statPos();
+  sp.forEach(s=>{
     const k = (s.sig ? " "+s.sig : "") + (s.tag ? " mod" : "") + (s.est ? " est" : "");
     h += `<div class="wbst${k}" style="left:${s.x}px;top:${s.y}px" title="${esc(s.voll||s.name)}">${s.w ? dot(s.w.dir, s.w.kn) : grau}</div>`;
     if(s.lx!=null) h += `<div class="wbstl${k}" style="left:${s.lx}px;top:${s.ly}px">${esc(s.txt)}</div>`;
@@ -580,7 +581,46 @@ function badges(){
     const klein = n && n.t ? `gemessen ${C.hhmm(new Date(n.t))}` : "keine Messung";
     h += `<div class="wbbadge" style="left:${x}px;top:${y}px">${now}<span><b>${L.name} ${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</b><small>${klein}</small></span></div>`;
   });
-  box.innerHTML = h;
+  /* Hypothesen-Beschriftungen meiden die Schilder (hart) und die Beschriftungen der Punkte (wenn möglich) */
+  const schilder = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]).concat(ST.view==="bucht" ? [[0, 0, 200, 34]] : []);
+  const hy = hypSchicht(schilder, sp.filter(q=>q.lx!=null).map(q=>[q.lx, q.ly, q.txt.length*7.2+14, 18]));
+  /* Pfeile unter den Schildern, ihre Beschriftungen darüber */
+  box.innerHTML = hy.svg + h + hy.lab;
+}
+/* ---------- Hypothesen (Blatt «Erklärungen») ---------- */
+const URTEIL = {passt:"passt", teilweise:"passt teilweise", offen:"offen"};
+function hypFor(){
+  if(!HYP || !ST.full) return [];
+  const l = lageOf(), V = varOf();
+  return HYP.hyp.filter(x=>(x.zu||[]).some(z=>z===l.id || z===l.id+":"+V.key));
+}
+/* Wege als Pfeile in Windrichtung, Zonen als gestrichelte Kreise. Farbe nach Urteil, offen zusätzlich gestrichelt. */
+function hypSchicht(hart, weich){
+  const hs = ST.hyp ? hypFor() : []; if(!hs.length) return {svg:"", lab:""};
+  let svg = "", lab = ""; const used = hart.slice(), soft = weich||[];
+  const frei = (b, L) => !L.some(u=>b[0]<u[0]+u[2] && u[0]<b[0]+b[2] && b[1]<u[1]+u[3] && u[1]<b[1]+b[3]);
+  /* Plätze rund um den Ankerpunkt; zuerst einer, der auch keine Punktbeschriftung deckt */
+  const setze = (anker, txt, cls) => { const w = txt.length*6.6+22;
+    const at = anker.flatMap(([x,y])=>[[0,0],[0,-18],[0,18],[w/2+8,0],[-w/2-8,0]].map(([dx,dy])=>[x+dx-w/2, y+dy-10, w, 20]))
+      .filter(b=>b[0]>=2 && b[0]+w<=W-2 && b[1]>=2 && b[1]+20<=Hh-24);
+    const b = at.find(q=>frei(q, used) && frei(q, soft)) || at.find(q=>frei(q, used)); if(!b) return;
+    used.push(b); lab += `<div class="wbhyl ${cls}" style="left:${b[0]+w/2}px;top:${b[1]+10}px"><span></span>${esc(txt)}</div>`; };
+  hs.forEach(x=>{
+    const cls = "u-"+(URTEIL[x.urteil] ? x.urteil : "offen"), dash = x.urteil==="offen" ? ` stroke-dasharray="7 6"` : "";
+    (x.zonen||[]).forEach(z=>{ const [cx, cy] = P(z.c), r = Math.max(10, z.r*T.k);
+      svg += `<circle class="${cls}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" stroke-dasharray="4 4"/>`;
+      setze([[cx, cy-r-2], [cx, cy+r+2], [cx, cy]], z.label ? `${x.id} ${z.label}` : x.id, cls); });
+    (x.wege||[]).forEach((w, i)=>{
+      const pts = w.p.map(P), sw = 1.5+(w.staerke||1)*1.25, d = pts.map((q,k)=>(k?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" ");
+      const [ax, ay] = pts[pts.length-1], [bx, by] = pts[pts.length-2], L = Math.hypot(ax-bx, ay-by)||1, ux = (ax-bx)/L, uy = (ay-by)/L, k = 5+sw*1.6;
+      const head = `M${(ax+ux*k*0.4).toFixed(1)} ${(ay+uy*k*0.4).toFixed(1)} L${(ax-ux*k+uy*k*0.6).toFixed(1)} ${(ay-uy*k-ux*k*0.6).toFixed(1)} L${(ax-ux*k-uy*k*0.6).toFixed(1)} ${(ay-uy*k+ux*k*0.6).toFixed(1)}Z`;
+      svg += `<path class="halo" d="${d}" stroke-width="${sw+3}"/><path class="${cls}" d="${d}" stroke-width="${sw}"${dash}/><path class="${cls} kopf" d="${head}"/>`;
+      /* Anker: Mitten der Abschnitte, vom mittleren nach aussen */
+      const mid = pts.slice(1).map((q,k)=>[(q[0]+pts[k][0])/2, (q[1]+pts[k][1])/2]), c0 = (mid.length-1)/2;
+      setze(mid.map((q,k)=>[q, Math.abs(k-c0)]).sort((a,b)=>a[1]-b[1]).map(q=>q[0]), w.label ? `${x.id} ${w.label}` : x.id, cls);
+    });
+  });
+  return {svg:`<svg class="wbhyp" width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" aria-hidden="true">${svg}</svg>`, lab};
 }
 /* Welcher Spot ist besser? Zuerst nach dem Anteil der Zeit ab der Schwelle (Tk), sonst nach dem typischen Wert. */
 function besser(Tk){
@@ -595,6 +635,13 @@ function besser(Tk){
   return `Besser bei dieser Lage: <b>${i.kn>v.kn ? "Ipsach" : "Vingelz"}</b>${est}.`;
 }
 const datum = d => d ? d.split("-").reverse().map(Number).join(".") : "";
+function hypListe(){
+  const hs = hypFor(); if(!hs.length) return "";
+  return `<div class="wbhyli"><b>Hypothesen zu dieser Lage</b>${hs.map(x=>`<div class="u-${URTEIL[x.urteil] ? x.urteil : "offen"}">
+      <p><span class="wbhyd"></span><b>${esc(x.id)} ${esc(x.titel)}</b> <span class="wbhyu">${esc(URTEIL[x.urteil]||x.urteil)}${x.belege ? ", "+esc(x.belege) : ""}</span></p>
+      <p>${esc(x.aussage)}</p><p class="dim">Befund: ${esc(x.befund)}</p></div>`).join("")}
+    <small>Stand ${esc(datum(HYP.stand))}, aus <code>eval/IDEEN.md</code>. Die Wege sind schematisch eingezeichnet.</small></div>`;
+}
 function panel(){
   const l = lageOf(), V = varOf();
   const std = V.werte ? ` (${Math.round(V.werte/6)} Stunden)` : "";
@@ -613,6 +660,7 @@ function panel(){
     <div class="tw"><table><tr><th>Spot</th><th class="n">typisch</th>${Tk!=null?`<th class="n">Zeit ab ${Tk} kn</th>`:""}</tr>${rows}</table></div>
     <p>${besser(Tk)}</p>
     <p class="wblegm"><span class="wbdot"></span>gemessen (Median) <span class="wbdot est"></span>geschätzt <span class="dim">· ${gm} von ${nm.length} Punkten gemessen</span></p>
+    ${hypListe()}
     <small>${Tk!=null && Tk!==S.T ? `Der Anteil ist erst für ${Tk} kn gerechnet, nicht für deine ${S.T} kn. ` : ""}${fuss} Stand ${esc(dat(DATA.stand))}.</small>`;
   /* nur schreiben, wenn sich etwas ändert: sonst liest ein Screenreader den Kasten bei jedem Auffrischen neu vor */
   if(html!==panelHtml){ panelHtml = html; el.querySelector(".wbpanel").innerHTML = html; }
@@ -650,6 +698,7 @@ function head(){
   mapEl.setAttribute("aria-label", !BILD.lage ? `Karte ${VIEWS[ST.view].name}: keine Lage erkannt, nur der Wind an den Stationen.` : `Karte ${VIEWS[ST.view].name}: ${BILD.art==="typisch" ? "typischer" : BILD.art==="modell" ? "vorhergesagter" : "an der Messung ausgerichteter"} Wind bei ${BILD.name||l.name}${l.vars.length>1 && !ST.h ? ", "+V.label : ""}${V.status==="s" ? ", geschätzt" : ""}. ${["ips","vin"].map(id=>{ const n = BILD.ref[id], t = typ(id), nm = id==="ips" ? "Ipsach " : "Vingelz ";
     if(BILD.art!=="typisch") return nm+(n ? (BILD.art==="modell" ? "Modell " : "gemessen ")+r0(n.kn)+" kn "+card(n.dir) : "ohne Wert");
     return nm+(t ? (t.m ? "" : "geschätzt ")+r0(t.kn)+" kn "+card(t.dir) : "ohne Wert"); }).join(", ")}.`);
+  const hb = el.querySelector(".wbhyb"); if(hb) hb.hidden = !hypFor().length;
   const est = el.querySelector(".wbest"); est.textContent = BILD.art==="modell" ? "Prognose" : ST.full ? "Hypothese" : "geschätzt";
   est.hidden = !(BILD.art==="modell" || (BILD.lage && V.status==="s"));
   el.querySelector(".wbthr").style.left = `calc(${Math.min(S.T, KN_MAX)/KN_MAX*100}% - 1px)`;
@@ -661,6 +710,7 @@ function build(){
     <div class="wblagen" role="group" aria-label="Windlage">${DATA.lagen.map(l=>{ const t = l.vars.reduce((n,v)=>n+(v.tage||0), 0);
       return `<button class="chip" data-t="${l.id}">${esc(l.name)}<i>${t ? t+(t===1 ? " Tag" : " Tage") : "Hypothese"}</i></button>`; }).join("")}</div>
     <div class="wbbar"><div class="wbseg wbvars" role="group" aria-label="Variante" hidden></div>
+      <button class="btn2 wbhyb" type="button" aria-pressed="true" hidden>Hypothesen</button>
       <div class="wbseg wbviews" role="group" aria-label="Ausschnitt">${Object.keys(VIEWS).map(k=>`<button data-v="${k}">${VIEWS[k].name}</button>`).join("")}</div></div>
     <div class="wbmap" role="img"><div class="wbpan"><canvas></canvas><canvas></canvas><div class="wbbadges"></div></div><div class="wbtip"></div>
       <div class="wbest" hidden>geschätzt</div><div class="wbnote">Schematisch · Tippen zeigt den Wert</div>
@@ -676,6 +726,7 @@ function build(){
   el.querySelector(".wbtime input").addEventListener("input", e=>{ ST.h = +e.target.value; update(); });
   const tip = el.querySelector(".wbtip"); let tt;
   zoomen();
+  el.querySelector(".wbhyb").addEventListener("click", e=>{ ST.hyp = !ST.hyp; e.currentTarget.setAttribute("aria-pressed", ST.hyp); badges(); panelHtml = ""; panel(); });
   el.querySelector(".wbreset").addEventListener("click", e=>{ e.stopPropagation(); Z = null; update(); });
   mapEl.addEventListener("click", e=>{
     if(Date.now()-gesteEnde < 400) return;
@@ -774,6 +825,8 @@ function update(){
   if(!DATA){
     /* nach einem Fehler frühestens nach einer Minute erneut versuchen (beim nächsten Auffrischen) */
     if(!LOADING && Date.now()-FAILED > 60000){ LOADING = true;
+      /* Hypothesen sind eine Zugabe: fehlen sie, zeigt die Karte das Muster ohne sie */
+      C.fetchHypothesen().then(j=>{ if(j && Array.isArray(j.hyp)){ HYP = j; if(DATA){ drawn = ""; update(); } } }).catch(()=>{});
       setTimeout(()=>C.fetchWindbild().then(j=>{ pruefe(j); DATA = j; build(); update(); })
         .catch(e=>{ FAILED = Date.now(); el.innerHTML = `<div class="note">Das Windbild ist gerade nicht abrufbar (${esc(e.message||"Fehler")}).</div>`; })
         .then(()=>{ LOADING = false; }), 0); }
