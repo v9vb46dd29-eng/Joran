@@ -32,6 +32,13 @@ const ANZEIGE = [{abk:"mah", name:"Mathod", voll:"Mathod (Orbe-Ebene bei Yverdon
    Modelle der App (Seezelle vor dem Hafen), immer als «Modell» gekennzeichnet. Es richtet die Karte nicht aus. */
 const NEUV = {ll:[47.063,7.100], name:"La Neuveville", voll:"La Neuveville (Modell, keine öffentliche Messung)"};
 let NEUV_D = null;
+/* Weitere Wingfoil-Spots (Simon, 17.11.2026): keine Messung, Wert geschätzt aus dem Windbild an ihrem Ort, immer mit «~» und
+   blass. La Neuveville hat auf der Startseite den Modellwert (NEUV), auf der Musterkarte die Schätzung. */
+const SPOTS_KARTE = [
+  {id:"neuv", name:"La Neuveville", ll:[47.063,7.100]},
+  {id:"wing", name:"Wingreis", ll:[47.103,7.174]},
+  {id:"stbl", name:"St-Blaise", ll:[47.008,6.985], voll:"St-Blaise (Neuenburgersee)"}
+];
 function holeNeuv(){
   const e = NEUV_D; if(e && (e.busy || Date.now()-e.at<30*60000)) return;
   NEUV_D = Object.assign(e || {}, {busy:true});
@@ -505,22 +512,29 @@ function badgePos(){
    Ausnahme La Neuveville in See und Region: Modellmittel, als «Modell» gekennzeichnet (auch im Regler, für die gewählte Stunde).
    Ein Signal ist hervorgehoben. Beschriftung rechts, sonst links, sonst nur die Zahl. */
 const KURZ = {fre:"Bullet", cdf:"Chaux-de-Fonds", brl:"La Brévine", vin:"Vingelz", ips:"Ipsach"};
+/* Spots ohne Messung: Wind aus dem Feld an ihrem Ort (Richtung, aus der er kommt), ohne erkannte Lage kein Wert */
+function spotsGeschaetzt(ids){
+  return SPOTS_KARTE.filter(sp=>ids.includes(sp.id)).map(sp=>{
+    let w = null; if(ANCH.length){ const [u,v] = fieldAt(...km(sp.ll)), kn = Math.hypot(u,v); w = {kn, dir:(Math.atan2(-u,-v)*180/Math.PI+360)%360}; }
+    return {id:sp.id, name:sp.name, ll:sp.ll, w, sig:"", voll:`${sp.voll||sp.name}: Spot ohne Messung, geschätzt aus dem Windbild`, modell:true, est:true, spot:true};
+  });
+}
 function statPos(){
   if(!W) return [];
   if(ST.full) return musterPos();
-  if(ST.view==="bucht") return [];
+  if(ST.view==="bucht") return platziere(spotsGeschaetzt(["wing"]));
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
   const vor = !ST.full && ST.h>0;
   holeNeuv();
   const nv = {id:"neuv", name:NEUV.name, ll:NEUV.ll, w:neuvAm(vor ? ST.h : 0), sig:"", voll:NEUV.voll, modell:true, tag:"Modell"};
   if(ST.view==="see"){
-    const L1 = vor ? [nv] : [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}, nv]; return platziere(L1); }
+    const L1 = vor ? [nv] : [{id:"cha", name:"Chasseral", ll:STAT.cha, w:station("cha"), sig:sig("cha"), voll:"Chasseral, Jurakamm 1594 m"}, nv]; return platziere(L1.concat(spotsGeschaetzt(["wing","stbl"]))); }
   if(!vor) holeExtra();
   const L = vor ? [] : UPWIND.filter(u=>STAT[u.abk]).map(u=>({id:u.abk, name:KURZ[u.abk]||u.name, ll:STAT[u.abk], w:station(u.abk), sig:sig(u.abk), voll:u.name}))
     .concat(ANZEIGE.map(a=>({id:a.abk, name:a.name, ll:STAT[a.abk], w:station(a.abk), sig:"", voll:a.voll})));
   if(vor){ const m = BILD.ref.ips; L.push({id:"ips", name:"Ipsach", ll:MARK.ips, w:m ? {kn:m.kn, dir:m.dir} : null, sig:"", voll:"Ipsach (Messung und Modell)", modell:true}); }
   L.push(nv);
-  return platziere(L);
+  return platziere(L.concat(spotsGeschaetzt(["wing","stbl"])));
 }
 /* Blatt «Erklärungen»: keine Live-Werte und, damit die Karte lesbar bleibt, nur die Messstationen des Musters (DATA.stationen
    aus eval/windbild.cjs; ältere Dateien: jeder Punkt, der irgendwo gemessen ist). Eine neue Station erscheint so von selbst,
@@ -535,20 +549,24 @@ function musterPos(){
   const gross = ST.view!=="region", mess = messstationen();
   /* Beschriftungen nicht unter die Schilder von Vingelz und Ipsach legen */
   const frei = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]);
-  return platziere(varOf().a.filter(z=>mess.has(z[0]) && ortVon(z[0]) && !(gross && (z[0]==="vin" || z[0]==="ips"))).map(([id,dir,kn,m])=>{
+  return platziere(spotsGeschaetzt(["neuv","wing","stbl"]).concat(varOf().a.filter(z=>mess.has(z[0]) && ortVon(z[0]) && !(gross && (z[0]==="vin" || z[0]==="ips"))).map(([id,dir,kn,m])=>{
     const u = UPWIND.find(q=>q.abk===id), name = KURZ[id] || PTNAME[id] || (u && u.name) || id;
     return {id, name, ll:ortVon(id), w:{dir, kn}, sig:"", voll:`${name} (${m ? "gemessen" : "geschätzt"})`, modell:!m, est:!m};
-  }), frei);
+  })), frei);
 }
 function platziere(L, frei){
   const out = L.map(s=>{ const [x,y] = P(s.ll); return Object.assign({x, y}, s); }).filter(s=>s.x>=0 && s.y>=0 && s.x<=W && s.y<=Hh);
-  const used = out.map(s=>[s.x-11, s.y-11, 22, 22]).concat(frei||[]);
+  /* Beschriftungen meiden immer die grossen Schilder von Vingelz und Ipsach */
+  const used = out.map(s=>[s.x-11, s.y-11, 22, 22]).concat(frei || badgePos().map(b=>[b.x-80, b.y-20, 160, 40]));
   const fits = b => b[0]>=2 && b[0]+b[2]<=W-2 && b[1]>=2 && b[1]+b[3]<=Hh-24 && !used.some(u=>b[0]<u[0]+u[2] && u[0]<b[0]+b[2] && b[1]<u[1]+u[3] && u[1]<b[1]+b[3]);
   /* Signale zuerst beschriften, dann in der Reihenfolge der Stationsliste (Cressier, Chasseral, Neuchâtel, …) */
-  out.slice().sort((a,b)=>(b.sig?1:0)-(a.sig?1:0)).forEach(s=>{
+  /* Spots ohne Messung gleich nach den Signalen: Sie sind die Orte, an denen jemand foilt */
+  const rang = s => s.sig ? 0 : s.spot ? 1 : 2;
+  out.slice().sort((a,b)=>rang(a)-rang(b)).forEach(s=>{
     const kn = s.w ? (s.modell ? "~" : "") + r0(s.w.kn) : "–";
     for(const txt of (s.tag ? [`${s.name} ${kn} ${s.tag}`, `${s.name} ${kn}`, `${kn} ${s.tag}`] : []).concat([`${s.name} ${kn}`, String(kn)])){
-      const tw = txt.length*7.2+14, at = [[s.x+13, s.y-9], [s.x-13-tw, s.y-9], [s.x-tw/2, s.y+13], [s.x-tw/2, s.y-31]];
+      const tw = txt.length*7.2+14, at = [[s.x+13, s.y-9], [s.x-13-tw, s.y-9], [s.x-tw/2, s.y+13], [s.x-tw/2, s.y-31],
+        [s.x+13, s.y+9], [s.x-13-tw, s.y+9], [s.x+13, s.y-27], [s.x-13-tw, s.y-27]];
       const b = at.map(o=>[o[0], o[1], tw, 18]).find(fits);
       if(b){ used.push(b); Object.assign(s, {lx:b[0], ly:b[1], txt}); break; }
     }

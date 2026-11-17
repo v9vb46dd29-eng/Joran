@@ -103,7 +103,8 @@ Jede Regel ist belegt oder als vorläufig markiert (`eval/METHODE.md`, `eval/ITE
 
 **Begriffe**
 
-- **Spot:** Vingelz, Ipsach, Seemitte.
+- **Spot:** Vingelz, Ipsach, Seemitte. Dazu, nur auf der Karte und geschätzt, weil dort niemand misst: La Neuveville,
+  Wingreis und St-Blaise (Neuenburgersee).
 - **Schwelle:** die Windstärke in kn, ab der jemand rausgeht.
 - **Zeitfenster:** Abend 16–21, Nachmittag 12–21, Tag 9–21 Uhr.
 - **Lage:** das Windsystem.
