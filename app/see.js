@@ -27,7 +27,7 @@ function renderLake(){
       <div class="lv">${r0(l.mean)}<small> kn</small></div>
       <div class="ld">${arrow(l.dir)} ${card(l.dir)}${dn?` <span class="dim" style="font-weight:400">${dn.name}</span>`:""}</div>
       <div class="ls"><span class="nw">Böen ${r0(l.gust)} kn</span>${l.steady!=null?` · <span class="nw">Richtung ${l.steady}% stabil</span>`:""}${l.water!=null?` · <span class="nw">Wasser ${l.water}°</span>`:""}</div>
-      <div class="ls dim">${x.ok?`≥ ${S.T} kn seit ${hhmm(x.since)}`:ago(l.t)}</div>
+      <div class="ls ${x.ok?"seit":"dim"}">${x.ok?`≥ ${S.T} kn seit ${hhmm(x.since)}`:ago(l.t)}</div>
       ${spark(x.rows)}</a>`;
   }).join("");
   $("#lakeStamp").textContent = LKBUSY ? "lädt …" : LK && LK.updated ? "geholt " + hhmm(new Date(LK.updated)) : "";

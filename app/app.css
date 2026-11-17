@@ -70,8 +70,9 @@ h2,.sech{font-size:17px;font-weight:600;letter-spacing:0;color:var(--ink);margin
 /* See live */
 .lake{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .lk{display:block;background:var(--card);border-radius:var(--r);padding:12px 14px;color:var(--ink);text-decoration:none;min-width:0;position:relative}
-.lk.on{background:var(--lv3);color:#fff}
-.lk.on .dim,.lk.on small{color:#e0f2ff}
+/* Schwelle erreicht: Kachel bleibt neutral, Zahl, Zeile «seit» und Verlauf werden blau */
+.lk.on .lv,.lk.on svg.sp{color:var(--water-t)}
+.lk .seit{color:var(--water-t);font-weight:600}
 .lk.old .lv{color:var(--muted)}
 .lk .lh{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:15px}
 .lk .lh b{font-weight:600}
