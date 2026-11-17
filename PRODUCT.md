@@ -66,8 +66,8 @@ Jede Regel ist belegt oder als vorläufig markiert (`eval/METHODE.md`, `eval/ITE
 - Sturmwarnung ab 35 kn Mittelwind oder 45 kn Böen und bei einer Böenfront.
 - Joran-Zutaten und Höhenwind als Hinweise.
 - Windbild der Bucht und der Region mit einem Regler über 24 Stunden und Zoom mit zwei Fingern.
-- Musterkarte jeder Lage im Blatt «Erklärungen», ohne Live-Werte. Sie zeigt alle Stützpunkte, gemessen oder geschätzt,
-  und die Messtage je Lage. Varianten ohne Messung sind als Hypothese markiert. Quelle: `data/windbild.json` aus
+- Musterkarte jeder Lage im Blatt «Erklärungen», ohne Live-Werte. Sie zeigt nur die Messstationen (lesbar, neue
+  kommen mit der Auswertung von selbst dazu) und die Messtage je Lage. Varianten ohne Messung sind als Hypothese markiert. Quelle: `data/windbild.json` aus
   `eval/windbild.cjs`.
 - Simons Hypothesen zur Bucht (H-B1 bis H-B8) als Pfeile und Kreise auf der Musterkarte, gefärbt nach Urteil (passt,
   teilweise, offen), mit Aussage und Befund. Quelle: `data/hypothesen.json`, gepflegt aus `eval/IDEEN.md`.

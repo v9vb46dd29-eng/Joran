@@ -522,15 +522,22 @@ function statPos(){
   L.push(nv);
   return platziere(L);
 }
-/* Blatt «Erklärungen»: keine Live-Werte, sondern alle Stützpunkte des Musters. Gemessen (Median) voll, geschätzt blass.
+/* Blatt «Erklärungen»: keine Live-Werte und, damit die Karte lesbar bleibt, nur die Messstationen des Musters (DATA.stationen
+   aus eval/windbild.cjs; ältere Dateien: jeder Punkt, der irgendwo gemessen ist). Eine neue Station erscheint so von selbst,
+   sobald die Auswertung sie führt; ihr Ort kommt aus PT, sonst aus STAT. Gemessen (Median) voll, geschätzt blass (Hypothesen).
    Vingelz und Ipsach stehen in See und Bucht als grosse Schilder, in der Region als Punkte. */
+const ortVon = id => PT[id] || STAT[id];
+function messstationen(){
+  if(Array.isArray(DATA.stationen) && DATA.stationen.length) return new Set(DATA.stationen);
+  return new Set(DATA.lagen.flatMap(l=>l.vars.flatMap(v=>v.a.filter(z=>z[3]).map(z=>z[0]))));
+}
 function musterPos(){
-  const gross = ST.view!=="region";
+  const gross = ST.view!=="region", mess = messstationen();
   /* Beschriftungen nicht unter die Schilder von Vingelz und Ipsach legen */
   const frei = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]);
-  return platziere(varOf().a.filter(z=>PT[z[0]] && !(gross && (z[0]==="vin" || z[0]==="ips"))).map(([id,dir,kn,m])=>{
-    const name = PTNAME[id]||id;
-    return {id, name, ll:PT[id], w:{dir, kn}, sig:"", voll:`${name} (${m ? "gemessen" : "geschätzt"})`, modell:!m, est:!m};
+  return platziere(varOf().a.filter(z=>mess.has(z[0]) && ortVon(z[0]) && !(gross && (z[0]==="vin" || z[0]==="ips"))).map(([id,dir,kn,m])=>{
+    const u = UPWIND.find(q=>q.abk===id), name = KURZ[id] || PTNAME[id] || (u && u.name) || id;
+    return {id, name, ll:ortVon(id), w:{dir, kn}, sig:"", voll:`${name} (${m ? "gemessen" : "geschätzt"})`, modell:!m, est:!m};
   }), frei);
 }
 function platziere(L, frei){
@@ -651,7 +658,7 @@ function panel(){
   const an = id => { const a = Tk!=null && V.anteil[Tk][id]; return a ? (a[0]===a[1] ? a[0] : a[0]+"–"+a[1])+" %" : "–"; };
   const rows = C.LAKE.map(L=>{ const t = typ(L.id);
     return `<tr><td><b>${L.name}</b></td><td class="n">${knTxt(t, t && !t.m)}</td>${Tk!=null?`<td class="n">${an(L.id)}</td>`:""}</tr>`; }).join("");
-  const nm = V.a.filter(z=>PT[z[0]]), gm = nm.filter(z=>z[3]).length;
+  const ms = messstationen(), nm = V.a.filter(z=>ms.has(z[0])), gm = nm.filter(z=>z[3]).length;
   const dat = d => d ? d.split("-").reverse().map(Number).join(".") : "";
   const fuss = V.werte || V.anteil ? `Typisch: Median der Messwerte von 8 bis 22 Uhr, ${dat(DATA.von).replace(/\.\d{4}$/, ".")}–${dat(DATA.bis)}.`
     : V.status==="s" ? "Schätzung, von Hand gesetzt." : "Aus einzelnen Tagen, von Hand gesetzt.";
@@ -659,7 +666,7 @@ function panel(){
     <p><b>${esc(l.name)}${l.vars.length>1 ? ": "+esc(V.label) : ""}.</b> ${esc(V.text)}</p>
     <div class="tw"><table><tr><th>Spot</th><th class="n">typisch</th>${Tk!=null?`<th class="n">Zeit ab ${Tk} kn</th>`:""}</tr>${rows}</table></div>
     <p>${besser(Tk)}</p>
-    <p class="wblegm"><span class="wbdot"></span>gemessen (Median) <span class="wbdot est"></span>geschätzt <span class="dim">· ${gm} von ${nm.length} Punkten gemessen</span></p>
+    <p class="wblegm"><span class="wbdot"></span>gemessen (Median) <span class="wbdot est"></span>geschätzt <span class="dim">· ${gm===nm.length ? `${nm.length} Messstationen` : `${gm} von ${nm.length} Messstationen gemessen`}, die Fläche dazwischen ist geschätzt</span></p>
     ${hypListe()}
     <small>${Tk!=null && Tk!==S.T ? `Der Anteil ist erst für ${Tk} kn gerechnet, nicht für deine ${S.T} kn. ` : ""}${fuss} Stand ${esc(dat(DATA.stand))}.</small>`;
   /* nur schreiben, wenn sich etwas ändert: sonst liest ein Screenreader den Kasten bei jedem Auffrischen neu vor */

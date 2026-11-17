@@ -84,7 +84,9 @@ function summe(x, y){
   return Object.entries(m).filter(([,o])=>o.n===2).map(([p,o])=>[p, Math.round((Math.atan2(-o.u,-o.v)*180/Math.PI+360)%360)%360, Math.round(Math.hypot(o.u,o.v)*10)/10]);
 }
 const days = [...new Set(rows.map(r=>r.day))].sort();
-const out = {stand:C.localDay(0), von:days[0], bis:days[days.length-1], tage:days.length,
+/* stationen: die Messstationen, die das Muster tragen. Die Musterkarte der App zeigt genau diese; kommt eine dazu (MESS), erscheint
+   sie nach dem nächsten Lauf auch auf der Karte (Ort aus PT oder STAT in app/windbild.js). */
+const out = {stand:C.localDay(0), von:days[0], bis:days[days.length-1], tage:days.length, stationen:MESS,
   quelle:"Gerechnet von eval/windbild.cjs aus der Seemessung (Vingelz, Ipsach) und SwissMetNet (Chasseral, Cressier, Grenchen, Courtelary, Neuchâtel): Zehnminutenwerte 8–22 Uhr. Lage nach dem Wind auf dem Chasseral, Schichtung nach der Temperaturabnahme Cressier–Chasseral. Lagen mit fest gesetzten Stützpunkten stammen aus eval/windbild.vorlage.json.",
   format:"regeln.seeBiseMin = Bise am See geht vor, wenn Vingelz und Ipsach beide ab so viel kn aus dem Sektor bise messen (West, Süd und Nordwest auf dem Chasseral werden dann zu Bise). kamm = Sektoren des Winds auf dem Chasseral (ab regeln.kammMin kn), die zur Lage gehören; die Kammprognose zählt mal regeln.kammFaktor; schicht = durchmischt ab regeln.lapseMin K je km. tage = Tage mit mindestens regeln.tagWerte Zehnminutenwerten in der Lage, werte = Zehnminutenwerte. a = Stützpunkte [Ort, Wind aus Grad, kn, 1 = gemessen]. status: m = gemessen, e = wenige Tage, s = geschätzt. anteil = Prozent der Zeit ab der Schwelle [kleinster, grösster Wert über die Chasseral-Sektoren der Lage], je Schwelle in kn.",
   regeln:{kammMin:KAMM_MIN, lapseMin:LAPSE, tagWerte:TAG_WERTE, kammFaktor:KAMM_FAKTOR, seeBiseMin:SEE_BISE_MIN},
