@@ -81,6 +81,11 @@ const PT = {
   tlx:[47.153,7.266], gre:[47.180,7.330], neu:[47.020,7.000], hag:[47.050,7.270], twb:[47.105,7.140], lus:[47.042,7.150],
   bayN:[47.1265,7.231], split:[47.121,7.213]
 };
+/* Namen der Stützpunkte für die Musterkarte im Blatt «Erklärungen» */
+const PTNAME = {vin:"Vingelz", ips:"Ipsach", cha:"Chasseral", crm:"Cressier", coy:"Courtelary", neuv:"La Neuveville", lig:"Ligerz",
+  twa:"Twann", sutz:"Sutz", mor:"Mörigen", bay:"Bucht", alf:"Alfermée", tus:"Tüscherz", nid:"Nidau", biel:"Biel", mag:"Magglingen",
+  seel:"Seeland", erl:"Erlach", pla:"Plateau de Diesse", son:"Sonceboz", val:"Vallon de St-Imier", pery:"Péry", frin:"Frinvillier",
+  tlx:"Taubenloch", gre:"Grenchen", neu:"Neuchâtel", hag:"Hagneck", twb:"Twannberg", lus:"Lüscherz", bayN:"Bucht Nord", split:"Gabelung"};
 /* Farbskala in kn */
 const STOPS = [[0,[64,82,128]],[4,[56,124,196]],[8,[44,174,186]],[12,[92,196,96]],[16,[230,214,64]],[20,[244,146,44]],[25,[222,60,52]],[30,[186,40,136]],[35,[132,44,168]]];
 const KN_MAX = 35;
@@ -501,7 +506,9 @@ function badgePos(){
    Ein Signal ist hervorgehoben. Beschriftung rechts, sonst links, sonst nur die Zahl. */
 const KURZ = {fre:"Bullet", cdf:"Chaux-de-Fonds", brl:"La Brévine", vin:"Vingelz", ips:"Ipsach"};
 function statPos(){
-  if(ST.view==="bucht" || !W) return [];
+  if(!W) return [];
+  if(ST.full) return musterPos();
+  if(ST.view==="bucht") return [];
   const nc = HEUTE.nc, sig = abk => nc && (nc.eOk && abk==="crm" || nc.trusted.some(x=>x.up.abk===abk)) ? "on" : nc && nc.sig.some(x=>x.up.abk===abk) ? "near" : "";
   const vor = !ST.full && ST.h>0;
   holeNeuv();
@@ -515,9 +522,20 @@ function statPos(){
   L.push(nv);
   return platziere(L);
 }
-function platziere(L){
+/* Blatt «Erklärungen»: keine Live-Werte, sondern alle Stützpunkte des Musters. Gemessen (Median) voll, geschätzt blass.
+   Vingelz und Ipsach stehen in See und Bucht als grosse Schilder, in der Region als Punkte. */
+function musterPos(){
+  const gross = ST.view!=="region";
+  /* Beschriftungen nicht unter die Schilder von Vingelz und Ipsach legen */
+  const frei = badgePos().map(b=>[b.x-80, b.y-20, 160, 40]);
+  return platziere(varOf().a.filter(z=>PT[z[0]] && !(gross && (z[0]==="vin" || z[0]==="ips"))).map(([id,dir,kn,m])=>{
+    const name = PTNAME[id]||id;
+    return {id, name, ll:PT[id], w:{dir, kn}, sig:"", voll:`${name} (${m ? "gemessen" : "geschätzt"})`, modell:!m, est:!m};
+  }), frei);
+}
+function platziere(L, frei){
   const out = L.map(s=>{ const [x,y] = P(s.ll); return Object.assign({x, y}, s); }).filter(s=>s.x>=0 && s.y>=0 && s.x<=W && s.y<=Hh);
-  const used = out.map(s=>[s.x-11, s.y-11, 22, 22]);
+  const used = out.map(s=>[s.x-11, s.y-11, 22, 22]).concat(frei||[]);
   const fits = b => b[0]>=2 && b[0]+b[2]<=W-2 && b[1]>=2 && b[1]+b[3]<=Hh-24 && !used.some(u=>b[0]<u[0]+u[2] && u[0]<b[0]+b[2] && b[1]<u[1]+u[3] && u[1]<b[1]+b[3]);
   /* Signale zuerst beschriften, dann in der Reihenfolge der Stationsliste (Cressier, Chasseral, Neuchâtel, …) */
   out.slice().sort((a,b)=>(b.sig?1:0)-(a.sig?1:0)).forEach(s=>{
@@ -534,14 +552,22 @@ function badges(){
   const box = el.querySelector(".wbbadges"); let h = "";
   const grau = `<svg viewBox="-10 -10 20 20" aria-hidden="true"><circle r="9.5" fill="#8a8a8e"/></svg>`;
   statPos().forEach(s=>{
-    const k = (s.sig ? " "+s.sig : "") + (s.tag ? " mod" : "");
+    const k = (s.sig ? " "+s.sig : "") + (s.tag ? " mod" : "") + (s.est ? " est" : "");
     h += `<div class="wbst${k}" style="left:${s.x}px;top:${s.y}px" title="${esc(s.voll||s.name)}">${s.w ? dot(s.w.dir, s.w.kn) : grau}</div>`;
     if(s.lx!=null) h += `<div class="wbstl${k}" style="left:${s.lx}px;top:${s.ly}px">${esc(s.txt)}</div>`;
   });
   /* Ausschnitt Bucht: Der Chasseral liegt ausserhalb, sein Wind von jetzt steht in der Ecke */
-  if(ST.view==="bucht" && !(!ST.full && ST.h>0)){ const c = station("cha");
+  if(ST.view==="bucht" && ST.full){ const c = typ("cha");
+    h += `<div class="wbcorner">Chasseral typisch ${c ? knTxt(c, !c.m) : "–"}</div>`; }
+  else if(ST.view==="bucht" && !(!ST.full && ST.h>0)){ const c = station("cha");
     h += `<div class="wbcorner">Chasseral ${c ? r0(c.kn)+" kn "+card(c.dir) : "–"}</div>`; }
   badgePos().forEach(({L, x, y})=>{
+    if(ST.full){
+      /* Musterkarte: typischer Wert, ob gemessen oder geschätzt */
+      const t = typ(L.id);
+      h += `<div class="wbbadge${t && !t.m ? " est" : ""}" style="left:${x}px;top:${y}px">${t ? dot(t.dir, t.kn) : grau}<span><b>${L.name} ${t ? knTxt(t, !t.m) : "–"}</b><small>${!t ? "kein Wert" : t.m ? "typisch, gemessen" : "typisch, geschätzt"}</small></span></div>`;
+      return;
+    }
     if(!ST.full && ST.h>0){
       /* Regler: gross das Modell, klein die Quelle */
       const m = BILD.ref[L.id];
@@ -568,22 +594,25 @@ function besser(Tk){
   if(Math.abs(i.kn-v.kn) < 2) return `Beide Spots sind ähnlich stark${est}.`;
   return `Besser bei dieser Lage: <b>${i.kn>v.kn ? "Ipsach" : "Vingelz"}</b>${est}.`;
 }
+const datum = d => d ? d.split("-").reverse().map(Number).join(".") : "";
 function panel(){
   const l = lageOf(), V = varOf();
   const std = V.werte ? ` (${Math.round(V.werte/6)} Stunden)` : "";
-  const status = V.status==="m" ? ["m", `Gemessen an ${V.tage} Tagen${std}`] : V.status==="e" ? ["e", (V.tage===1 ? "Erst ein Tag gemessen" : `Erst ${V.tage} Tage gemessen`)+std] : ["s", "Geschätzt, noch nicht gemessen"];
+  const status = V.status==="m" ? ["m", `Gemessen an ${V.tage} Tagen${std}`] : V.status==="e" ? ["e", (V.tage===1 ? "Erst ein Tag gemessen" : `Erst ${V.tage} Tage gemessen`)+std] : ["s", "Hypothese, noch nicht gemessen"];
   /* Anteil der Zeit ab der Schwelle: für die eingestellte Schwelle, sonst für die nächste gerechnete */
   const keys = Object.keys(V.anteil||{}).map(Number), Tk = keys.length ? keys.reduce((a,b)=>Math.abs(b-S.T)<Math.abs(a-S.T) ? b : a) : null;
   const an = id => { const a = Tk!=null && V.anteil[Tk][id]; return a ? (a[0]===a[1] ? a[0] : a[0]+"–"+a[1])+" %" : "–"; };
-  const rows = C.LAKE.map(L=>{ const t = typ(L.id), n = jetzt(L.id);
-    return `<tr><td><b>${L.name}</b></td><td class="n">${knTxt(t, t && !t.m)}</td><td class="n">${n ? r0(n.mean)+" kn "+card(n.dir) : "–"}</td>${Tk!=null?`<td class="n">${an(L.id)}</td>`:""}</tr>`; }).join("");
+  const rows = C.LAKE.map(L=>{ const t = typ(L.id);
+    return `<tr><td><b>${L.name}</b></td><td class="n">${knTxt(t, t && !t.m)}</td>${Tk!=null?`<td class="n">${an(L.id)}</td>`:""}</tr>`; }).join("");
+  const nm = V.a.filter(z=>PT[z[0]]), gm = nm.filter(z=>z[3]).length;
   const dat = d => d ? d.split("-").reverse().map(Number).join(".") : "";
   const fuss = V.werte || V.anteil ? `Typisch: Median der Messwerte von 8 bis 22 Uhr, ${dat(DATA.von).replace(/\.\d{4}$/, ".")}–${dat(DATA.bis)}.`
     : V.status==="s" ? "Schätzung, von Hand gesetzt." : "Aus einzelnen Tagen, von Hand gesetzt.";
   const html = `<span class="wbstatus ${status[0]}">${status[1]}</span>
     <p><b>${esc(l.name)}${l.vars.length>1 ? ": "+esc(V.label) : ""}.</b> ${esc(V.text)}</p>
-    <div class="tw"><table><tr><th>Spot</th><th class="n">typisch</th><th class="n">jetzt</th>${Tk!=null?`<th class="n">Zeit ab ${Tk} kn</th>`:""}</tr>${rows}</table></div>
+    <div class="tw"><table><tr><th>Spot</th><th class="n">typisch</th>${Tk!=null?`<th class="n">Zeit ab ${Tk} kn</th>`:""}</tr>${rows}</table></div>
     <p>${besser(Tk)}</p>
+    <p class="wblegm"><span class="wbdot"></span>gemessen (Median) <span class="wbdot est"></span>geschätzt <span class="dim">· ${gm} von ${nm.length} Punkten gemessen</span></p>
     <small>${Tk!=null && Tk!==S.T ? `Der Anteil ist erst für ${Tk} kn gerechnet, nicht für deine ${S.T} kn. ` : ""}${fuss} Stand ${esc(dat(DATA.stand))}.</small>`;
   /* nur schreiben, wenn sich etwas ändert: sonst liest ein Screenreader den Kasten bei jedem Auffrischen neu vor */
   if(html!==panelHtml){ panelHtml = html; el.querySelector(".wbpanel").innerHTML = html; }
@@ -593,10 +622,8 @@ function panel(){
 const kaum = () => { const v = ["vin","ips"].map(id=>BILD.ref[id]).filter(Boolean); return v.length>0 && v.every(z=>z.kn<3); };
 function head(){
   const h = HEUTE, hl = h.lage ? DATA.lagen.find(l=>l.id===h.lage) : null;
-  const same = hl && ST.type===h.lage;
   /* «Jetzt» bei einer Messung, «Heute» bei der Prognose fürs Zeitfenster: Am Vormittag kann die Lage bis zum Abend drehen */
   const wann = h.art==="messung" ? "Jetzt" : "Heute", zurueck = h.art==="messung" ? "Lage von jetzt" : "Lage von heute";
-  const vorbehalt = h.unsicher ? ` <span class="dim">· Chasseral misst nicht, Lage unsicher</span>` : "";
   /* Startseite kurz: Lage und woher das Bild kommt; im Blatt «Erklärungen» mit Quelle */
   const wie = BILD.art==="live" ? "live" : BILD.art==="modell" ? "Prognose" : "typisch";
   /* Bise am See, darüber anderer Wind (vorwahl, seeBise): «Jetzt: Bise am See · darüber Südwest (Chasseral 16 kn)» */
@@ -608,24 +635,22 @@ function head(){
     ? `${esc(zeit(BILD.T))}: ${BILD.lage ? `<b>${esc(BILD.name)}</b>` : kaum() ? "kaum Wind" : "keine Lage erkennbar"} <span class="dim">· ${BILD.aus==="messung" ? "Messung fortgeschrieben" : BILD.aus==="wechsel" ? "Prognose sagt Wechsel" : "Prognose"}${BILD.lage && BILD.quote!=null ? `, stimmt ~${BILD.quote} %` : ""}</span>`
     : !ST.full ? (hl ? `${wann}: ${lname} <span class="dim">${ueber ? ueber.slice(3)+" · " : "· "}${wie}${h.unsicher ? ", Chasseral fehlt" : ""}</span>`
       : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`)
-    : hl ? `${wann}: ${lname} <span class="dim">· ${esc(h.quelle)}${ueber}</span>${vorbehalt}${same ? "" : ` <button class="btn2 wbback">${zurueck}</button>`}`
-    : `<span class="dim">${esc(h.grund)}${h.unsicher ? " Chasseral misst nicht." : ""}</span>`;
+    : `<b>${esc(lageOf().name)}</b> <span class="dim">· Muster ${datum(DATA.von).replace(/\.\d{4}$/, ".")}–${datum(DATA.bis)}</span>`;
   const rg = el.querySelector(".wbtime input"); if(rg){ if(+rg.value!==ST.h) rg.value = ST.h; rg.setAttribute("aria-valuetext", ST.h>0 ? zeit(BILD.T)+", Prognose" : "jetzt"); }
   el.querySelector(".wbtoday").dataset.quelle = h.quelle || "";
-  const b = el.querySelector(".wbback"); if(b) b.addEventListener("click", ()=>{ ST.auto = true; update(); });
-  el.querySelectorAll(".wblagen button").forEach(c=>{ const on = c.dataset.t===ST.type, today = c.dataset.t===h.lage;
+  el.querySelectorAll(".wblagen button").forEach(c=>{ const on = c.dataset.t===ST.type, today = !ST.full && c.dataset.t===h.lage;
     c.setAttribute("aria-pressed", on); c.classList.toggle("today", today);
     c.setAttribute("aria-label", c.textContent.trim() + (today ? ", "+zurueck : "")); });
   const l = lageOf(), V = varOf(), vb = el.querySelector(".wbvars");
   vb.hidden = l.vars.length<2;
-  vb.innerHTML = l.vars.length<2 ? "" : l.vars.map(v=>`<button data-k="${v.key}" aria-pressed="${v.key===V.key}">${esc(v.label)}${v.status==="s"?" <i>geschätzt</i>":""}</button>`).join("");
+  vb.innerHTML = l.vars.length<2 ? "" : l.vars.map(v=>`<button data-k="${v.key}" aria-pressed="${v.key===V.key}">${esc(v.label)}${v.status==="s"?" <i>Hypothese</i>":""}</button>`).join("");
   vb.querySelectorAll("button").forEach(b2=>b2.addEventListener("click", ()=>{ ST.auto = false; ST.vk[l.id] = b2.dataset.k; update();
     const again = el.querySelector(`.wbvars button[data-k="${b2.dataset.k}"]`); if(again) again.focus(); }));
   el.querySelectorAll(".wbviews button").forEach(b3=>b3.setAttribute("aria-pressed", b3.dataset.v===ST.view));
   mapEl.setAttribute("aria-label", !BILD.lage ? `Karte ${VIEWS[ST.view].name}: keine Lage erkannt, nur der Wind an den Stationen.` : `Karte ${VIEWS[ST.view].name}: ${BILD.art==="typisch" ? "typischer" : BILD.art==="modell" ? "vorhergesagter" : "an der Messung ausgerichteter"} Wind bei ${BILD.name||l.name}${l.vars.length>1 && !ST.h ? ", "+V.label : ""}${V.status==="s" ? ", geschätzt" : ""}. ${["ips","vin"].map(id=>{ const n = BILD.ref[id], t = typ(id), nm = id==="ips" ? "Ipsach " : "Vingelz ";
     if(BILD.art!=="typisch") return nm+(n ? (BILD.art==="modell" ? "Modell " : "gemessen ")+r0(n.kn)+" kn "+card(n.dir) : "ohne Wert");
     return nm+(t ? (t.m ? "" : "geschätzt ")+r0(t.kn)+" kn "+card(t.dir) : "ohne Wert"); }).join(", ")}.`);
-  const est = el.querySelector(".wbest"); est.textContent = BILD.art==="modell" ? "Prognose" : "geschätzt";
+  const est = el.querySelector(".wbest"); est.textContent = BILD.art==="modell" ? "Prognose" : ST.full ? "Hypothese" : "geschätzt";
   est.hidden = !(BILD.art==="modell" || (BILD.lage && V.status==="s"));
   el.querySelector(".wbthr").style.left = `calc(${Math.min(S.T, KN_MAX)/KN_MAX*100}% - 1px)`;
   el.querySelector(".wbthrt").textContent = `Strich: ${S.T} kn`;
@@ -633,7 +658,8 @@ function head(){
 function build(){
   const g = []; for(let s=0;s<=KN_MAX;s++) g.push(`${rgb(col(s))} ${s/KN_MAX*100}%`);
   el.innerHTML = `<div class="wbtoday"></div>
-    <div class="wblagen" role="group" aria-label="Windlage">${DATA.lagen.map(l=>`<button class="chip" data-t="${l.id}">${esc(l.name)}</button>`).join("")}</div>
+    <div class="wblagen" role="group" aria-label="Windlage">${DATA.lagen.map(l=>{ const t = l.vars.reduce((n,v)=>n+(v.tage||0), 0);
+      return `<button class="chip" data-t="${l.id}">${esc(l.name)}<i>${t ? t+(t===1 ? " Tag" : " Tage") : "Hypothese"}</i></button>`; }).join("")}</div>
     <div class="wbbar"><div class="wbseg wbvars" role="group" aria-label="Variante" hidden></div>
       <div class="wbseg wbviews" role="group" aria-label="Ausschnitt">${Object.keys(VIEWS).map(k=>`<button data-v="${k}">${VIEWS[k].name}</button>`).join("")}</div></div>
     <div class="wbmap" role="img"><div class="wbpan"><canvas></canvas><canvas></canvas><div class="wbbadges"></div></div><div class="wbtip"></div>
@@ -756,7 +782,7 @@ function update(){
   HEUTE = heute();
   const bekannt = id => id && DATA.lagen.some(l=>l.id===id);
   if(ST.full || ST.h===0){
-    if(ST.auto && bekannt(HEUTE.lage)){ ST.type = HEUTE.lage; if(HEUTE.vk) ST.vk[HEUTE.lage] = HEUTE.vk; }
+    if(!ST.full && ST.auto && bekannt(HEUTE.lage)){ ST.type = HEUTE.lage; if(HEUTE.vk) ST.vk[HEUTE.lage] = HEUTE.vk; }
     if(ST.full) BILD = {art:"typisch", lage:ST.type, ref:{}, name:lageOf().name};
     else { const ref = liveRef(); BILD = {art:Object.keys(ref).length ? "live" : "typisch", lage:bekannt(HEUTE.lage) ? HEUTE.lage : null, ref, name:lageOf().name}; }
   } else {
@@ -769,7 +795,7 @@ function update(){
   const key = [BILD.art, BILD.lage, ST.type, varOf().key, ST.view, ST.h, refKey, isDark(), reduce(), Math.round(mapEl.getBoundingClientRect().width)].join("|");
   const zk = Z ? [Z.s.toFixed(3), Z.cx.toFixed(3), Z.cy.toFixed(3)].join("/") : "";
   const rs = el.querySelector(".wbreset"); if(rs) rs.hidden = !Z;
-  const nt = el.querySelector(".wbnote"); if(nt) nt.textContent = Z ? `Schematisch · ${Z.s.toFixed(1)}×` : "Schematisch · Tippen zeigt den Wert · Zoom mit zwei Fingern"; mapEl.classList.toggle("zoomed", !!Z);
+  const nt = el.querySelector(".wbnote"); if(nt) nt.textContent = Z ? `Schematisch · ${Z.s.toFixed(1)}×` : ST.full ? "Typisches Muster · Tippen zeigt den Punkt" : "Schematisch · Tippen zeigt den Wert · Zoom mit zwei Fingern"; mapEl.classList.toggle("zoomed", !!Z);
   if(key+"|"+zk!==drawn){ drawn = key+"|"+zk; requestAnimationFrame(()=>{ try{ setAnchors(); fit(); drawBase(); seed(); badges(); if(!G) zeige(); play(); }catch(e){ drawn = ""; } }); }
   else badges();
   panel();

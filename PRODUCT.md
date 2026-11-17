@@ -19,6 +19,9 @@ Sie öffnen Joran am Handy, meist in zwei Momenten:
 
 Dazwischen kommt die Push-Nachricht (Vortag ab «wahrscheinlich», am Tag selbst bei Messung oder Upwind-Signal).
 
+Simon nutzt Joran zudem, um aus den Messdaten in `eval/` zu lernen, wie Joran und die anderen Winde in der Bucht
+funktionieren. Seine Hypothesen will er dafür grafisch sehen, getrennt von dem, was schon gemessen ist.
+
 ## Product Purpose
 
 Joran sagt voraus, ob es am Bielersee (Vingelz, Ipsach, Seemitte) genug Wind zum Wingfoilen gibt: heute, morgen und
@@ -63,6 +66,9 @@ Jede Regel ist belegt oder als vorläufig markiert (`eval/METHODE.md`, `eval/ITE
 - Sturmwarnung ab 35 kn Mittelwind oder 45 kn Böen und bei einer Böenfront.
 - Joran-Zutaten und Höhenwind als Hinweise.
 - Windbild der Bucht und der Region mit einem Regler über 24 Stunden und Zoom mit zwei Fingern.
+- Musterkarte jeder Lage im Blatt «Erklärungen», ohne Live-Werte. Sie zeigt alle Stützpunkte, gemessen oder geschätzt,
+  und die Messtage je Lage. Varianten ohne Messung sind als Hypothese markiert. Quelle: `data/windbild.json` aus
+  `eval/windbild.cjs`.
 - Vorschau auf 4 Tage, Rückblick mit Kalibrierung, Push für mehrere Personen.
 
 **Technische Grenzen** (Details in `ARCHITEKTUR.md`)

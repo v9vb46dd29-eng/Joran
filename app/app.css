@@ -303,7 +303,7 @@ ol.steps li{margin:3px 0}
 .wbthr{position:absolute;top:-3px;width:2px;height:15px;background:var(--ink)}
 .wbpanel p{margin:.5em 0}
 /* Startseite: Karte ohne Filter und Tabelle; im Blatt «Erklärungen» (.wbfull) vollständig */
-.wb:not(.wbfull) .wblagen,.wb:not(.wbfull) .wbvars,.wb:not(.wbfull) .wbpanel,.wb:not(.wbfull) .wbback{display:none!important}
+.wb:not(.wbfull) .wblagen,.wb:not(.wbfull) .wbvars,.wb:not(.wbfull) .wbpanel{display:none!important}
 .wbfull .wbtime{display:none}
 /* Regler: 24 Stunden vorspulen */
 .wbtime{margin:10px 2px 0}
@@ -326,3 +326,14 @@ ol.steps li{margin:3px 0}
 .wbstatus.e,.wbstatus.s{background:color-mix(in srgb,var(--orange) 24%,transparent);color:var(--ink)}
 /* kleine Nebentexte im Windbild: dunkler als --muted, damit sie auch in 11 bis 13 px AA-Kontrast halten */
 .wb .dim,.wbleg,.wbpanel small,.wbbadge small,.wbseg button i,.wbpanel th{color:color-mix(in srgb,var(--ink) 68%,var(--card))}
+/* Musterkarte im Blatt «Erklärungen»: gemessene Punkte voll, geschätzte blass und gestrichelt */
+.wbst.est svg{opacity:.45}
+.wbst.est{outline:1.5px dashed color-mix(in srgb,var(--ink) 55%,transparent);outline-offset:-1px}
+.wbstl.est{font-weight:500;color:var(--ink2)}
+.wbbadge.est{border-style:dashed;border-color:color-mix(in srgb,var(--ink) 40%,transparent)}
+.wbbadge.est svg{opacity:.55}
+.wblagen .chip i{font-style:normal;font-size:12px;color:var(--muted)}
+.wblagen .chip[aria-pressed=true] i{color:inherit;opacity:.85}
+.wblegm{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:13px}
+.wbdot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#e6d640;flex:none}
+.wbdot.est{opacity:.45;outline:1.5px dashed color-mix(in srgb,var(--ink) 55%,transparent);outline-offset:-1px;margin-left:8px}
