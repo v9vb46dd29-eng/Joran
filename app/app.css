@@ -270,7 +270,16 @@ ol.steps li{margin:3px 0}
 .wbseg button[aria-pressed=true]{background:var(--card);font-weight:600;box-shadow:0 1px 3px #0002}
 .wbseg button i{font-style:normal;font-size:11px;color:var(--muted);font-weight:400}
 .wbviews{margin-left:auto}
-.wbmap{position:relative;width:100%;aspect-ratio:5/4;border-radius:var(--r);overflow:hidden;background:var(--card);touch-action:manipulation}
+.wbmap{position:relative;width:100%;aspect-ratio:5/4;border-radius:var(--r);overflow:hidden;background:var(--card);touch-action:pan-y;-webkit-user-select:none;user-select:none}
+/* gezoomt: ein Finger verschiebt die Karte statt die Seite */
+.wbmap.zoomed{touch-action:none;cursor:grab}
+.wbmap.zooming{cursor:grabbing}
+.wbpan{position:absolute;inset:0;transform-origin:0 0}
+.wbmap.zooming .wbbadges{visibility:hidden}
+.wbreset{position:absolute;right:8px;bottom:6px;font:inherit;font-size:12px;font-weight:600;line-height:16px;padding:4px 10px;border:0;border-radius:8px;cursor:pointer;
+  background:color-mix(in srgb,var(--card) 92%,transparent);color:var(--accent);box-shadow:0 1px 4px #0003}
+.wbreset::after{content:"";position:absolute;inset:-10px -6px -6px}
+.wbreset[hidden]{display:none}
 @media (max-width:520px){.wbmap{aspect-ratio:1/1}}
 .wbmap canvas{position:absolute;inset:0;width:100%;height:100%}
 .wbbadge{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--card) 92%,transparent);

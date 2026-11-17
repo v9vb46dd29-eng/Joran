@@ -334,6 +334,10 @@ function liveRef(){
 
 /* ---------- Feld: Stützpunkte, Interpolation mit inversen Distanzen (kein Strömungsmodell) ---------- */
 let ANCH = [], W = 0, Hh = 0, DPR = 1, GW = 0, GH = 0, GU = null, GV = null, parts = [];
+/* Zoom mit zwei Fingern (oder Trackpad, Ctrl + Mausrad): Z hält Massstab (1 bis ZMAX) und Mitte in km. Während der Geste
+   verschiebt und vergrössert CSS die gezeichnete Karte (G), beim Loslassen zeichnet fit() sie im neuen Ausschnitt scharf neu. */
+const ZMAX = 8;
+let Z = null, G = null;
 const T = {cx:0, cy:0, k:1}, CELL = 3;
 /* Muster an Werte von jetzt oder aus dem Modell anpassen: Punkte mit eigenem Wert übernehmen ihn, die übrigen werden mit dem
    Verhältnis jetzt/typisch und der Drehung der nahen Punkte angepasst (gewichtet nach inverser Distanz). Ohne Werte bleibt das Muster typisch. */
@@ -384,6 +388,12 @@ function fit(){
   bctx.setTransform(DPR,0,0,DPR,0,0); fctx.setTransform(DPR,0,0,DPR,0,0);
   const V = VIEWS[ST.view], [x0,y0] = km([V.lat[0],V.lon[0]]), [x1,y1] = km([V.lat[1],V.lon[1]]);
   T.cx = (x0+x1)/2; T.cy = (y0+y1)/2; T.k = Math.min(W/(x1-x0), Hh/(y1-y0));
+  if(Z){
+    /* gezoomt: Mitte so begrenzen, dass der Ausschnitt im Rahmen der gewählten Ansicht bleibt */
+    const cl = (v, lo, hi) => lo>hi ? (lo+hi)/2 : Math.max(lo, Math.min(hi, v));
+    T.k *= Z.s; const hw = W/2/T.k, hh = Hh/2/T.k;
+    T.cx = Z.cx = cl(Z.cx, x0+hw, x1-hw); T.cy = Z.cy = cl(Z.cy, y0+hh, y1-hh);
+  }
 }
 function poly(ctx, pts){ ctx.moveTo(...P(pts[0])); for(let i=1;i<pts.length;i++) ctx.lineTo(...P(pts[i])); ctx.closePath(); }
 function line(ctx, pts){ ctx.beginPath(); ctx.moveTo(...P(pts[0])); for(let i=1;i<pts.length;i++) ctx.lineTo(...P(pts[i])); }
@@ -476,7 +486,7 @@ function badgePos(){
   if(ST.view==="region") return [];
   return C.LAKE.map(L=>{ let [x,y] = P(MARK[L.id]); if(x<0 || y<0 || x>W || y>Hh) return null;
     y += L.id==="vin" ? -24 : 24; x += L.id==="vin" ? -14 : 14;
-    return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(24, Math.min(Hh-24, y))}; }).filter(Boolean);
+    return {L, x:Math.max(78, Math.min(W-78, x)), y:Math.max(ST.view==="bucht" ? 52 : 24, Math.min(Hh-24, y))}; }).filter(Boolean);
 }
 /* Ausschnitt Region: alle Upwind-Stationen, Mathod und die Seestationen mit dem Wind von jetzt (im Regler: nur Ipsach aus
    Messung und Modell). Ausschnitt See: der Chasseral mit dem Wind von jetzt. Nur gemessene Werte, keine typischen.
@@ -619,8 +629,9 @@ function build(){
     <div class="wblagen" role="group" aria-label="Windlage">${DATA.lagen.map(l=>`<button class="chip" data-t="${l.id}">${esc(l.name)}</button>`).join("")}</div>
     <div class="wbbar"><div class="wbseg wbvars" role="group" aria-label="Variante" hidden></div>
       <div class="wbseg wbviews" role="group" aria-label="Ausschnitt">${Object.keys(VIEWS).map(k=>`<button data-v="${k}">${VIEWS[k].name}</button>`).join("")}</div></div>
-    <div class="wbmap" role="img"><canvas></canvas><canvas></canvas><div class="wbbadges"></div><div class="wbtip"></div>
-      <div class="wbest" hidden>geschätzt</div><div class="wbnote">Schematisch · Tippen zeigt den Wert</div></div>
+    <div class="wbmap" role="img"><div class="wbpan"><canvas></canvas><canvas></canvas><div class="wbbadges"></div></div><div class="wbtip"></div>
+      <div class="wbest" hidden>geschätzt</div><div class="wbnote">Schematisch · Tippen zeigt den Wert</div>
+      <button class="wbreset" type="button" hidden>Ganze Karte</button></div>
     <div class="wbtime"><input type="range" min="0" max="24" step="1" value="${ST.h}" aria-label="Vorspulen: Stunden ab jetzt">
       <div class="wbtl"><span>jetzt</span><span>+6 h</span><span>+12 h</span><span>+18 h</span><span>+24 h</span></div></div>
     <div class="wbleg"><span>kn</span><div class="wbscale"><div class="wbramp" style="background:linear-gradient(90deg,${g.join(",")})"></div>
@@ -628,10 +639,13 @@ function build(){
     <div class="note wbpanel" aria-live="polite"></div>`;
   mapEl = el.querySelector(".wbmap"); [base, flow] = mapEl.querySelectorAll("canvas"); bctx = base.getContext("2d"); fctx = flow.getContext("2d");
   el.querySelectorAll(".wblagen button").forEach(b=>b.addEventListener("click", ()=>{ ST.auto = false; ST.type = b.dataset.t; update(); }));
-  el.querySelectorAll(".wbviews button").forEach(b=>b.addEventListener("click", ()=>{ ST.view = b.dataset.v; try{ localStorage.setItem(V_KEY, ST.view); }catch(e){} update(); }));
+  el.querySelectorAll(".wbviews button").forEach(b=>b.addEventListener("click", ()=>{ Z = null; ST.view = b.dataset.v; try{ localStorage.setItem(V_KEY, ST.view); }catch(e){} update(); }));
   el.querySelector(".wbtime input").addEventListener("input", e=>{ ST.h = +e.target.value; update(); });
   const tip = el.querySelector(".wbtip"); let tt;
+  zoomen();
+  el.querySelector(".wbreset").addEventListener("click", e=>{ e.stopPropagation(); Z = null; update(); });
   mapEl.addEventListener("click", e=>{
+    if(Date.now()-gesteEnde < 400) return;
     const r = mapEl.getBoundingClientRect(), px = e.clientX-r.left, py = e.clientY-r.top, [u,v] = fieldAt(...toKm(px,py)), s = Math.hypot(u,v);
     const st = statPos().map(q=>Object.assign({d:Math.hypot(q.x-px, q.y-py)}, q)).sort((a,b)=>a.d-b.d)[0];
     tip.textContent = st && st.d<26 ? `${st.voll}: ${st.w ? r0(st.w.kn)+" kn "+card(st.w.dir) : "keine Messung"}${st.sig==="on" ? " · Signal" : st.sig==="near" ? " · ungeprüftes Signal" : ""}`
@@ -645,6 +659,74 @@ function build(){
   const redraw = () => { drawn = ""; update(); };
   new MutationObserver(redraw).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
+}
+/* ---------- Zoom und Verschieben ---------- */
+let gesteEnde = 0;
+const pan = () => mapEl.querySelector(".wbpan");
+function zeige(){ pan().style.transform = G ? `translate(${G.tx}px,${G.ty}px) scale(${G.f})` : ""; }
+/* um den Punkt (qx, qy) um den Faktor df vergrössern, Massstab bleibt zwischen 1 und ZMAX */
+function zoomUm(qx, qy, df){
+  const s0 = Z ? Z.s : 1, f = Math.max(1/s0, Math.min(ZMAX/s0, G.f*df)); df = f/G.f;
+  G.tx = df*(G.tx-qx)+qx; G.ty = df*(G.ty-qy)+qy; G.f = f;
+}
+/* Geste übernehmen: der Punkt in der Mitte des Bildes wird die neue Mitte, der Massstab wächst um G.f */
+function uebernehme(){
+  if(!G) return;
+  const moved = Math.abs(G.f-1)>0.01 || Math.hypot(G.tx, G.ty)>3, s = (Z ? Z.s : 1)*G.f;
+  if(moved){
+    const [cx, cy] = toKm((W/2-G.tx)/G.f, (Hh/2-G.ty)/G.f);
+    Z = s>1.02 ? {s, cx, cy} : null; gesteEnde = Date.now();
+  }
+  G = null;
+  if(moved){ drawn = ""; update(); } else zeige();
+}
+function zoomen(){
+  const P2 = new Map(); let start = null, wt = 0;
+  const lokal = e => { const r = mapEl.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+  const beginne = () => {
+    const p = [...P2.values()];
+    if(p.length>=2) start = {mx:(p[0][0]+p[1][0])/2, my:(p[0][1]+p[1][1])/2, d:Math.hypot(p[0][0]-p[1][0], p[0][1]-p[1][1])||1, tx:G.tx, ty:G.ty, f:G.f};
+    else if(p.length===1 && Z) start = {mx:p[0][0], my:p[0][1], d:0, tx:G.tx, ty:G.ty, f:G.f};
+    else start = null;
+  };
+  mapEl.addEventListener("pointerdown", e=>{
+    if(e.pointerType==="mouse" && e.button!==0) return;
+    P2.set(e.pointerId, lokal(e));
+    if(P2.size===1 && !Z && e.pointerType!=="touch") return;    /* Maus ohne Zoom: nur Tippen */
+    if(!G) G = {f:1, tx:0, ty:0};
+    try{ mapEl.setPointerCapture(e.pointerId); }catch(x){}
+    beginne();
+  });
+  mapEl.addEventListener("pointermove", e=>{
+    if(!P2.has(e.pointerId)) return;
+    P2.set(e.pointerId, lokal(e));
+    if(!G || !start) return;
+    const p = [...P2.values()];
+    if(p.length>=2 && start.d){
+      const mx = (p[0][0]+p[1][0])/2, my = (p[0][1]+p[1][1])/2, d = Math.hypot(p[0][0]-p[1][0], p[0][1]-p[1][1]);
+      G.f = start.f; G.tx = start.tx + mx-start.mx; G.ty = start.ty + my-start.my;
+      zoomUm(mx, my, d/start.d);
+    } else if(p.length===1 && !start.d){ G.tx = start.tx + p[0][0]-start.mx; G.ty = start.ty + p[0][1]-start.my; }
+    else return;
+    mapEl.classList.add("zooming"); zeige();
+  });
+  const los = e => {
+    if(!P2.delete(e.pointerId)) return;
+    if(!G) return;
+    if(P2.size) beginne();                       /* ein Finger bleibt: weiter verschieben */
+    else { mapEl.classList.remove("zooming"); start = null; uebernehme(); }
+  };
+  mapEl.addEventListener("pointerup", los); mapEl.addEventListener("pointercancel", los);
+  /* Trackpad-Pinch und Ctrl + Mausrad am Computer */
+  mapEl.addEventListener("wheel", e=>{
+    if(!e.ctrlKey) return;
+    e.preventDefault();
+    if(!G) G = {f:1, tx:0, ty:0};
+    const [qx, qy] = lokal(e); zoomUm(qx, qy, Math.exp(-Math.max(-40, Math.min(40, e.deltaY))*0.01)); zeige();
+    clearTimeout(wt); wt = setTimeout(uebernehme, 160);
+  }, {passive:false});
+  /* Safari: kein Zoom der ganzen Seite, solange die Finger auf der Karte liegen */
+  ["gesturestart","gesturechange"].forEach(t=>mapEl.addEventListener(t, e=>e.preventDefault(), {passive:false}));
 }
 /* Die Datei muss vollständig sein, sonst zeigt die Sektion lieber eine Meldung als eine halbe Karte */
 function pruefe(j){
@@ -678,13 +760,17 @@ function update(){
   head();
   const refKey = Object.entries(BILD.ref).map(([k,v])=>k+Math.round(v.kn)+"/"+Math.round(v.dir/5)).join(",");
   const key = [BILD.art, BILD.lage, ST.type, varOf().key, ST.view, ST.h, refKey, isDark(), reduce(), Math.round(mapEl.getBoundingClientRect().width)].join("|");
-  if(key!==drawn){ drawn = key; requestAnimationFrame(()=>{ try{ setAnchors(); fit(); drawBase(); seed(); badges(); play(); }catch(e){ drawn = ""; } }); }
+  const zk = Z ? [Z.s.toFixed(3), Z.cx.toFixed(3), Z.cy.toFixed(3)].join("/") : "";
+  const rs = el.querySelector(".wbreset"); if(rs) rs.hidden = !Z;
+  const nt = el.querySelector(".wbnote"); if(nt) nt.textContent = Z ? `Schematisch · ${Z.s.toFixed(1)}×` : "Schematisch · Tippen zeigt den Wert · Zoom mit zwei Fingern"; mapEl.classList.toggle("zoomed", !!Z);
+  if(key+"|"+zk!==drawn){ drawn = key+"|"+zk; requestAnimationFrame(()=>{ try{ setAnchors(); fit(); drawBase(); seed(); badges(); if(!G) zeige(); play(); }catch(e){ drawn = ""; } }); }
   else badges();
   panel();
 }
 /* Startseite: nur die Lage von heute (ohne Filter, ohne Tabelle). Blatt «Erklärungen»: alle Lagen und Varianten mit Tabelle.
    Zurück auf der Startseite gilt wieder die Lage von heute. */
 function mode(full){
+  Z = null; G = null;
   ST.full = !!full; if(!ST.full) ST.auto = true;
   el = el || $("#wb"); if(el) el.classList.toggle("wbfull", ST.full);
   drawn = ""; update();
